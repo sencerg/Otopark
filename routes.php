@@ -10,6 +10,7 @@ use App\Controllers\DestekController;
 use App\Controllers\HareketController;
 use App\Controllers\HesapController;
 use App\Controllers\IsEmriController;
+use App\Controllers\KarsilastirmaController;
 use App\Controllers\MaliyetController;
 use App\Controllers\RaporController;
 use App\Controllers\TanimController;
@@ -116,3 +117,8 @@ $router->post('/destek_talepleri/multiple_arsiv', [DestekController::class, 'top
 // Hesabım
 $router->get('/kullanici/hesabim', [HesapController::class, 'index'], $auth);
 $router->post('/kullanici/hesabim', [HesapController::class, 'update'], $auth);
+
+// Proje notları
+$router->get('/bia_md_karsilastirma', [KarsilastirmaController::class, 'index'], $auth);
+$router->get('/bia_md_karsilastirma/indir', [KarsilastirmaController::class, 'indir'], $auth);
+$router->post('/bia_md_karsilastirma/kaydet', [KarsilastirmaController::class, 'kaydet'], $auth);

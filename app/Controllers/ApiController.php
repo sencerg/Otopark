@@ -33,7 +33,7 @@ final class ApiController extends Controller
 
     public function araclar(): void
     {
-        $q = mb_strtoupper(trim((string) Request::input('q', '')));
+        $q = mb_strtoupper(Request::str('q') ?? '');
         if (mb_strlen($q) < 2) {
             View::json(['results' => []]);
         }
@@ -57,7 +57,7 @@ final class ApiController extends Controller
 
     public function arama(): void
     {
-        $q = trim((string) Request::input('q', ''));
+        $q = Request::str('q') ?? '';
         if ($q === '') {
             View::redirect('/');
         }

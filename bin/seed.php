@@ -51,6 +51,7 @@ Database::transaction(function () use ($t, $insertNames, $idMap) {
     $users = [
         ['Yönetici', 'admin@otopark.local', 'admin123', 'admin', $grup['Yönetici'], null],
         ['Ankara Bayi', 'ankara@otopark.local', 'ankara123', 'bayi', $grup['Bayi Grubu'], $bayi['BİA ANKARA']],
+        ['Seyrantepe Bayi', 'seyrantepe@otopark.local', 'seyrantepe123', 'bayi', $grup['Bayi Grubu'], $bayi['BİA SEYRANTEPE']],
     ];
     foreach ($users as [$name, $email, $pass, $role, $grupId, $bayiId]) {
         Database::query(
@@ -64,6 +65,7 @@ Database::transaction(function () use ($t, $insertNames, $idMap) {
 echo "Tanımlar ve kullanıcılar hazır.\n";
 echo "  admin@otopark.local / admin123  (tüm lokasyonlar)\n";
 echo "  ankara@otopark.local / ankara123 (sadece BİA ANKARA)\n";
+echo "  seyrantepe@otopark.local / seyrantepe123 (sadece BİA SEYRANTEPE)\n";
 
 if (!$withDemo || Database::fetch('SELECT 1 FROM araclar LIMIT 1')) {
     exit(0);
@@ -76,18 +78,20 @@ $ids = static fn (string $table) => array_map('intval', array_column(Database::f
 Database::transaction(function () use ($pick, $ids, $idMap) {
     $bayi = $idMap('bayiler');
     $ankara = $bayi['BİA ANKARA'];
+    $seyrantepe = $bayi['BİA SEYRANTEPE'];
     $musteri = $idMap('musteriler');
     $maliyet = $idMap('maliyet_tipleri');
     $departman = $idMap('departmanlar');
     $admin = (int) Database::fetch("SELECT id FROM users WHERE email = 'admin@otopark.local'")['id'];
 
     $personeller = ['Ahmet Yılmaz', 'Mehmet Kaya', 'Ayşe Demir', 'Fatma Çelik', 'Mustafa Şahin', 'Emre Aydın', 'Burak Öztürk', 'Zeynep Arslan', 'Can Doğan', 'Elif Koç'];
+    $personelIds = [$ankara => [], $seyrantepe => []];
     foreach ($personeller as $i => $ad) {
-        Database::query('INSERT INTO personeller (ad_soyad, departman_id, bayi_id) VALUES (:a, :d, :b)', [
-            'a' => $ad, 'd' => $departman[$i < 7 ? 'SAHA' : 'İDARİ İŞLER VE SATIN ALMA'], 'b' => $ankara,
-        ]);
+        $pBayi = $i < 7 ? $ankara : $seyrantepe;
+        $personelIds[$pBayi][] = (int) Database::fetch('INSERT INTO personeller (ad_soyad, departman_id, bayi_id) VALUES (:a, :d, :b) RETURNING id', [
+            'a' => $ad, 'd' => $departman[$i < 5 || $i >= 7 ? 'SAHA' : 'İDARİ İŞLER VE SATIN ALMA'], 'b' => $pBayi,
+        ])['id'];
     }
-    $personelIds = $ids('personeller');
 
     $firmaAgirlik = [
         'DOĞUŞ OTO (FİLO 0 ARAÇLAR)' => 60, 'ÇETAŞ OTOMOTİV (RENAULT)' => 10, 'GÜRSES' => 6, 'ÇETAŞ OTOMOTİV (PSA)' => 5,
@@ -99,10 +103,12 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
     }
 
     foreach (array_unique($firmaHavuzu) as $mId) {
-        foreach ([1 => 95, 2 => 120, 3 => 180] as $aracTipi => $fiyat) {
-            Database::query('INSERT INTO depolama_fiyatlari (musteri_id, bayi_id, arac_tipi_id, gunluk_fiyat) VALUES (:m, :b, :t, :f)', [
-                'm' => $mId, 'b' => $ankara, 't' => $aracTipi, 'f' => $fiyat,
-            ]);
+        foreach ([$ankara => 0, $seyrantepe => 25] as $fBayi => $fark) {
+            foreach ([1 => 95, 2 => 120, 3 => 180] as $aracTipi => $fiyat) {
+                Database::query('INSERT INTO depolama_fiyatlari (musteri_id, bayi_id, arac_tipi_id, gunluk_fiyat) VALUES (:m, :b, :t, :f)', [
+                    'm' => $mId, 'b' => $fBayi, 't' => $aracTipi, 'f' => $fiyat + $fark,
+                ]);
+            }
         }
     }
 
@@ -127,7 +133,8 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
         if ($cikis && $cikis > new DateTimeImmutable()) {
             $cikis = new DateTimeImmutable('-1 hour');
         }
-        $plaka = '06 ' . chr(65 + mt_rand(0, 25)) . chr(65 + mt_rand(0, 25)) . ' ' . mt_rand(100, 999);
+        $bId = mt_rand(1, 100) <= 75 ? $ankara : $seyrantepe;
+        $plaka = ($bId === $ankara ? '06 ' : '34 ') . chr(65 + mt_rand(0, 25)) . chr(65 + mt_rand(0, 25)) . ' ' . mt_rand(100, 999);
 
         $aracId = (int) Database::fetch(
             'INSERT INTO araclar (sase, plaka, arac_durumu, arac_tipi_id, kasa_tipi_id, renk_id, marka_id, seri_id, model_yili_id,
@@ -139,7 +146,7 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
                 'sase' => $sase, 'plaka' => $plaka, 'durum' => mt_rand(1, 10) <= 7 ? 1 : 2, 'tip' => mt_rand(1, 10) <= 8 ? 1 : 2,
                 'kasa' => mt_rand(1, 5), 'renk' => $pick($renkler), 'marka' => $seri['marka_id'], 'seri' => $seri['id'],
                 'yil' => $pick($yillar), 'yakit' => mt_rand(1, 5), 'vites' => mt_rand(1, 2), 'km' => mt_rand(5, 60000),
-                'yd' => mt_rand(10, 100), 'm' => $mId, 'b' => $ankara, 'lt' => mt_rand(1, 2), 'ld' => 'Blok ' . chr(65 + mt_rand(0, 4)) . '-' . mt_rand(1, 40),
+                'yd' => mt_rand(10, 100), 'm' => $mId, 'b' => $bId, 'lt' => mt_rand(1, 2), 'ld' => 'Blok ' . chr(65 + mt_rand(0, 4)) . '-' . mt_rand(1, 40),
                 'stokta' => $cikti ? 'false' : 'true', 'giris' => $giris->format('c'), 'cikis' => $cikis?->format('c'), 'u' => $admin,
             ]
         )['id'];
@@ -152,14 +159,14 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
             'INSERT INTO arac_hareketleri (arac_id, hareket_tipi, hareket_nedeni_id, musteri_id, bayi_id, lokasyon_turu, teslim_eden,
                 teslim_alan_personel_id, hareket_tarihi, kullanici_id)
              VALUES (:a, 1, 1, :m, :b, 1, :te, :p, :t, :u)',
-            ['a' => $aracId, 'm' => $mId, 'b' => $ankara, 'te' => 'Sevkiyat Şoförü', 'p' => $pick($personelIds), 't' => $giris->format('c'), 'u' => $admin]
+            ['a' => $aracId, 'm' => $mId, 'b' => $bId, 'te' => 'Sevkiyat Şoförü', 'p' => $pick($personelIds[$bId]), 't' => $giris->format('c'), 'u' => $admin]
         );
 
-        $ekstre = static function (int $tipId, float $tutar, DateTimeImmutable $tarih) use ($aracId, $mId, $ankara, $admin): void {
+        $ekstre = static function (int $tipId, float $tutar, DateTimeImmutable $tarih) use ($aracId, $mId, $bId, $admin): void {
             Database::query(
                 'INSERT INTO arac_ekstreleri (arac_id, maliyet_tipi_id, musteri_id, bayi_id, tutar, islem_tarihi, kullanici_id, created_at)
                  VALUES (:a, :t, :m, :b, :tu, :d, :u, :c)',
-                ['a' => $aracId, 't' => $tipId, 'm' => $mId, 'b' => $ankara, 'tu' => $tutar, 'd' => $tarih->format('Y-m-d'), 'u' => $admin, 'c' => $tarih->format('c')]
+                ['a' => $aracId, 't' => $tipId, 'm' => $mId, 'b' => $bId, 'tu' => $tutar, 'd' => $tarih->format('Y-m-d'), 'u' => $admin, 'c' => $tarih->format('c')]
             );
         };
         $ekstre($teslimAlma, 135, $giris);
@@ -174,14 +181,16 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
                 'INSERT INTO arac_hareketleri (arac_id, hareket_tipi, hareket_nedeni_id, musteri_id, bayi_id, teslim_alan, sevkiyat_tipi,
                     sevkiyat_durumu, hareket_tarihi, kullanici_id)
                  VALUES (:a, 2, :n, :m, :b, :ta, :st, 3, :t, :u)',
-                ['a' => $aracId, 'n' => mt_rand(1, 3), 'm' => $mId, 'b' => $ankara, 'ta' => 'Müşteri Temsilcisi', 'st' => mt_rand(1, 3), 't' => $cikis->format('c'), 'u' => $admin]
+                ['a' => $aracId, 'n' => mt_rand(1, 3), 'm' => $mId, 'b' => $bId, 'ta' => 'Müşteri Temsilcisi', 'st' => mt_rand(1, 3), 't' => $cikis->format('c'), 'u' => $admin]
             );
             $ekstre($teslimAlma, 135, $cikis);
         }
     }
 
-    $stoktakiler = array_column(Database::fetchAll('SELECT id FROM araclar WHERE stokta ORDER BY random() LIMIT 40'), 'id');
+    $stokBayi = static fn (int $b) => array_column(Database::fetchAll('SELECT id FROM araclar WHERE stokta AND bayi_id = :b ORDER BY id LIMIT 40', ['b' => $b]), 'id');
+    $stokHavuzu = [$ankara => $stokBayi($ankara), $seyrantepe => $stokBayi($seyrantepe)];
     for ($i = 1; $i <= 18; $i++) {
+        $stoktakiler = $stokHavuzu[$i % 4 === 0 ? $seyrantepe : $ankara];
         $durum = $pick([1, 1, 2, 3, 3, 4, 4, 4]);
         $talep = (new DateTimeImmutable())->modify('-' . mt_rand(0, 30) . ' days');
         $isEmriId = (int) Database::fetch(
@@ -193,7 +202,7 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
                 'tm' => $durum === 4 ? $talep->modify('+2 days')->format('Y-m-d') : null, 'det' => 'Müşteri talebi doğrultusunda araç hazırlığı.', 'u' => $admin,
             ]
         )['id'];
-        foreach (array_slice($stoktakiler, ($i * 2) % 38, mt_rand(1, 3)) as $aracId) {
+        foreach (array_slice($stoktakiler, ($i * 2) % max(1, count($stoktakiler) - 3), mt_rand(1, 3)) as $aracId) {
             Database::query('INSERT INTO is_emri_araclari (is_emri_id, arac_id, durum) VALUES (:i, :a, :d) ON CONFLICT DO NOTHING', ['i' => $isEmriId, 'a' => $aracId, 'd' => min($durum, 4)]);
         }
         Database::query('INSERT INTO is_emri_departmanlari VALUES (:i, :d)', ['i' => $isEmriId, 'd' => $departman['SAHA']]);

@@ -215,7 +215,8 @@ final class IsEmriController extends Controller
             $aracId = (int) $aracId;
             if ($aracId > 0) {
                 AracService::bul($aracId);
-                $sonuc[$aracId] = (int) ($durumlar[$i] ?? 0) ?: 1;
+                $durum = is_numeric($durumlar[$i] ?? null) ? (int) $durumlar[$i] : 1;
+                $sonuc[$aracId] = isset(Tanim::IS_EMRI_DURUM[$durum]) ? $durum : 1;
             }
         }
 
@@ -274,7 +275,7 @@ final class IsEmriController extends Controller
         $this->ajax(function () {
             $ids = Request::ids('ids');
             $durum = Request::int('durum');
-            if (!$ids || !isset(Tanim::IS_EMRI_DURUM[$durum])) {
+            if (!$ids || !$durum || !isset(Tanim::IS_EMRI_DURUM[$durum])) {
                 throw new RuntimeException('Kayıt ve durum seçilmelidir.');
             }
             $n = 0;

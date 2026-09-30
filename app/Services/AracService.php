@@ -72,11 +72,16 @@ final class AracService
         return Database::transaction(function () use ($sase, $arac, $hareket, $envanterler, $donanimlar) {
             $mevcut = Database::fetch('SELECT * FROM araclar WHERE sase = :s FOR UPDATE', ['s' => $sase]);
 
+            if ($mevcut && Auth::bayiId() && (int) $mevcut['bayi_id'] !== Auth::bayiId()) {
+                if ($mevcut['stokta']) {
+                    throw new RuntimeException('Bu araç başka bir lokasyonun stoğunda.');
+                }
+                if (!$hareket || (int) $hareket['hareket_tipi'] !== 1) {
+                    throw new RuntimeException('Bu araç başka bir lokasyona kayıtlı. Kendi lokasyonunuza almak için giriş hareketi yapın.');
+                }
+            }
             if ($mevcut && $hareket && (int) $hareket['hareket_tipi'] === 1 && $mevcut['stokta']) {
                 throw new RuntimeException("{$sase} şasi numaralı araç zaten stokta.");
-            }
-            if ($mevcut && Auth::bayiId() && $mevcut['stokta'] && (int) $mevcut['bayi_id'] !== Auth::bayiId()) {
-                throw new RuntimeException('Bu araç başka bir lokasyonun stoğunda.');
             }
             if (!$mevcut && $hareket && (int) $hareket['hareket_tipi'] === 2) {
                 throw new RuntimeException('Stokta olmayan araç için çıkış yapılamaz.');
@@ -128,7 +133,11 @@ final class AracService
         }
         $tarih = $hareket['hareket_tarihi'] ?? date('Y-m-d H:i:s');
         if ($tip === 2) {
-            $giris = Database::fetch('SELECT stoga_giris_tarihi FROM araclar WHERE id = :id', ['id' => $aracId])['stoga_giris_tarihi'] ?? null;
+            $durum = Database::fetch('SELECT stokta, stoga_giris_tarihi FROM araclar WHERE id = :id', ['id' => $aracId]);
+            if (!$durum || !$durum['stokta']) {
+                throw new RuntimeException('Stokta olmayan araç için çıkış yapılamaz.');
+            }
+            $giris = $durum['stoga_giris_tarihi'];
             if ($giris && strtotime($tarih) < strtotime($giris)) {
                 throw new RuntimeException('Çıkış tarihi, aracın stoğa giriş tarihinden (' . date('d.m.Y H:i', strtotime($giris)) . ') önce olamaz.');
             }

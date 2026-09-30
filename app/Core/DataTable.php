@@ -33,7 +33,8 @@ final class DataTable
         $where = $this->where;
         $params = $this->params;
 
-        $search = trim((string) ($_REQUEST['search']['value'] ?? $_REQUEST['q'] ?? ''));
+        $search = $_REQUEST['search']['value'] ?? $_REQUEST['q'] ?? '';
+        $search = is_string($search) ? trim($search) : '';
         if ($withSearch && $search !== '' && $this->searchable) {
             $parts = [];
             foreach ($this->searchable as $i => $expr) {
@@ -60,10 +61,12 @@ final class DataTable
     {
         $aliases = array_keys($this->columns);
         $order = $_REQUEST['order'][0] ?? null;
-        $requested = $order ? ($_REQUEST['columns'][(int) $order['column']]['data'] ?? null) : null;
+        $order = is_array($order) ? $order : null;
+        $kolon = $order['column'] ?? null;
+        $requested = is_numeric($kolon) ? ($_REQUEST['columns'][(int) $kolon]['data'] ?? null) : null;
 
-        if ($requested !== null && in_array($requested, $aliases, true)) {
-            $dir = strtolower($order['dir'] ?? '') === 'asc' ? 'ASC' : 'DESC';
+        if (is_string($requested) && in_array($requested, $aliases, true)) {
+            $dir = is_string($order['dir'] ?? null) && strtolower($order['dir']) === 'asc' ? 'ASC' : 'DESC';
             $sortExpr = $this->columns[$requested . '_sort'] ?? $this->columns[$requested];
 
             return " ORDER BY {$sortExpr} {$dir} NULLS LAST";

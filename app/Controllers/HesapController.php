@@ -30,12 +30,12 @@ final class HesapController extends Controller
             }
             $data = ['name' => $ad . ' ' . $soyad, 'email' => $mail, 'telefon' => Request::str('telefon')];
 
-            $sifre = (string) Request::input('sifre', '');
+            $sifre = is_string($_POST['sifre'] ?? null) ? $_POST['sifre'] : '';
             if ($sifre !== '') {
                 if (mb_strlen($sifre) < 6) {
                     throw new RuntimeException('Şifre en az 6 karakter olmalıdır.');
                 }
-                if ($sifre !== (string) Request::input('sifre_tekrari', '')) {
+                if ($sifre !== ($_POST['sifre_tekrari'] ?? null)) {
                     throw new RuntimeException('Şifre ve şifre tekrarı aynı değil.');
                 }
                 $data['password_hash'] = password_hash($sifre, PASSWORD_DEFAULT);

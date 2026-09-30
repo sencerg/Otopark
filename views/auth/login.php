@@ -17,4 +17,25 @@
         </div>
         <button type="submit" class="btn btn-primary w-100">Giriş Yap</button>
     </form>
+    <?php if (!empty($demoHesaplar)): ?>
+        <div class="demo-login mt-4">
+            <div class="small text-muted text-center mb-2">Hızlı giriş (sadece geliştirme ortamı)</div>
+            <div class="d-grid gap-2">
+                <?php foreach ($demoHesaplar as [$ad, $aciklama, $email, $sifre, $ikon]): ?>
+                    <button type="button" class="btn btn-outline-secondary btn-sm text-start d-flex align-items-center gap-2" data-demo-email="<?= e($email) ?>" data-demo-sifre="<?= e($sifre) ?>">
+                        <i class="mdi <?= e($ikon) ?> fs-5"></i>
+                        <span><b><?= e($ad) ?></b><small class="d-block text-muted"><?= e($aciklama) ?> · <?= e($email) ?></small></span>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <script>
+            document.querySelectorAll('[data-demo-email]').forEach((btn) => btn.addEventListener('click', () => {
+                const form = document.querySelector('form[action="/login"]');
+                form.email.value = btn.dataset.demoEmail;
+                form.password.value = btn.dataset.demoSifre;
+                form.submit();
+            }));
+        </script>
+    <?php endif; ?>
 </div>

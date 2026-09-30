@@ -85,6 +85,12 @@ final class TanimController extends Controller
         }
     }
 
+    /** Lokasyon alanı olan tanımlarda bayi kullanıcısı yalnızca kendi lokasyonunun kayıtlarına erişir. */
+    private function bayiKosulu(array $t): string
+    {
+        return isset($t['alanlar']['bayi_id']) ? Auth::bayiKosulu('bayi_id') : 'TRUE';
+    }
+
     public static function secenekler(string|array $kaynak): array
     {
         if (is_array($kaynak)) {
@@ -93,7 +99,7 @@ final class TanimController extends Controller
 
         return match ($kaynak) {
             'seriler_tam' => array_column(Database::fetchAll("SELECT s.id, m.ad || ' / ' || s.ad AS ad FROM seriler s JOIN markalar m ON m.id = s.marka_id ORDER BY m.ad, s.ad"), 'ad', 'id'),
-            'bayiler' => array_column(Database::fetchAll('SELECT id, ad FROM bayiler ORDER BY id'), 'ad', 'id'),
+            'bayiler' => array_column(Database::fetchAll('SELECT id, ad FROM bayiler WHERE ' . Auth::bayiKosulu('id') . ' ORDER BY id'), 'ad', 'id'),
             'musteriler' => array_column(Database::fetchAll('SELECT id, ad FROM musteriler ORDER BY ad'), 'ad', 'id'),
             default => Tanim::liste($kaynak),
         };
@@ -140,7 +146,7 @@ final class TanimController extends Controller
                 $aranabilir[] = $alan;
             }
         }
-        $dt = new DataTable($t['tablo'], $kolonlar, [], [], $aranabilir, $t['sira'] ?? 'id');
+        $dt = new DataTable($t['tablo'], $kolonlar, [$this->bayiKosulu($t)], [], $aranabilir, $t['sira'] ?? 'id');
         $secenekler = array_map(fn ($a) => isset($a[3]) ? self::secenekler($a[3]) : null, $t['alanlar']);
         $dt->response(function ($r) use ($secenekler) {
             foreach ($secenekler as $alan => $opts) {
@@ -166,6 +172,7 @@ final class TanimController extends Controller
                     'number' => Request::int($alan),
                     'decimal' => Request::decimal($alan),
                     'select' => Request::str($alan),
+                    'password' => is_string($_POST[$alan] ?? null) && $_POST[$alan] !== '' ? $_POST[$alan] : null,
                     default => Request::str($alan),
                 };
                 if ($tur === 'password') {
@@ -198,10 +205,16 @@ final class TanimController extends Controller
                     throw new RuntimeException('Kendi hesabınızı pasifleştiremez veya yetkisini düşüremezsiniz.');
                 }
             }
+            if (isset($t['alanlar']['bayi_id']) && Auth::bayiId()) {
+                $data['bayi_id'] = Auth::bayiId();
+            }
 
             if ($id) {
                 $set = implode(', ', array_map(fn ($c) => "{$c} = :{$c}", array_keys($data)));
-                Database::query("UPDATE {$t['tablo']} SET {$set} WHERE id = :_id", $data + ['_id' => $id]);
+                $guncellenen = Database::query("UPDATE {$t['tablo']} SET {$set} WHERE id = :_id AND " . $this->bayiKosulu($t), $data + ['_id' => $id])->rowCount();
+                if ($guncellenen === 0) {
+                    throw new RuntimeException('Kayıt bulunamadı veya erişim yetkiniz yok.');
+                }
             } else {
                 $cols = array_keys($data);
                 $id = (int) Database::fetch(
@@ -218,7 +231,7 @@ final class TanimController extends Controller
     {
         $t = $this->tanim($tip);
         $cols = implode(', ', array_merge(['id'], array_keys(array_filter($t['alanlar'], fn ($a) => $a[1] !== 'password'))));
-        $row = Database::fetch("SELECT {$cols} FROM {$t['tablo']} WHERE id = :id", ['id' => $id]);
+        $row = Database::fetch("SELECT {$cols} FROM {$t['tablo']} WHERE id = :id AND " . $this->bayiKosulu($t), ['id' => $id]);
         $row ? $this->ok('', ['data' => $row]) : $this->fail('Kayıt bulunamadı.', 404);
     }
 
@@ -231,7 +244,9 @@ final class TanimController extends Controller
                 throw new RuntimeException('Kendi hesabınızı silemezsiniz.');
             }
             try {
-                Database::query("DELETE FROM {$t['tablo']} WHERE id = :id", ['id' => $id]);
+                if (Database::query("DELETE FROM {$t['tablo']} WHERE id = :id AND " . $this->bayiKosulu($t), ['id' => $id])->rowCount() === 0) {
+                    throw new RuntimeException('Kayıt bulunamadı veya erişim yetkiniz yok.');
+                }
             } catch (\PDOException $e) {
                 if (str_contains($e->getMessage(), 'foreign key')) {
                     throw new RuntimeException('Bu kayıt başka kayıtlarda kullanıldığı için silinemez. Pasif yapabilirsiniz.');

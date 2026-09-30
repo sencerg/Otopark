@@ -34,4 +34,7 @@ return [
         ['title' => 'Dashboard', 'url' => '/ik_dashboard'],
         ['title' => 'Destek Talepleri', 'url' => '/destek_talepleri'],
     ]],
+    ['title' => 'Proje Notları', 'icon' => 'mdi-notebook-outline', 'children' => [
+        ['title' => 'BİA ↔ MD Karşılaştırma', 'url' => '/bia_md_karsilastirma'],
+    ]],
 ];

@@ -35,6 +35,8 @@ final class Request
         }
         if (str_contains($value, ',')) {
             $value = str_replace(['.', ','], ['', '.'], $value);
+        } elseif (preg_match('/^-?\d{1,3}(\.\d{3})+$/', $value)) {
+            $value = str_replace('.', '', $value);
         }
 
         return is_numeric($value) ? (float) $value : null;
@@ -44,7 +46,11 @@ final class Request
     {
         $value = self::str($key);
 
-        return $value !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) ? $value : null;
+        if ($value === null || !preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return null;
+        }
+
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]) ? $value : null;
     }
 
     public static function dateTime(string $dateKey, string $timeKey): ?string
@@ -55,7 +61,7 @@ final class Request
         }
         $time = self::str($timeKey);
 
-        return $date . ' ' . ($time !== null && preg_match('/^\d{2}:\d{2}$/', $time) ? $time : '00:00') . ':00';
+        return $date . ' ' . ($time !== null && preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time) ? $time : '00:00') . ':00';
     }
 
     public static function bool(string $key): bool
@@ -67,7 +73,9 @@ final class Request
     {
         $value = $_POST[$key] ?? $_GET[$key] ?? [];
 
-        return array_values(array_unique(array_filter(array_map('intval', (array) $value), fn ($v) => $v > 0)));
+        $value = array_filter((array) $value, 'is_scalar');
+
+        return array_values(array_unique(array_filter(array_map('intval', $value), fn ($v) => $v > 0)));
     }
 
     public static function isAjax(): bool
