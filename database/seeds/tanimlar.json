@@ -1,0 +1,1159 @@
+{
+ "kullanici_gruplari": [
+  "Yönetici",
+  "Müşteri",
+  "İl Dışı Yetkilendirme",
+  "BACAR SAHA ÇALIŞAN",
+  "Satış",
+  "MUHASEBE",
+  "Bayiler arası",
+  "Yetkili İl Dışı ( Ankara,Bursa,Adana)",
+  "Bayi Grubu",
+  "İlan yönetimi Demo",
+  "Avukat",
+  "Samandıra Saha Çalışanı"
+ ],
+ "bayiler": [
+  [
+   "BİA ANKARA",
+   "Ankara"
+  ],
+  [
+   "BACAR SAMANDIRA",
+   "İstanbul"
+  ],
+  [
+   "BİA SEYRANTEPE",
+   "İstanbul"
+  ],
+  [
+   "BİA BURSA",
+   "Bursa"
+  ],
+  [
+   "BİA İZMİR",
+   "İzmir"
+  ],
+  [
+   "BİA KONYA",
+   "Konya"
+  ],
+  [
+   "BİA DİYARBAKIR",
+   "Diyarbakır"
+  ],
+  [
+   "BİA SAMSUN",
+   "Samsun"
+  ],
+  [
+   "BİA TRABZON",
+   "Trabzon"
+  ],
+  [
+   "BİA ANTALYA",
+   "Antalya"
+  ],
+  [
+   "BİA ESKİŞEHİR",
+   "Eskişehir"
+  ]
+ ],
+ "musteriler": [
+  "ARCA GRUP",
+  "AYKAN MOTOR SERVİS A.Ş.",
+  "BACAR A.Ş. SATIŞ STOK",
+  "BACAR TAKİP 2 (FLEETCORP A.Ş.)",
+  "BEYAZ FİLO OTO KİRALAMA A.Ş.",
+  "BFL Filo",
+  "BİA TAKİP (F. VERGİ VE NAKİL HACİZLİ ARAÇLAR)",
+  "Borusan Next",
+  "Çetaş - 2. El",
+  "Çetaş - Toyota",
+  "Çetaş İzmir (RENAULT)",
+  "ÇETAŞ OTOMOTİV (FORD)",
+  "ÇETAŞ OTOMOTİV (Hyundai)",
+  "ÇETAŞ OTOMOTİV (PSA)",
+  "ÇETAŞ OTOMOTİV (RENAULT)",
+  "CMZ OTOMOTİV",
+  "DOĞUŞ OTO (FİLO 0 ARAÇLAR)",
+  "Dokay Filo",
+  "Edirne Servis Ve Otomotiv A.Ş.",
+  "ERKAY OTOMOTİV",
+  "GERÇEK OTO",
+  "GÜLAN OTO- OTO NOVA",
+  "GÜRSES",
+  "MAKİ FİLO",
+  "MARTUR",
+  "NAS OTO",
+  "NASCAR KİRALAMA",
+  "Nev Otomotiv A.Ş.",
+  "OTO PLAN A.Ş.",
+  "OTOKOÇ -BİRMOT ZİNCİRLİKUYU",
+  "OTOKOÇ BİRMOT (KÜÇÜKYALI)",
+  "OTOKOÇ BİRMOT - BEYLİKDÜZÜ",
+  "OTOKOÇ BİRMOT İZMİR",
+  "OTOKOÇ BURSA",
+  "RENAULT MAİS",
+  "RENT GO",
+  "Schindler Türkeli Asansör San. A.Ş.",
+  "Sekar Oto Filo Yönetim Hiz. A.Ş.",
+  "SELİT FİLO",
+  "T.YOL-İŞ SENDİKASI",
+  "TAN OTO",
+  "TEB ARVAL",
+  "TÜRKİYE SİGORTA A.Ş.",
+  "YUKE"
+ ],
+ "departmanlar": [
+  "GENEL MÜDÜR",
+  "2. EL SATIŞ",
+  "BAYİ VE İŞ GELİŞTİRME",
+  "MUHASEBE VE FİNANS",
+  "İDARİ İŞLER VE SATIN ALMA",
+  "SAHA",
+  "GÜVENLİK",
+  "MUTFAK",
+  "TRAFİK MÜŞAVİRLİĞİ",
+  "PAZARLAMA"
+ ],
+ "arac_tipleri": [
+  "Otomobil",
+  "Ticari",
+  "Ağır Ticari",
+  "Motosiklet",
+  "Minibüs",
+  "Otobüs",
+  "Kamyon",
+  "Hasarlı"
+ ],
+ "kasa_tipleri": [
+  "Sedan",
+  "Hatchback",
+  "Suv",
+  "Station Wagon",
+  "PANELVAN",
+  "CABRİO",
+  "COUPE",
+  "Motosiklet",
+  "AÇIK KASA",
+  "KASALI VİNÇ"
+ ],
+ "renkler": [
+  "Gri",
+  "Mavi",
+  "Bej",
+  "Beyaz",
+  "Bordo",
+  "Füme",
+  "Gümüş Gri",
+  "Kahverengi",
+  "Kırmızı",
+  "Lacivert",
+  "Mor",
+  "Pembe",
+  "Sarı",
+  "Siyah",
+  "Şampanya",
+  "Turkuaz",
+  "Turuncu",
+  "Yeşil",
+  "Turkuaz Metalik",
+  "Hardal Sarısı",
+  "Sarı Premium",
+  "Safir Mavi Metalik",
+  "Metalik Turuncu Pearl",
+  "Taş Gri Pearl",
+  "Gece Mavisi Pearl",
+  "Açık Kahverengi Premium",
+  "Orman Yeşili Metalik",
+  "Parlak Siyah",
+  "Kahverengi Mat",
+  "Altın Sarısı Metalik",
+  "Limon Sarısı Mat",
+  "Bronz Mat",
+  "Gri Pearl",
+  "Turkuaz Mat",
+  "Orman Yeşili Mat",
+  "Elektrik Mavisi Pearl",
+  "Nane Yeşili Metalik",
+  "Zümrüt Yeşil Premium",
+  "Siyah Premium",
+  "Mat Siyah Mat",
+  "Yakut Kırmızısı Premium",
+  "Koyu Mor Pearl",
+  "Kiraz Kırmızısı Premium",
+  "Mavi Premium",
+  "Alev Kırmızısı Premium",
+  "Mavi Pearl",
+  "Metalik Gümüş",
+  "Açık Kahverengi",
+  "Yanık Turuncu Metalik",
+  "Buz Beyaz Pearl",
+  "Buz Beyaz Premium",
+  "Deniz Mavisi Metalik",
+  "Buz Beyaz Mat",
+  "Petrol Mavisi",
+  "Camgöbeği Metalik",
+  "Mavi Mat",
+  "İnci Beyaz",
+  "Yakut Kırmızısı Mat",
+  "Gümüş Pearl",
+  "Mat Siyah",
+  "Bronz Metalik",
+  "Beyaz Mat",
+  "Kristal Beyaz Mat",
+  "Koyu Kahverengi",
+  "Camgöbeği Premium",
+  "Kırmızı Metalik",
+  "Ametist Mor Mat",
+  "Şarap Kırmızısı Mat",
+  "Ametist Mor Premium",
+  "Hardal Sarısı Metalik",
+  "Parlak Siyah Mat",
+  "Bronz",
+  "Zeytin Yeşili",
+  "Limon Sarısı",
+  "Metalik Gümüş Premium",
+  "Platin Gümüş Metalik",
+  "Petrol Mavisi Mat",
+  "Grafit Premium",
+  "Hardal Sarısı Mat",
+  "Metalik Kahverengi Mat",
+  "Metalik Kahverengi Premium",
+  "Mor Premium",
+  "Orman Yeşili Pearl",
+  "Bordo Metalik",
+  "Sarı Pearl",
+  "Koyu Mor Premium",
+  "Taş Gri Premium",
+  "Kahverengi Metalik",
+  "Antrasit Pearl",
+  "Turuncu Mat",
+  "Lacivert Pearl",
+  "Zümrüt Yeşil Pearl",
+  "Parlak Siyah Metalik",
+  "Açık Gri Metalik",
+  "Grafit Pearl",
+  "Yeşil Metalik",
+  "Şarap Kırmızısı Metalik",
+  "Petrol Mavisi Metalik",
+  "Siyah Metalik",
+  "Karbon Siyah Metalik",
+  "Safir Mavi Pearl",
+  "Safir Mavi Premium",
+  "Gümüş Mat",
+  "Elektrik Mavisi",
+  "Okyanus Mavisi Metalik",
+  "Sarı Mat",
+  "Yanık Turuncu Mat",
+  "Limon Sarısı Metalik",
+  "Metalik Gümüş Pearl",
+  "Petrol Mavisi Premium",
+  "Kristal Beyaz Pearl",
+  "Yeşil Premium",
+  "Açık Gri Premium",
+  "Beton Gri Pearl",
+  "Alev Kırmızısı Metalik",
+  "Gümüş Premium",
+  "Grafit Metalik",
+  "Nane Yeşili Mat",
+  "Elektrik Mavisi Premium",
+  "Koyu Mor Mat",
+  "Antrasit Premium",
+  "Grafit Mat",
+  "Gri Premium",
+  "Karbon Siyah",
+  "Elektrik Mavisi Mat",
+  "Alev Kırmızısı Mat",
+  "Turkuaz Pearl",
+  "Haki Pearl",
+  "Gümüş Metalik",
+  "Mor Mat",
+  "Metalik Siyah Mat",
+  "Haki Metalik",
+  "Mavi Metalik",
+  "Gece Mavisi Metalik",
+  "Titanyum Gümüş Premium",
+  "Karbon Siyah Premium",
+  "Deniz Mavisi Pearl",
+  "Siyah Mat",
+  "Okyanus Mavisi Mat",
+  "Kiraz Kırmızısı Metalik",
+  "Buz Beyaz Metalik",
+  "Koyu Gri",
+  "Bronz Premium",
+  "Açık Kahverengi Pearl",
+  "Metalik Gümüş Mat",
+  "Beyaz Pearl",
+  "Zeytin Yeşili Mat",
+  "Koyu Mor",
+  "Orman Yeşili Premium",
+  "Koyu Gri Pearl",
+  "Koyu Gri Premium",
+  "Safir Mavi",
+  "Titanyum Gümüş",
+  "Hardal Sarısı Premium",
+  "Beton Gri Mat",
+  "Plazma Mor Metalik",
+  "Altın Sarısı Premium",
+  "Plazma Mor Pearl",
+  "Karbon Siyah Pearl",
+  "Camgöbeği Mat",
+  "Okyanus Mavisi Pearl",
+  "Gümüş",
+  "Kiraz Kırmızısı",
+  "Zeytin Yeşili Pearl",
+  "Limon Sarısı Pearl",
+  "Metalik Kahverengi Metalik",
+  "Plazma Mor Premium",
+  "Siyah Pearl",
+  "Bordo Mat",
+  "Altın Sarısı",
+  "Altın Sarısı Pearl",
+  "Metalik Siyah Metalik",
+  "Zümrüt Yeşil Metalik",
+  "Turuncu Premium",
+  "Lacivert Premium",
+  "Metalik Turuncu Premium",
+  "Platin Gümüş Pearl",
+  "Zeytin Yeşili Metalik",
+  "Kahverengi Premium",
+  "Mat Siyah Pearl",
+  "Safir Mavi Mat",
+  "Kırmızı Mat",
+  "Koyu Kahverengi Premium",
+  "Deniz Mavisi Premium",
+  "Haki Mat",
+  "Antrasit",
+  "Koyu Gri Metalik",
+  "Alev Kırmızısı Pearl",
+  "Alev Kırmızısı",
+  "Taş Gri Metalik",
+  "Gri Mat",
+  "Turuncu Pearl",
+  "Turuncu Metalik",
+  "Kahverengi Pearl",
+  "Kristal Beyaz Metalik",
+  "Beyaz Metalik",
+  "Yeşil Mat",
+  "Limon Sarısı Premium",
+  "Bordo Premium",
+  "Camgöbeği Pearl",
+  "Kristal Beyaz Premium",
+  "Titanyum Gümüş Metalik"
+ ],
+ "model_yillari": [
+  2026,
+  2025,
+  2024,
+  2023,
+  2022,
+  2021,
+  2020,
+  2019,
+  2018,
+  2017,
+  2016,
+  2015,
+  2014,
+  2013,
+  2012,
+  2011,
+  2010,
+  2009,
+  2008,
+  2007,
+  2006,
+  2005,
+  2004,
+  2003,
+  2002,
+  2001,
+  2000,
+  1999,
+  1998,
+  1997,
+  1996,
+  1995,
+  1994,
+  1993,
+  1992,
+  1991,
+  1990
+ ],
+ "yakit_tipleri": [
+  "Benzin",
+  "Benzin&Lpg",
+  "Dizel",
+  "Hybrid",
+  "Elektrik"
+ ],
+ "vites_tipleri": [
+  "Otomatik",
+  "Manuel"
+ ],
+ "markalar": [
+  "Alfa Romeo",
+  "ANADOL",
+  "ASYA",
+  "Audi",
+  "BMC",
+  "BMW",
+  "BYD",
+  "Case",
+  "Chery",
+  "Citroen",
+  "Cosmopolitan",
+  "CUPRA",
+  "Dacia",
+  "DAF",
+  "DEFENDER",
+  "DEUTZ-FAHR",
+  "DORSE",
+  "DS",
+  "DS Automobiles",
+  "Erkunt",
+  "Ferrari",
+  "Fiat",
+  "Ford",
+  "GAZ",
+  "Güleryüz",
+  "HATTAT",
+  "Honda",
+  "Hyundai",
+  "Isuzu",
+  "İveco",
+  "JAECOO",
+  "Jaguar",
+  "JEEP",
+  "KARSAN-PEUGEOT",
+  "KGM SsangYong",
+  "KİA",
+  "Land Rover",
+  "MAN",
+  "Maserati",
+  "Masserati",
+  "MAZDA",
+  "Mercedes",
+  "Mercedes-Benz",
+  "MG",
+  "Mini",
+  "Mini Cooper",
+  "Mitsubishi",
+  "MONDİAL",
+  "New Holland",
+  "Nissan",
+  "Opel",
+  "OTOYOL",
+  "PEUGEOT",
+  "Porsche",
+  "Renault",
+  "ROYAL ALLOY",
+  "SCANİA",
+  "Seat",
+  "Skoda",
+  "Skyuell",
+  "SSANGYON",
+  "Subaru",
+  "SUKIDA",
+  "Suzuki",
+  "Tesla",
+  "Tofaş",
+  "Togg",
+  "Toyota",
+  "Unknown",
+  "Volkswagen",
+  "Volvo",
+  "YUKİ",
+  "ÇAVUŞOĞLU DORSE"
+ ],
+ "seriler": {
+  "Renault": [
+   "Clio",
+   "Megane",
+   "Taliant",
+   "Austral",
+   "Captur",
+   "Kangoo",
+   "Trafic",
+   "Master",
+   "Duster",
+   "Express",
+   "Symbol",
+   "Talisman",
+   "Kadjar",
+   "Koleos",
+   "Fluence",
+   "Rafale",
+   "Boreal"
+  ],
+  "Citroen": [
+   "C3",
+   "C4",
+   "C5 Aircross",
+   "Berlingo",
+   "Jumpy"
+  ],
+  "PEUGEOT": [
+   "208",
+   "2008",
+   "308",
+   "3008",
+   "5008",
+   "Rifter",
+   "Partner",
+   "Expert"
+  ],
+  "Volkswagen": [
+   "Polo",
+   "Golf",
+   "Passat",
+   "T-Roc",
+   "Tiguan",
+   "Caddy",
+   "Transporter"
+  ],
+  "Fiat": [
+   "Egea",
+   "Doblo",
+   "Fiorino",
+   "500"
+  ],
+  "Toyota": [
+   "Corolla",
+   "C-HR",
+   "Yaris",
+   "RAV4",
+   "Hilux"
+  ],
+  "Ford": [
+   "Focus",
+   "Puma",
+   "Kuga",
+   "Transit",
+   "Transit Custom",
+   "Courier"
+  ],
+  "Hyundai": [
+   "i20",
+   "Bayon",
+   "Tucson",
+   "Kona"
+  ],
+  "Dacia": [
+   "Sandero",
+   "Duster",
+   "Jogger"
+  ],
+  "Opel": [
+   "Corsa",
+   "Astra",
+   "Mokka",
+   "Combo"
+  ],
+  "Skoda": [
+   "Fabia",
+   "Octavia",
+   "Superb",
+   "Kamiq"
+  ],
+  "Audi": [
+   "A3",
+   "A4",
+   "A6",
+   "Q3",
+   "Q5"
+  ],
+  "Seat": [
+   "Ibiza",
+   "Leon",
+   "Arona"
+  ],
+  "BMW": [
+   "1 Serisi",
+   "3 Serisi",
+   "5 Serisi",
+   "X1"
+  ],
+  "Mercedes": [
+   "A Serisi",
+   "C Serisi",
+   "E Serisi",
+   "Vito",
+   "Sprinter"
+  ],
+  "Togg": [
+   "T10X"
+  ],
+  "Honda": [
+   "Civic",
+   "City",
+   "CR-V"
+  ]
+ },
+ "envanterler": [
+  "Yedek Anahtar",
+  "Zincir",
+  "Bijon Anahtarı",
+  "Ruhsat",
+  "Paspas",
+  "Servis Kitapçığı",
+  "Stepne",
+  "Kış Lastiği",
+  "Plaka Çift Mühür",
+  "Kriko",
+  "İlk Yardım Seti",
+  "Lastik Tamir Kiti",
+  "Sigorta"
+ ],
+ "donanimlar": [
+  [
+   "Güvenlik",
+   "ABS"
+  ],
+  [
+   "Güvenlik",
+   "AEB"
+  ],
+  [
+   "Güvenlik",
+   "BAS"
+  ],
+  [
+   "Güvenlik",
+   "Çocuk Kilidi"
+  ],
+  [
+   "Güvenlik",
+   "Distronic"
+  ],
+  [
+   "Güvenlik",
+   "ESP / VSA"
+  ],
+  [
+   "Güvenlik",
+   "Gece Görüş Sistemi"
+  ],
+  [
+   "Güvenlik",
+   "Hava Yastığı (Sürücü)"
+  ],
+  [
+   "Güvenlik",
+   "Hava Yastığı (Yolcu)"
+  ],
+  [
+   "Güvenlik",
+   "Immobilizer"
+  ],
+  [
+   "Güvenlik",
+   "Isofix"
+  ],
+  [
+   "Güvenlik",
+   "Kör Nokta Uyarı Sistemi"
+  ],
+  [
+   "Güvenlik",
+   "Merkezi Kilit"
+  ],
+  [
+   "Güvenlik",
+   "Şerit Takip Sistemi"
+  ],
+  [
+   "Güvenlik",
+   "Yokuş Kalkış Desteği"
+  ],
+  [
+   "Güvenlik",
+   "Yorgunluk Tespit Sistemi"
+  ],
+  [
+   "Güvenlik",
+   "Zırhlı Araç"
+  ],
+  [
+   "İç Donanım",
+   "Adaptive Cruise Control"
+  ],
+  [
+   "İç Donanım",
+   "Anahtarsız Giriş ve Çalıştırma"
+  ],
+  [
+   "İç Donanım",
+   "Deri Koltuk"
+  ],
+  [
+   "İç Donanım",
+   "Elektrikli Camlar"
+  ],
+  [
+   "İç Donanım",
+   "Fonksiyonel Direksiyon"
+  ],
+  [
+   "İç Donanım",
+   "Geri Görüş Kamerası"
+  ],
+  [
+   "İç Donanım",
+   "Head-up Display"
+  ],
+  [
+   "İç Donanım",
+   "Hız Sabitleme Sistemi"
+  ],
+  [
+   "İç Donanım",
+   "Hidrolik Direksiyon"
+  ],
+  [
+   "İç Donanım",
+   "Isıtmalı Direksiyon"
+  ],
+  [
+   "İç Donanım",
+   "Klima"
+  ],
+  [
+   "İç Donanım",
+   "Koltuklar (Elektrikli)"
+  ],
+  [
+   "İç Donanım",
+   "Koltuklar (Hafızalı)"
+  ],
+  [
+   "İç Donanım",
+   "Koltuklar (Isıtmalı)"
+  ],
+  [
+   "İç Donanım",
+   "Koltuklar (Soğutmalı)"
+  ],
+  [
+   "İç Donanım",
+   "Kumaş Koltuk"
+  ],
+  [
+   "İç Donanım",
+   "Otm.Kararan Dikiz Aynası"
+  ],
+  [
+   "İç Donanım",
+   "Ön Görüş Kamerası"
+  ],
+  [
+   "İç Donanım",
+   "Ön Koltuk Kol Dayaması"
+  ],
+  [
+   "İç Donanım",
+   "Soğutmalı Torpido"
+  ],
+  [
+   "İç Donanım",
+   "Start / Stop"
+  ],
+  [
+   "İç Donanım",
+   "Üçüncü Sıra Koltuklar"
+  ],
+  [
+   "İç Donanım",
+   "Yol Bilgisayarı"
+  ],
+  [
+   "Multimedia",
+   "Multimedya"
+  ],
+  [
+   "Multimedia",
+   "Android Auto"
+  ],
+  [
+   "Multimedia",
+   "Apple CarPlay"
+  ],
+  [
+   "Multimedia",
+   "Bluetooth"
+  ],
+  [
+   "Multimedia",
+   "USB / AUX"
+  ],
+  [
+   "Dış Donanım",
+   "Ayakla Açılan Bagaj Kapağı"
+  ],
+  [
+   "Dış Donanım",
+   "Hardtop"
+  ],
+  [
+   "Dış Donanım",
+   "Far (Adaptif)"
+  ],
+  [
+   "Dış Donanım",
+   "Aynalar (Elektrikli)"
+  ],
+  [
+   "Dış Donanım",
+   "Aynalar (Isıtmalı)"
+  ],
+  [
+   "Dış Donanım",
+   "Aynalar (Hafızalı)"
+  ],
+  [
+   "Dış Donanım",
+   "Park Sensörü (Arka)"
+  ],
+  [
+   "Dış Donanım",
+   "Park Sensörü (Ön)"
+  ],
+  [
+   "Dış Donanım",
+   "Park Asistanı"
+  ],
+  [
+   "Dış Donanım",
+   "Sunroof"
+  ],
+  [
+   "Dış Donanım",
+   "Akıllı Bagaj Kapağı"
+  ],
+  [
+   "Dış Donanım",
+   "Panoramik Cam Tavan"
+  ],
+  [
+   "Dış Donanım",
+   "Römork Çeki Demiri"
+  ]
+ ],
+ "hareket_nedenleri": [
+  "Sevk Teslimatı",
+  "Müşteri Teslimatı",
+  "Vale Teslimatı",
+  "Servis teslimatı",
+  "Servis iadesi",
+  "Satış Teslimatı",
+  "Satış İadesi"
+ ],
+ "maliyet_tipleri": [
+  [
+   "Araç Hazırlık",
+   560
+  ],
+  [
+   "Araç Dış Yıkama Hizmeti",
+   360
+  ],
+  [
+   "Araç Detaylı Temizlik İşlemi",
+   0
+  ],
+  [
+   "Araç Teslim Alma/Etme (Standart)",
+   135
+  ],
+  [
+   "Araç İade Alma Hizmeti (DETAY)",
+   0
+  ],
+  [
+   "Bant Altı Temizlik",
+   250
+  ],
+  [
+   "Kil Temizlik İşlemleri",
+   0
+  ],
+  [
+   "Araç Plaka Takma",
+   0
+  ],
+  [
+   "Araç GT Ekspertiz",
+   0
+  ],
+  [
+   "Araç İç ve Dış Yıkama",
+   450
+  ],
+  [
+   "Lastik hizmet bedeli",
+   0
+  ],
+  [
+   "Araç Komisyon Gelirleri",
+   0
+  ],
+  [
+   "Araç Kontrol Hizmeti (Muayene - Plaka v.b )",
+   0
+  ],
+  [
+   "Araç Servis Bakım Masrafı (Bacar Araçları)",
+   0
+  ],
+  [
+   "Dış PDI Hizmeti",
+   0
+  ],
+  [
+   "Diğer Men Kaldırma Bedeli",
+   0
+  ],
+  [
+   "Filo Yönetim Hizmeti",
+   0
+  ],
+  [
+   "Fotoğraf Çekim Bedeli",
+   0
+  ],
+  [
+   "Genel Ekspertiz",
+   0
+  ],
+  [
+   "Kasko Poliçe Bedeli",
+   0
+  ],
+  [
+   "Kdv Bedeli",
+   0
+  ],
+  [
+   "Mekanik",
+   0
+  ],
+  [
+   "Mtv Bedeli",
+   0
+  ],
+  [
+   "Muayene Araç Çekim Bedeli",
+   0
+  ],
+  [
+   "Muayene Harç Bedeli",
+   0
+  ],
+  [
+   "Muayene Hizmet Bedeli",
+   0
+  ],
+  [
+   "Müşavirlik Devir Bedeli",
+   0
+  ],
+  [
+   "Müşavirlik Hizmet Bedeli",
+   0
+  ],
+  [
+   "Noter Satış Makbuzu",
+   0
+  ],
+  [
+   "Parça-İşçilik",
+   0
+  ],
+  [
+   "Satış Komisyon Gideri",
+   0
+  ],
+  [
+   "Servis Faturası",
+   0
+  ],
+  [
+   "Trafik Ruhsat Bedeli",
+   0
+  ],
+  [
+   "Trafik Sigorta Bedeli",
+   0
+  ],
+  [
+   "Trafikten Çekme /Tescil İşlemi",
+   0
+  ],
+  [
+   "VALE HİZMETİ",
+   750
+  ],
+  [
+   "YAKIT",
+   0
+  ],
+  [
+   "TİCARİ ARAÇ EKSPERTİZ",
+   0
+  ],
+  [
+   "AĞIR TİCARİ EKSPERTİZ",
+   0
+  ],
+  [
+   "İŞ MAKİNASI EKSPERTİZ",
+   0
+  ],
+  [
+   "TRAFİK MÜŞAVİRLİĞİ HİZMET BEDELİ",
+   0
+  ],
+  [
+   "PASTA CİLA",
+   0
+  ],
+  [
+   "KARGO ÜCRETİ",
+   0
+  ],
+  [
+   "ARAÇ TAŞIMA",
+   1500
+  ],
+  [
+   "Elektrik Şarj Hizmeti",
+   0
+  ],
+  [
+   "ELEKTİRİK KULLANIM HİZMETİ",
+   0
+  ],
+  [
+   "SERVİS KAPORTA MASRAFI",
+   0
+  ],
+  [
+   "ARAÇ TAŞIMA(şehir dışı)",
+   0
+  ],
+  [
+   "ARAÇ İLAN GİDERİ (NORMAL)",
+   0
+  ],
+  [
+   "ARAÇ İLAN GİDERİ- DOPİNG GİDERİ",
+   0
+  ],
+  [
+   "TESCİL ÖDEMESİ",
+   0
+  ],
+  [
+   "NOTER ÖDEMESİ",
+   0
+  ],
+  [
+   "PLAKA BASIM BEDELİ",
+   0
+  ],
+  [
+   "KÖPRÜ+OTOBAN GEÇİŞ BEDELİ",
+   0
+  ],
+  [
+   "Finans Maliyet",
+   0
+  ],
+  [
+   "Araç satış işçilik bedeli",
+   0
+  ],
+  [
+   "Satış Prim tutarı",
+   0
+  ],
+  [
+   "SERVİS MEKANİK MASRAF",
+   0
+  ],
+  [
+   "ARAÇ TAŞIMA ŞEHİR İÇİ",
+   0
+  ],
+  [
+   "ARAÇ ALIŞ BEDELİ",
+   0
+  ],
+  [
+   "ARAÇ SATIŞ BEDELİ",
+   0
+  ],
+  [
+   "Ticari Araç Yıkıma",
+   0
+  ],
+  [
+   "İl dışı Araç Teslim Alma/Etme (Standart)",
+   0
+  ],
+  [
+   "Akü şarj hizmeti",
+   0
+  ],
+  [
+   "Ticari Teslim Alma/Etme (Standart)",
+   0
+  ],
+  [
+   "Çekici Hizmet Bedeli",
+   0
+  ],
+  [
+   "Şase Sorgu + AI Metin Oluşturma",
+   0
+  ],
+  [
+   "AI Görsel Oluşturma",
+   0
+  ],
+  [
+   "Sahibinden.com İlan ücreti/ gün",
+   0
+  ],
+  [
+   "Bia Ilan yayınlama",
+   0
+  ],
+  [
+   "Kuaför + Aksesuar + Ekspertiz",
+   0
+  ],
+  [
+   "İFLAS MASRAFI",
+   0
+  ],
+  [
+   "HARÇ MASRAFI",
+   0
+  ],
+  [
+   "CAM ONARIM",
+   0
+  ],
+  [
+   "ANAHTAR YAPIM",
+   0
+  ],
+  [
+   "İhale Masrafı",
+   0
+  ]
+ ]
+}

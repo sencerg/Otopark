@@ -2,6 +2,10 @@
 .env
 /storage/logs/*
 !/storage/logs/.gitkeep
+/docs/bia/*.json
+/docs/bia/summary.txt
+/public/uploads/*
+!/public/uploads/.gitkeep
 .DS_Store
 .idea/
 .vscode/
