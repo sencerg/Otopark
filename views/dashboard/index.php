@@ -142,7 +142,7 @@ $hizmetToplam = array_sum($hizmetValues);
                         ['Ek Hizmet Tutarı', '₺' . $tl($ozet['maliyet_tutar']), '/ek_hizmet_raporu'],
                     ] as [$ad, $deger, $url]): ?>
                         <div class="col-6">
-                            <<?= $url ? 'a href="' . $url . '"' : 'div' ?> class="mini-stat" style="background:#f4f7fd;box-shadow:none"><span><?= $ad ?></span><strong><?= $deger ?></strong></<?= $url ? 'a' : 'div' ?>>
+                            <<?= $url ? 'a href="' . $url . '"' : 'div' ?> class="mini-stat" style="background:var(--hover);box-shadow:none"><span><?= $ad ?></span><strong><?= $deger ?></strong></<?= $url ? 'a' : 'div' ?>>
                         </div>
                     <?php endforeach; ?>
                 </div>
