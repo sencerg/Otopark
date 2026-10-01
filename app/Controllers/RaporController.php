@@ -43,7 +43,7 @@ final class RaporController extends Controller
                 'giris_tarihi' => "to_char(d.giris_tarihi, 'DD.MM.YYYY')", 'giris_tarihi_sort' => 'd.giris_tarihi',
                 'cikis_tarihi' => "to_char(d.cikis_tarihi, 'DD.MM.YYYY')", 'cikis_tarihi_sort' => 'd.cikis_tarihi',
                 'donem_bas' => "to_char(d.dep_bas, 'DD.MM.YYYY')", 'donem_bit' => "to_char(d.dep_bit, 'DD.MM.YYYY')",
-                'gun' => 'd.gun', 'gunluk_fiyat' => 'd.gunluk_fiyat', 'tutar' => '(d.gun * d.gunluk_fiyat)',
+                'gun' => 'd.gun', 'gunluk_fiyat' => 'd.gunluk_fiyat', 'tutar' => '(d.gun * d.gunluk_fiyat)', 'fiyat_yok' => 'd.fiyat_yok',
             ],
             ['NOT a.arsiv', Auth::bayiKosulu('d.bayi_id')],
             [],

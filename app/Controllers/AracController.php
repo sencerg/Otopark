@@ -219,6 +219,7 @@ final class AracController extends Controller
             }
             $data['bayi_id'] = AracService::bayiKontrol($data['bayi_id']);
             $data['plaka'] = $data['plaka'] ? mb_strtoupper($data['plaka']) : null;
+            AracService::markaSeriModelKontrol($data);
             if ($giris = Request::date('stoga_giris_tarihi')) {
                 $data['stoga_giris_tarihi'] = $giris . ' ' . ($arac['stoga_giris_tarihi'] ? date('H:i:s', strtotime($arac['stoga_giris_tarihi'])) : '00:00:00');
             }

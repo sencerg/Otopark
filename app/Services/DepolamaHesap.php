@@ -21,7 +21,8 @@ final class DepolamaHesap
                     GREATEST(k.giris_tarihi::date, {$bas}::date) AS dep_bas,
                     LEAST(COALESCE(k.cikis_tarihi::date, CURRENT_DATE), {$bit}::date) AS dep_bit,
                     LEAST(COALESCE(k.cikis_tarihi::date, CURRENT_DATE), {$bit}::date) - GREATEST(k.giris_tarihi::date, {$bas}::date) + 1 AS gun,
-                    COALESCE(f1.gunluk_fiyat, f2.gunluk_fiyat, 0) AS gunluk_fiyat
+                    COALESCE(f1.gunluk_fiyat, f2.gunluk_fiyat, 0) AS gunluk_fiyat,
+                    (f1.id IS NULL AND f2.id IS NULL) AS fiyat_yok
                  FROM arac_konaklamalari k
                  JOIN araclar a0 ON a0.id = k.arac_id
                  LEFT JOIN depolama_fiyatlari f1 ON f1.musteri_id = k.musteri_id AND f1.bayi_id = k.bayi_id AND f1.arac_tipi_id = a0.arac_tipi_id

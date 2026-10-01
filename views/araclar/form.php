@@ -236,7 +236,7 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                         <td><?= date('d.m.Y', strtotime($d['giris_tarihi'])) ?></td>
                         <td><?= $d['cikis_tarihi'] ? date('d.m.Y', strtotime($d['cikis_tarihi'])) : '<span class="badge badge-soft-success">Stokta</span>' ?></td>
                         <td class="text-end"><?= (int) $d['gun'] ?></td>
-                        <td class="text-end"><?= number_format((float) $d['gunluk_fiyat'], 2, ',', '.') ?> ₺</td>
+                        <td class="text-end"><?= $d['fiyat_yok'] ? '<span class="badge badge-soft-warning">Fiyat tanımlı değil</span>' : number_format((float) $d['gunluk_fiyat'], 2, ',', '.') . ' ₺' ?></td>
                         <td class="text-end fw-semibold"><?= number_format((float) $d['tutar'], 2, ',', '.') ?> ₺</td>
                     </tr>
                 <?php endforeach; ?>

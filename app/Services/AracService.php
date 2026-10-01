@@ -53,6 +53,22 @@ final class AracService
         return $arac;
     }
 
+    public static function markaSeriModelKontrol(array $arac): void
+    {
+        if (!empty($arac['seri_id']) && !Database::fetch(
+            'SELECT 1 FROM seriler WHERE id = :s AND (:m1::int IS NULL OR marka_id = :m2::int)',
+            ['s' => $arac['seri_id'], 'm1' => ($arac['marka_id'] ?? null) ?: null, 'm2' => ($arac['marka_id'] ?? null) ?: null]
+        )) {
+            throw new RuntimeException('Seçilen seri bu markaya ait değil.');
+        }
+        if (!empty($arac['model_id']) && !Database::fetch(
+            'SELECT 1 FROM modeller WHERE id = :o AND (:s1::int IS NULL OR seri_id = :s2::int)',
+            ['o' => $arac['model_id'], 's1' => ($arac['seri_id'] ?? null) ?: null, 's2' => ($arac['seri_id'] ?? null) ?: null]
+        )) {
+            throw new RuntimeException('Seçilen model bu seriye ait değil.');
+        }
+    }
+
     /**
      * Aracı oluşturur veya şasiye göre bulup günceller, ardından hareket kaydı atar.
      * Giriş hareketi aracı stoğa alır, çıkış hareketi stoktan düşer.
@@ -68,6 +84,7 @@ final class AracService
         }
         $arac['bayi_id'] = self::bayiKontrol($arac['bayi_id'] ?? null);
         $arac['plaka'] = isset($arac['plaka']) ? mb_strtoupper(trim((string) $arac['plaka'])) : null;
+        self::markaSeriModelKontrol($arac);
 
         return Database::transaction(function () use ($sase, $arac, $hareket, $envanterler, $donanimlar) {
             $mevcut = Database::fetch('SELECT * FROM araclar WHERE sase = :s FOR UPDATE', ['s' => $sase]);

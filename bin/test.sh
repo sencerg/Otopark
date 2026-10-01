@@ -258,6 +258,13 @@ req "$K" POST /arac_yonetimi/hizli_arac_save -F "_csrf=$TK" -F sase="TSTNOMUS$RU
 eq "Müşterisiz giriş reddediliyor" false "$(js .success)"
 req "$K" POST /arac_yonetimi/hizli_arac_save -F "_csrf=$TK" -F sase="TSTNOTIP$RUN" -F hareket_tipi=1 -F musteri_id=$MUS
 eq "Araç tipsiz giriş reddediliyor" false "$(js .success)"
+YABANCI_SERI=$(q "SELECT id FROM seriler WHERE marka_id<>$MARKA ORDER BY id LIMIT 1")
+req "$K" POST /arac_yonetimi/hizli_arac_save -F "_csrf=$TK" -F sase="TSTSERI$RUN" -F arac_tipi=$TIP -F marka_id=$MARKA -F seri_id=$YABANCI_SERI -F hareket_tipi=1 -F musteri_id=$MUS
+has "Markaya ait olmayan seri reddediliyor" "bu markaya ait değil" "$(js .message)"
+YABANCI_MODEL=$(q "SELECT id FROM modeller WHERE seri_id<>$SERI ORDER BY id LIMIT 1")
+req "$K" POST /arac_yonetimi/hizli_arac_save -F "_csrf=$TK" -F sase="TSTMODL$RUN" -F arac_tipi=$TIP -F marka_id=$MARKA -F seri_id=$SERI -F model_id=$YABANCI_MODEL -F hareket_tipi=1 -F musteri_id=$MUS
+has "Seriye ait olmayan model reddediliyor" "bu seriye ait değil" "$(js .message)"
+eq "Uyumsuz seri/model ile araç oluşmuyor" 0 "$(q "SELECT count(*) FROM araclar WHERE sase IN ('TSTSERI$RUN','TSTMODL$RUN')")"
 
 req "$K" POST /arac_ekstreleri/ek_maliyet_save_modal -F "_csrf=$TK" -F arac_id=$AID -F maliyet_tipi_modal=1 -F tutar_ek="1.250,50" -F islem_tarihi=2026-09-02
 eq "Maliyet ekleniyor" true "$(js .success)"
@@ -296,6 +303,16 @@ req "$K" POST /arac_yonetimi/hizli_arac_save -F "_csrf=$TK" -F sase=$SASE -F ara
 eq "Çıkan araç tekrar stoğa girebiliyor" "true|t" "$(js .success)|$(q "SELECT stokta FROM araclar WHERE id=$AID")"
 eq "İki ayrı konaklama oluşuyor" 2 "$(q "SELECT count(*) FROM arac_konaklamalari WHERE arac_id=$AID")"
 eq "İki konaklama tek raporda: 10 gün + 3 gün (20-22 Eylül)" "2|$(php -r "echo (float)(13*$FIYAT);")" "$(req "$K" GET "/depolama_raporu/liste?$(dt "q=$SASE&baslangic=2026-09-01&bitis=2026-09-22")"; echo "$(js .recordsFiltered)|$(js .toplam)")"
+
+GENEL_MUS=$(q "SELECT musteri_id FROM depolama_fiyatlari WHERE bayi_id=$ANK AND arac_tipi_id IS NULL ORDER BY musteri_id LIMIT 1")
+GENEL_FIYAT=$(q "SELECT gunluk_fiyat FROM depolama_fiyatlari WHERE bayi_id=$ANK AND musteri_id=$GENEL_MUS AND arac_tipi_id IS NULL")
+req "$K" POST /arac_yonetimi/hizli_arac_save -F "_csrf=$TK" -F sase="TSTGNL$RUN" -F arac_tipi=$TIP -F hareket_tipi=1 -F musteri_id=$GENEL_MUS \
+    -F hareket_tarihi_tarih=2026-09-01 -F hareket_tarihi_saat=09:00
+req "$K" GET "/depolama_raporu/liste?$(dt "q=TSTGNL$RUN&baslangic=2026-09-01&bitis=2026-09-04")"
+eq "Tipli fiyatı olmayan firmada genel (araç tipi boş) fiyat kullanılıyor" "4|$(php -r "echo (float)(4*$GENEL_FIYAT);")|false" "$(js '.data[0].gun')|$(js .toplam)|$(js '.data[0].fiyat_yok')"
+q "DELETE FROM depolama_fiyatlari WHERE bayi_id=$ANK AND musteri_id=$GENEL_MUS" >/dev/null
+req "$K" GET "/depolama_raporu/liste?$(dt "q=TSTGNL$RUN&baslangic=2026-09-01&bitis=2026-09-04")"
+eq "Fiyatı tanımsız firmada uyarı bayrağı dönüyor" "true|0" "$(js '.data[0].fiyat_yok')|$(js .toplam)"
 
 bolum "7. İş emri"
 AR1=$(q "SELECT id FROM araclar WHERE bayi_id=$ANK AND stokta ORDER BY id DESC LIMIT 1")
@@ -375,5 +392,5 @@ LOG=$(grep -vE 'SQLSTATE\[23' storage/logs/php-error.log)
 
 [[ $RESET == 1 ]] && php bin/reset.php >/dev/null
 echo; echo "════ SONUÇ: $GECEN geçti, $KALAN kaldı"
-for h in "${HATALAR[@]}"; do echo "   ✗ $h"; done
+for h in ${HATALAR[@]+"${HATALAR[@]}"}; do echo "   ✗ $h"; done
 [[ $KALAN == 0 ]]

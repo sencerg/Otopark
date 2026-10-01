@@ -53,7 +53,7 @@ $(function () {
             { data: 'giris_tarihi' },
             { data: 'cikis_tarihi', render: (v) => v || App.badge('Stokta', 'success') },
             { data: 'gun', className: 'text-end' },
-            { data: 'gunluk_fiyat', className: 'text-end', render: (v) => App.money(v) },
+            { data: 'gunluk_fiyat', className: 'text-end', render: (v, _, r) => r.fiyat_yok ? App.badge('Fiyat tanımlı değil', 'warning') : App.money(v) },
             { data: 'tutar', className: 'text-end fw-semibold', render: (v) => App.money(v) },
         ],
     });
