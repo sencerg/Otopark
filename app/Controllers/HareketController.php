@@ -37,6 +37,10 @@ final class HareketController extends Controller
                 $dt->where("{$col} = :f_{$key}", ["f_{$key}" => $v]);
             }
         }
+        $konsinye = Request::str('konsinye');
+        if ($konsinye === '1' || $konsinye === '0') {
+            $dt->where($konsinye === '1' ? 'a.konsinye' : 'NOT a.konsinye');
+        }
         if ($d = Request::date('baslangic')) {
             $dt->where("{$tarihAlani}::date >= :f_bas", ['f_bas' => $d]);
         }

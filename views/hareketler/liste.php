@@ -1,7 +1,9 @@
 <?php
 $giris = $tip === 'giris';
-$headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-primary"><i class="mdi mdi-plus me-1"></i>Araç Ekle</a>'
-    . '<a href="/arac_yonetimi/toplu_stok_girisi" class="btn btn-outline-primary"><i class="mdi mdi-table-arrow-down me-1"></i>Toplu Araç Ekle</a>';
+$headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-success"><i class="mdi mdi-plus me-1"></i>Yeni Araç Ekle</a>'
+    . '<a href="/arac_yonetimi/toplu_stok_girisi" class="btn btn-primary"><i class="mdi mdi-upload me-1"></i>Toplu Stok Girişi</a>'
+    . '<a href="/arac_yonetimi/toplu_ek_maliyet_girisi" class="btn text-white" style="background:#7c3aed"><i class="mdi mdi-cash-multiple me-1"></i>Toplu Maliyet Ekle</a>'
+    . '<a href="/arac_yonetimi/toplu_kayit_guncelleme_lokasyon" class="btn btn-warning text-white"><i class="mdi mdi-map-marker-outline me-1"></i>Toplu Adres Güncelleme</a>';
 ?>
 <div class="card">
     <div class="card-header">
@@ -20,7 +22,7 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-primary"><i class
         </div>
     </div>
     <div class="card-body">
-        <?php $lokasyonTuruFiltre = $giris; $tarihEtiketi = $giris ? 'Giriş Tarihi' : 'Çıkış Tarihi'; require BASE_PATH . '/views/partials/arac_filtre.php'; ?>
+        <?php $lokasyonTuruFiltre = $giris; $konsinyeFiltre = true; $tarihEtiketi = $giris ? 'Giriş Tarihi' : 'Çıkış Tarihi'; require BASE_PATH . '/views/partials/arac_filtre.php'; ?>
         <div class="d-flex gap-2 mt-3 mb-2">
             <input type="search" id="dt-search" class="form-control" placeholder="Hareket Kodu, Plaka, Şasi, Lokasyon ile arayın...">
             <button id="dt-clear" class="btn btn-light text-nowrap"><i class="mdi mdi-filter-remove-outline"></i> Temizle</button>

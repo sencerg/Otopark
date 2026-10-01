@@ -16,6 +16,9 @@ $g = fn (string $k) => $_GET[$k] ?? null;
     <?php if (!Auth::bayiId()): ?>
         <div><label class="form-label">Lokasyon</label><select data-filter="bayi_id" class="form-select"><?= Tanim::options(Tanim::liste('bayiler'), $g('bayi_id'), 'Tüm Lokasyonlar') ?></select></div>
     <?php endif; ?>
+    <?php if (!empty($konsinyeFiltre)): ?>
+        <div><label class="form-label">Konsinye</label><select data-filter="konsinye" class="form-select"><?= Tanim::options([1 => 'Evet', 0 => 'Hayır'], $g('konsinye'), 'Tümü') ?></select></div>
+    <?php endif; ?>
     <div><label class="form-label"><?= e($tarihEtiketi) ?> Başlangıç</label><input type="date" data-filter="baslangic" class="form-control" value="<?= e($g('baslangic') ?? $g('kayit_tarihi')) ?>"></div>
     <div><label class="form-label"><?= e($tarihEtiketi) ?> Bitiş</label><input type="date" data-filter="bitis" class="form-control" value="<?= e($g('bitis') ?? $g('kayit_tarihi')) ?>"></div>
 </div>
