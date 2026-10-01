@@ -54,6 +54,9 @@ page "$G" GET /login
 eq "Giriş sayfası açılıyor" 200 "$CODE"
 has "Hızlı giriş bölümü görünüyor" "Hızlı giriş" "$BODY"
 for e in admin@otopark.local ankara@otopark.local seyrantepe@otopark.local; do has "Hızlı giriş: $e" "data-demo-email=\"$e\"" "$BODY"; done
+has "Giriş ekranında demo sıfırlama düğmesi var" 'action="/demo/sifirla"' "$BODY"
+page "$G" GET /demo/sifirla; eq "Demo sıfırlama onay sayfası açılıyor" 200 "$CODE"
+page "$G" POST /demo/sifirla; eq "CSRF anahtarı olmadan demo sıfırlanamıyor (419)" 419 "$CODE"
 
 page "$G" POST /login --data-urlencode "email=admin@otopark.local" --data-urlencode "password=admin123"
 eq "CSRF anahtarı olmadan giriş reddediliyor (419)" 419 "$CODE"

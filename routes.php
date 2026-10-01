@@ -6,6 +6,7 @@ use App\Controllers\AracController;
 use App\Controllers\ApiController;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
+use App\Controllers\DemoController;
 use App\Controllers\DestekController;
 use App\Controllers\HareketController;
 use App\Controllers\HesapController;
@@ -25,6 +26,8 @@ $auth = [[Auth::class, 'requireLogin']];
 $router->get('/login', [AuthController::class, 'showLogin'], $guest);
 $router->post('/login', [AuthController::class, 'login'], $guest);
 $router->post('/logout', [AuthController::class, 'logout'], $auth);
+$router->get('/demo/sifirla', [DemoController::class, 'onay']);
+$router->post('/demo/sifirla', [DemoController::class, 'sifirla']);
 
 // Dashboardlar
 $router->get('/', [DashboardController::class, 'index'], $auth);

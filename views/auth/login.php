@@ -37,5 +37,6 @@
                 form.submit();
             }));
         </script>
+        <div class="mt-3"><?php require __DIR__ . '/_sifirla_form.php'; ?></div>
     <?php endif; ?>
 </div>
