@@ -14,6 +14,7 @@ use App\Controllers\IsEmriController;
 use App\Controllers\KarsilastirmaController;
 use App\Controllers\MaliyetController;
 use App\Controllers\RaporController;
+use App\Controllers\SayimController;
 use App\Controllers\TanimController;
 use App\Controllers\TanimlamaController;
 use App\Core\Auth;
@@ -75,6 +76,19 @@ $router->get('/arac_yonetimi/toplu_kayit_guncelleme_lokasyon', [AracController::
 $router->post('/arac_yonetimi/excel_toplu_kayit_guncelleme_lokasyon', [AracController::class, 'excelTopluLokasyon'], $auth);
 $router->get('/arac_yonetimi/sablon/{tip}', [AracController::class, 'sablon'], $auth);
 $router->post('/dosya/sil/{id}', [AracController::class, 'dosyaSil'], $auth);
+
+// Araç sayımları
+$router->get('/sayim_kayitlari', [SayimController::class, 'index'], $auth);
+$router->get('/sayim_kayitlari/liste', [SayimController::class, 'liste'], $auth);
+$router->get('/sayim_kayitlari/ekle', [SayimController::class, 'ekle'], $auth);
+$router->post('/sayim_kayitlari/save', [SayimController::class, 'save'], $auth);
+$router->get('/sayim_kayitlari/detay/{id}', [SayimController::class, 'detay'], $auth);
+$router->get('/sayim_kayitlari/veri/{id}', [SayimController::class, 'veri'], $auth);
+$router->post('/sayim_kayitlari/okut/{id}', [SayimController::class, 'okut'], $auth);
+$router->post('/sayim_kayitlari/okutma_sil/{id}', [SayimController::class, 'okutmaSil'], $auth);
+$router->post('/sayim_kayitlari/tamamla/{id}', [SayimController::class, 'tamamla'], $auth);
+$router->get('/sayim_kayitlari/excel/{id}', [SayimController::class, 'excel'], $auth);
+$router->post('/sayim_kayitlari/multiple_arsiv', [SayimController::class, 'topluArsiv'], $auth);
 
 // Tanımlar
 $router->get('/arac_yonetimi/tanimlar', [TanimController::class, 'index'], $auth);

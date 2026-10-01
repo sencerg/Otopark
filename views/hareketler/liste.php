@@ -3,7 +3,8 @@ $giris = $tip === 'giris';
 $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-success"><i class="mdi mdi-plus me-1"></i>Yeni Araç Ekle</a>'
     . '<a href="/arac_yonetimi/toplu_stok_girisi" class="btn btn-primary"><i class="mdi mdi-upload me-1"></i>Toplu Stok Girişi</a>'
     . '<a href="/arac_yonetimi/toplu_ek_maliyet_girisi" class="btn text-white" style="background:#7c3aed"><i class="mdi mdi-cash-multiple me-1"></i>Toplu Maliyet Ekle</a>'
-    . '<a href="/arac_yonetimi/toplu_kayit_guncelleme_lokasyon" class="btn btn-warning text-white"><i class="mdi mdi-map-marker-outline me-1"></i>Toplu Adres Güncelleme</a>';
+    . '<a href="/arac_yonetimi/toplu_kayit_guncelleme_lokasyon" class="btn btn-warning text-white"><i class="mdi mdi-map-marker-outline me-1"></i>Toplu Adres Güncelleme</a>'
+        . '<a href="/sayim_kayitlari" class="btn text-white" style="background:#059669"><i class="mdi mdi-clipboard-check-outline me-1"></i>Sayım</a>';
 ?>
 <div class="card">
     <div class="card-header">

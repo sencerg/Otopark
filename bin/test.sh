@@ -487,6 +487,57 @@ req "$K" POST /tanimlamalar/model/sil/$TMD -F "_csrf=$TK"; req "$K" POST /taniml
 eq "Model, seri ve marka sırayla siliniyor" 0 "$(q "SELECT count(*) FROM markalar WHERE id=$TM")"
 req "$K" POST /tanimlamalar/olmayan/kaydet -F "_csrf=$TK" -F ad=x; eq "Bilinmeyen tanım tipi 404" 404 "$CODE"
 
+bolum "9c. Araç sayımı"
+page "$K" POST /sayim_kayitlari/save -F "_csrf=$TK" -F "baslik=Test Sayım $RUN" -F bayi_id=$SEY
+SY=$(q "SELECT id FROM sayimlar WHERE baslik='Test Sayım $RUN'")
+eq "Bayi sayımı kendi lokasyonunda başlatıyor, okutma ekranına gidiyor" "$ANK|$BASE/sayim_kayitlari/detay/$SY" "$(q "SELECT bayi_id FROM sayimlar WHERE id=$SY")|$LOC"
+page "$K" GET /sayim_kayitlari/detay/$SY
+eq "Okutma ekranı açılıyor: okutma alanı ve Sayımı Tamamla düğmesi var" "200|1|1" "$CODE|$(grep -c 'id="okut-sase"' <<<"$BODY")|$(grep -c 'Sayımı Tamamla' <<<"$BODY")"
+SY_STOK=$(q "SELECT sase FROM araclar WHERE stokta AND bayi_id=$ANK ORDER BY id LIMIT 1")
+SY_PLAKA=$(q "SELECT plaka FROM araclar WHERE stokta AND bayi_id=$ANK AND plaka IS NOT NULL AND sase<>'$SY_STOK' ORDER BY id LIMIT 1")
+SY_SEY=$(q "SELECT sase FROM araclar WHERE stokta AND bayi_id=$SEY ORDER BY id LIMIT 1")
+SY_BEKLENEN=$(q "SELECT count(*) FROM araclar WHERE stokta AND bayi_id=$ANK")
+req "$K" POST /sayim_kayitlari/okut/$SY -F "_csrf=$TK" -F "sase=$(tr 'A-Z' 'a-z' <<<"$SY_STOK")"
+eq "Stoktaki araç (küçük harfle de) okutuluyor" "true|true" "$(js .success)|$(js .stokta)"
+req "$K" POST /sayim_kayitlari/okut/$SY -F "_csrf=$TK" -F "sase=$SY_STOK"
+eq "Aynı araç ikinci kez okutulunca uyarı veriyor, kayıt çoğalmıyor" "true|1" "$(js .tekrar)|$(q "SELECT count(*) FROM sayim_okutmalari WHERE sayim_id=$SY")"
+req "$K" POST /sayim_kayitlari/okut/$SY -F "_csrf=$TK" -F "sase=$SY_PLAKA"
+eq "Plaka ile okutma şasiye çevriliyor" "true|1" "$(js .stokta)|$(q "SELECT count(*) FROM sayim_okutmalari o JOIN araclar a ON a.sase=o.sase WHERE o.sayim_id=$SY AND a.plaka='$SY_PLAKA'")"
+req "$K" POST /sayim_kayitlari/okut/$SY -F "_csrf=$TK" -F "sase=TSTSAYIM$RUN"
+eq "Sistemde olmayan araç lokasyonda değil listesine düşüyor" "true|false" "$(js .success)|$(js .stokta)"
+req "$K" POST /sayim_kayitlari/okut/$SY -F "_csrf=$TK" -F "sase=$SY_SEY"
+eq "Başka lokasyonun aracı lokasyonda değil listesine düşüyor" "false" "$(js .stokta)"
+req "$K" POST /sayim_kayitlari/okut/$SY -F "_csrf=$TK" -F "sase=AB"; eq "Kısa şasi okutulamıyor" false "$(js .success)"
+req "$K" GET /sayim_kayitlari/veri/$SY
+eq "Üç liste doğru: 2 okutulan, 2 lokasyonda değil, kalanlar okutulmayan" "2|2|$((SY_BEKLENEN-2))" "$(js '.okutulan|length')|$(js '.disarida|length')|$(js '.okutulmayan|length')"
+eq "Başka lokasyondaki aracın lokasyonu ve markası bayiye gösterilmiyor" "Başka lokasyonda kayıtlı|null" \
+    "$(js ".disarida[]|select(.sase==\"$SY_SEY\")|.sistem_durumu")|$(js ".disarida[]|select(.sase==\"$SY_SEY\")|.marka")"
+eq "Sistemde olmayan şasi işaretleniyor" "Sistemde kayıtlı değil" "$(js ".disarida[]|select(.sase==\"TSTSAYIM$RUN\")|.sistem_durumu")"
+req "$A" GET /sayim_kayitlari/veri/$SY
+has "Yönetici başka lokasyondaki aracın nerede olduğunu görüyor" "Başka lokasyonda kayıtlı: BİA SEYRANTEPE" "$(js ".disarida[]|select(.sase==\"$SY_SEY\")|.sistem_durumu")"
+req "$S" GET /sayim_kayitlari/veri/$SY; eq "Başka bayi sayımın listelerini göremiyor" false "$(js .success)"
+req "$S" POST /sayim_kayitlari/okut/$SY -F "_csrf=$TS" -F "sase=$SY_SEY"; eq "Başka bayi sayıma okutma yapamıyor" false "$(js .success)"
+page "$S" GET /sayim_kayitlari/detay/$SY; eq "Başka bayi sayım ekranını açamıyor" 404 "$CODE"
+req "$K" POST /arac_yonetimi/hizli_arac_save -F "_csrf=$TK" -F "sase=TSTSAYIM$RUN" -F arac_tipi=$TIP -F hareket_tipi=1 -F musteri_id=$MUS -F bayi_id=$ANK -F lokasyon_turu=1 -F from_sayim=$SY
+eq "Stoğa Al: araç stoğa giriyor ve sayımda 'stoğa alındı' oluyor" "true|3" "$(js .success)|$(q "SELECT sonuc FROM sayim_okutmalari WHERE sayim_id=$SY AND sase='TSTSAYIM$RUN'")"
+req "$A" GET "/sayim_kayitlari/liste?$(dt "q=$RUN&bayi_id=$ANK")"
+eq "Sayım listesinde sayılar doğru" "3|1|$((SY_BEKLENEN-2))|Devam Ediyor" "$(js '.data[0].okutulan')|$(js '.data[0].disarida')|$(js '.data[0].okutulmayan')|$(js '.data[0].durum_ad')"
+SY_OID=$(q "SELECT id FROM sayim_okutmalari WHERE sayim_id=$SY AND sase='$SY_SEY'")
+req "$S" POST /sayim_kayitlari/okutma_sil/$SY_OID -F "_csrf=$TS"; eq "Başka bayi okutma silemiyor" "false|1" "$(js .success)|$(q "SELECT count(*) FROM sayim_okutmalari WHERE id=$SY_OID")"
+req "$K" POST /sayim_kayitlari/okutma_sil/$SY_OID -F "_csrf=$TK"; eq "Yanlış okutma silinebiliyor" "true|0" "$(js .success)|$(q "SELECT count(*) FROM sayim_okutmalari WHERE id=$SY_OID")"
+req "$K" POST /sayim_kayitlari/tamamla/$SY -F "_csrf=$TK"
+eq "Tamamlanınca okutulmayanlar 'bulunamadı' olarak kaydediliyor" "true|2|$((SY_BEKLENEN-2))" \
+    "$(js .success)|$(q "SELECT durum FROM sayimlar WHERE id=$SY")|$(q "SELECT count(*) FROM sayim_okutmalari WHERE sayim_id=$SY AND sonuc=4")"
+req "$K" POST /sayim_kayitlari/okut/$SY -F "_csrf=$TK" -F "sase=$SY_SEY"; has "Tamamlanan sayıma okutma yapılamıyor" "tamamlanmış" "$(js .message)"
+req "$K" POST /sayim_kayitlari/tamamla/$SY -F "_csrf=$TK"; eq "Sayım ikinci kez tamamlanamıyor" false "$(js .success)"
+req "$K" GET /sayim_kayitlari/veri/$SY
+eq "Tamamlanan sayımın listeleri sabit kalıyor" "3|0|$((SY_BEKLENEN-2))" "$(js '.okutulan|length')|$(js '.disarida|length')|$(js '.okutulmayan|length')"
+page "$K" GET /sayim_kayitlari/excel/$SY
+has "Sayım Excel'i bulunamayanları içeriyor" "Bulunamayanlar" "$BODY"; has "Sayım Excel'i okutulanları içeriyor" "$SY_STOK" "$BODY"
+req "$S" POST /sayim_kayitlari/multiple_arsiv -F "_csrf=$TS" -F "ids[]=$SY"; eq "Başka bayi sayımı arşivleyemiyor" "f" "$(q "SELECT arsiv FROM sayimlar WHERE id=$SY")"
+req "$K" POST /sayim_kayitlari/multiple_arsiv -F "_csrf=$TK" -F "ids[]=$SY"; eq "Sayım arşivleniyor ve listeden kalkıyor" "true|t" "$(js .success)|$(q "SELECT arsiv FROM sayimlar WHERE id=$SY")"
+page "$K" GET /arac_hareketleri/giris; has "Stoktaki Araçlar'da Sayım düğmesi var" 'href="/sayim_kayitlari"' "$BODY"
+
 bolum "10. Sağlamlık ve güvenlik"
 for p in "search=abc" "search[value][]=x" "order[0]=x" "order[0][column]=abc&order[0][dir]=asc" "order[0][column]=1&order[0][dir][]=x&columns[1][data]=sase" \
          "order[0][column]=1&columns[1][data]=sase%3BDROP%20TABLE%20araclar" "length=-1" "start=-50&length=99999" "q=%27%20OR%201%3D1%20--" "q=%00%27" \

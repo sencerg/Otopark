@@ -10,6 +10,7 @@ $bayiler = Tanim::liste('bayiler');
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <form class="modal-content" method="post" action="/arac_yonetimi/hizli_arac_save" data-ajax>
             <?= Csrf::field() ?>
+            <input type="hidden" name="from_sayim" value="">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="mdi mdi-car-arrow-right me-1 text-primary"></i> Hızlı Araç Ekle</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

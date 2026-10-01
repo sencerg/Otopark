@@ -15,6 +15,9 @@ final class Tanim
     public const IS_EMRI_DURUM_RENK = [1 => 'secondary', 2 => 'warning', 3 => 'info', 4 => 'success', 5 => 'danger', 6 => 'dark'];
     public const DESTEK_TUR = [1 => 'Teknik', 2 => 'Operasyon', 3 => 'Talep / Öneri'];
     public const DESTEK_DURUM = [1 => 'Açık', 2 => 'İşlemde', 3 => 'Çözüldü', 4 => 'Kapatıldı'];
+    public const SAYIM_DURUM = [1 => 'Devam Ediyor', 2 => 'Tamamlandı'];
+    public const SAYIM_DURUM_RENK = [1 => 'warning', 2 => 'success'];
+    public const SAYIM_SONUC = [1 => 'Okuturken stoktaydı', 2 => 'Lokasyonda Değil', 3 => 'Sayımda stoğa alındı', 4 => 'Bulunamadı'];
 
     private static array $cache = [];
 

@@ -146,6 +146,9 @@ final class AracController extends Controller
             unset($arac['konsinye']);
 
             $sonuc = AracService::kaydetVeHareket($arac, $this->hareketFormVerisi('hareket_tarihi_tarih', 'hareket_tarihi_saat'), Request::ids('arac_envanterleri'));
+            if ($sayimId = Request::int('from_sayim')) {
+                SayimController::stogaAlindi($sayimId, (int) $sonuc['arac_id']);
+            }
             $this->ok($sonuc['yeni'] ? 'Araç stoğa eklendi.' : 'Araç hareketi kaydedildi.', ['arac_id' => $sonuc['arac_id']]);
         });
     }

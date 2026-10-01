@@ -15,6 +15,7 @@ return [
             ['title' => 'Toplu Ek Maliyet Girişi', 'url' => '/arac_yonetimi/toplu_ek_maliyet_girisi'],
             ['title' => 'Adres (Lokasyon) Düzenle', 'url' => '/arac_yonetimi/toplu_kayit_guncelleme_lokasyon'],
         ]],
+        ['title' => 'Araç Sayımları', 'url' => '/sayim_kayitlari'],
         ['title' => 'Saha Operasyon İş Takibi', 'url' => '/is_takibi'],
         ['title' => 'Raporlar', 'children' => [
             ['title' => 'Stok Araç Depolama Lokasyon Raporu', 'url' => '/depolama_raporu'],
