@@ -40,21 +40,15 @@ use App\Core\Tanim;
 <?php ob_start(); ?>
 <script>
 $(function () {
-    const ozet = () => {
-        const p = {};
-        $('[data-filter]').each(function () { if ($(this).val()) p[$(this).data('filter')] = $(this).val(); });
-        $.getJSON('/ek_hizmet_raporu/ozet', p, (rows) => {
-            $('#ozet').html(rows.slice(0, 6).map((r) => `
-                <div class="col-md-4 col-xl-2"><div class="mini-stat">
-                    <span class="text-truncate" title="${App.esc(r.ad)}">${App.esc(r.ad)}</span>
-                    <strong>${App.money(r.tutar)}</strong>
-                    <span>${App.num(r.adet)} işlem</span>
-                </div></div>`).join(''));
-        });
-    };
+    const ozet = (rows) => $('#ozet').html((rows || []).map((r) => `
+        <div class="col-md-4 col-xl-2"><div class="mini-stat">
+            <span class="text-truncate" title="${App.esc(r.ad)}">${App.esc(r.ad)}</span>
+            <strong>${App.money(r.tutar)}</strong>
+            <span>${App.num(r.adet)} işlem</span>
+        </div></div>`).join(''));
     App.table('#liste', {
         url: '/ek_hizmet_raporu/liste', order: [[0, 'desc']],
-        onData: (json) => { $('#toplam-tutar').text(App.money(json.toplam)); ozet(); },
+        onData: (json) => { $('#toplam-tutar').text(App.money(json.toplam)); ozet(json.ozet); },
         columns: [
             { data: 'islem_tarihi' },
             { data: 'sase', render: (v, _, r) => `<a href="/arac_yonetimi/duzenle/${r.arac_id}" class="fw-semibold">${App.esc(v)}</a>` },
@@ -65,7 +59,8 @@ $(function () {
             { data: 'maliyet_tipi', render: (v, _, r) => App.esc(v) + (r.cikis_sonrasi ? '<div><span class="badge bg-warning text-dark">Çıkış sonrası eklendi</span></div>' : '') },
             { data: 'aciklama', render: (v, _, r) => (r.cikis_sonrasi && v ? '<i class="mdi mdi-note-text-outline text-warning me-1"></i>' : '') + App.esc(v || '-') },
             { data: 'fatura_no', render: (v) => App.esc(v || '-') },
-            { data: 'tutar', className: 'text-end fw-semibold', render: (v) => App.money(v) },
+            { data: 'tutar', className: 'text-end fw-semibold text-nowrap', render: (v) => App.money(v)
+                + (Number(v) ? '' : '<div><span class="badge bg-danger" title="Hizmetin varsayılan ücreti tanımlı değil; araç kartından tutarı düzeltin">Ücret girilmemiş</span></div>') },
         ],
         createdRow: (row, r) => { if (r.cikis_sonrasi) row.classList.add('table-warning'); },
     });

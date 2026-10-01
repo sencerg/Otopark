@@ -24,9 +24,13 @@ final class MaliyetController extends Controller
             if (!$aracId) {
                 throw new RuntimeException('Araç seçilmelidir.');
             }
+            $tutar = Request::decimal('tutar_ek');
+            if ($tutar !== null && $tutar <= 0) {
+                throw new RuntimeException("Tutar 0'dan büyük olmalıdır.");
+            }
             AracService::maliyetEkle($aracId, [
                 'maliyet_tipi_id' => Request::int('maliyet_tipi_modal'),
-                'tutar' => Request::decimal('tutar_ek'),
+                'tutar' => $tutar,
                 'aciklama' => Request::str('aciklama_ekstre'),
                 'irsaliye' => Request::str('irsaliye'),
                 'fatura_no' => Request::str('fatura_no'),
@@ -60,8 +64,8 @@ final class MaliyetController extends Controller
         $this->ajax(function () use ($id) {
             $row = $this->bul((int) $id);
             $tutar = Request::decimal('tutar');
-            if (!Request::int('maliyet_tipi_id') || $tutar === null || $tutar < 0) {
-                throw new RuntimeException('Maliyet tipi ve tutar zorunludur.');
+            if (!Request::int('maliyet_tipi_id') || $tutar === null || $tutar <= 0) {
+                throw new RuntimeException("Maliyet tipi ve 0'dan büyük bir tutar zorunludur.");
             }
             AracService::guncelle((int) $row['id'], [
                 'maliyet_tipi_id' => Request::int('maliyet_tipi_id'), 'tutar' => $tutar,

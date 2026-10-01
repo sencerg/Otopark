@@ -90,6 +90,18 @@ final class DataTable
         return (float) (Database::fetch("SELECT COALESCE(SUM({$expr}), 0) AS t FROM {$this->from}{$where}", $params)['t'] ?? 0);
     }
 
+    /** Filtrelenmiş satırların $label bazında adet ve $expr toplamı (büyükten küçüğe). */
+    public function groupSum(string $label, string $expr, int $limit = 6): array
+    {
+        [$where, $params] = $this->whereSql(true);
+
+        return Database::fetchAll(
+            "SELECT {$label} AS ad, COUNT(*) AS adet, COALESCE(SUM({$expr}), 0) AS tutar FROM {$this->from}{$where}
+             GROUP BY {$label} ORDER BY tutar DESC, ad LIMIT {$limit}",
+            $params
+        );
+    }
+
     public function response(?callable $map = null, array $extra = []): never
     {
         [$baseWhere, $baseParams] = $this->whereSql(false);

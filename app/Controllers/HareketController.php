@@ -329,8 +329,8 @@ final class HareketController extends Controller
             }
             $ham = $tutarlar[$i] ?? '';
             $tutar = is_scalar($ham) && trim((string) $ham) !== '' ? Request::parseDecimal((string) $ham) : (float) $tip['varsayilan_tutar'];
-            if ($tutar === null || $tutar < 0) {
-                throw new RuntimeException("{$tip['ad']} için geçerli bir ücret giriniz.");
+            if ($tutar === null || $tutar <= 0) {
+                throw new RuntimeException("{$tip['ad']} için 0'dan büyük bir ücret giriniz.");
             }
             $not = is_scalar($notlar[$i] ?? null) ? trim((string) $notlar[$i]) : '';
             $sonuc[] = [(int) $tipId, $tutar, $not !== '' ? mb_substr($not, 0, 500) : null];

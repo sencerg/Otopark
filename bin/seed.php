@@ -133,6 +133,7 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
         $seri = $pick($seriler);
         $mId = $pick($firmaHavuzu);
         $giris = (new DateTimeImmutable('today'))->modify('-' . mt_rand(0, 90) . ' days')->setTime(mt_rand(8, 18), mt_rand(0, 59));
+        $giris = min($giris, new DateTimeImmutable('-1 hour'));
         $cikti = mt_rand(1, 100) <= 35 && $giris < new DateTimeImmutable('-2 days');
         $cikis = $cikti ? $giris->modify('+' . mt_rand(1, max(1, (int) $giris->diff(new DateTimeImmutable())->days)) . ' days') : null;
         if ($cikis && $cikis > new DateTimeImmutable()) {
@@ -176,9 +177,10 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
             );
         };
         $ekstre($teslimAlma, 135, $giris);
+        $sonTarih = $cikis ?? new DateTimeImmutable();
         foreach ($hizmetler as $tipId => $tutar) {
             if (mt_rand(1, 100) <= ($tutar > 1000 ? 8 : 45)) {
-                $ekstre($tipId, $tutar, $giris->modify('+' . mt_rand(0, 3) . ' days'));
+                $ekstre($tipId, $tutar, min($giris->modify('+' . mt_rand(0, 3) . ' days'), $sonTarih));
             }
         }
 
@@ -199,7 +201,7 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
         $stoktakiler = $stokHavuzu[$i % 4 === 0 ? $seyrantepe : $ankara];
         $durum = $pick([1, 1, 2, 3, 3, 4, 4, 4]);
         $talep = (new DateTimeImmutable())->modify('-' . mt_rand(0, 30) . ' days');
-        $tamamlanma = $durum === 4 ? $talep->modify('+2 days') : null;
+        $tamamlanma = $durum === 4 ? min($talep->modify('+2 days'), new DateTimeImmutable()) : null;
         $tipId = $pick(array_keys($hizmetler));
         $ieAraclar = Database::fetchAll(
             'SELECT id, musteri_id, bayi_id FROM araclar WHERE id = ANY(:ids::bigint[])',

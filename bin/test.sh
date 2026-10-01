@@ -429,6 +429,15 @@ eq "Stoktan Çıkanlar listesinde hizmet toplamı ve çıkış sonrası tutarı 
     "$(js '.data[0].hizmet_tutari')|$(js '.data[0].sonradan_adet')|$(js '.data[0].sonradan_tutar')"
 req "$K" GET "/ek_hizmet_raporu/liste?$(dt "q=$CX_SASE&baslangic=$(date +%F)&bitis=$(date +%F)&cikis_sonrasi=1")"
 eq "Ek Hizmet Raporu 'çıkış sonrası' filtresi yalnız sonradan eklenenleri getiriyor" "2|1050|true" "$(js .recordsFiltered)|$(js '.toplam|tonumber')|$(js '[.data[].cikis_sonrasi]|all')"
+req "$K" GET "/ek_hizmet_raporu/liste?$(dt "q=$CX_SASE")"
+eq "Ek Hizmet Raporu özet kartları tablo filtresiyle (arama dahil) aynı toplamı veriyor" "$(js '.toplam|tonumber')" "$(js '[.ozet[].tutar|tonumber]|add')"
+SIFIR_HZ=$(q "SELECT id FROM maliyet_tipleri WHERE aktif AND varsayilan_tutar=0 ORDER BY id LIMIT 1")
+guncelle_cikis -F "hizmet_id[]=$SIFIR_HZ" -F "hizmet_tutar[]="
+eq "Varsayılan ücreti olmayan hizmet ücretsiz (0 ₺) yazılamıyor" 0 "$(q "SELECT count(*) FROM arac_ekstreleri WHERE hareket_id=$CH AND maliyet_tipi_id=$SIFIR_HZ")"
+guncelle_cikis -F "hizmet_id[]=$SIFIR_HZ" -F "hizmet_tutar[]=0"
+eq "Hizmete 0 ₺ ücret girilemiyor" 0 "$(q "SELECT count(*) FROM arac_ekstreleri WHERE hareket_id=$CH AND maliyet_tipi_id=$SIFIR_HZ")"
+req "$K" POST /arac_ekstreleri/ek_maliyet_save_modal -F "_csrf=$TK" -F arac_id=$CX -F maliyet_tipi_modal=$SIFIR_HZ -F tutar_ek=0
+eq "Hızlı Maliyet Ekle'de 0 ₺ reddediliyor" false "$(js .success)"
 SONRA_ID=$(q "SELECT id FROM arac_ekstreleri WHERE hareket_id=$CH AND cikis_sonrasi ORDER BY id LIMIT 1")
 req "$S" POST "/arac_ekstreleri/maliyet_sil/$SONRA_ID" -F "_csrf=$TS"
 eq "Başka bayi çıkış sonrası hizmeti silemiyor" 1 "$(q "SELECT count(*) FROM arac_ekstreleri WHERE id=$SONRA_ID")"

@@ -92,7 +92,7 @@ $gun = (int) ((time() - strtotime($arac['stoga_giris_tarihi'])) / 86400) + 1;
                         <option value="">Seçiniz</option>
                         <?php foreach ($hizmetler as $h): ?><option value="<?= $h['id'] ?>" data-tutar="<?= e($h['varsayilan_tutar']) ?>"><?= e($h['ad']) ?></option><?php endforeach; ?>
                     </select></td>
-                    <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0" required></td>
+                    <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0.01" placeholder="Ücret girin" required></td>
                     <td><button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-close"></i></button></td>
                 </tr>
             </template>
@@ -131,7 +131,10 @@ $(function () {
         $toplam.text(App.money(t));
     };
     $('#cikis-hizmetleri').on('change', '[name="hizmet_id[]"]', function () {
-        $(this).closest('tr').find('[name="hizmet_tutar[]"]').val($(this).find(':selected').data('tutar') ?? '');
+        const varsayilan = Number($(this).find(':selected').data('tutar') || 0);
+        const $tutar = $(this).closest('tr').find('[name="hizmet_tutar[]"]');
+        if (varsayilan > 0) $tutar.val(varsayilan.toFixed(2));
+        else if (!Number($tutar.val())) $tutar.val('').trigger('focus');
         hesapla();
     }).on('input', '[name="hizmet_tutar[]"]', hesapla);
     $(document).on('click', '#cikis-hizmetleri [data-remove-row]', () => setTimeout(hesapla));

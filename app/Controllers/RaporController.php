@@ -86,29 +86,12 @@ final class RaporController extends Controller
                 'cikis_sonrasi_ad' => 'Çıkış Sonrası Eklendi',
             ], array_map(fn ($r) => $r + ['cikis_sonrasi_ad' => $r['cikis_sonrasi'] ? 'Evet' : ''], $dt->all()));
         }
-        $dt->response(null, ['toplam' => $dt->sum('e.tutar')]);
+        $dt->response(null, ['toplam' => $dt->sum('e.tutar'), 'ozet' => $dt->groupSum('mt.ad', 'e.tutar')]);
     }
 
-    /** Hizmet bazında özet (rapor üstündeki kartlar) */
+    /** Hizmet bazında özet (rapor üstündeki kartlar), tabloyla aynı filtrelerle */
     public function ekHizmetOzet(): void
     {
-        $bas = Request::date('baslangic') ?? date('Y-m-01');
-        $bit = Request::date('bitis') ?? date('Y-m-d');
-        $where = ['e.islem_tarihi BETWEEN :b AND :t', Auth::bayiKosulu('e.bayi_id')];
-        $params = ['b' => $bas, 't' => $bit];
-        foreach (['musteri_id', 'bayi_id', 'maliyet_tipi_id'] as $key) {
-            if ($v = Request::int($key)) {
-                $where[] = "e.{$key} = :{$key}";
-                $params[$key] = $v;
-            }
-        }
-        if (Request::str('cikis_sonrasi') === '1') {
-            $where[] = 'e.cikis_sonrasi';
-        }
-        \App\Core\View::json(Database::fetchAll(
-            'SELECT mt.ad, COUNT(*) AS adet, SUM(e.tutar) AS tutar FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
-             WHERE ' . implode(' AND ', $where) . ' GROUP BY mt.ad ORDER BY tutar DESC',
-            $params
-        ));
+        \App\Core\View::json(MaliyetController::ekstreTablosu()->groupSum('mt.ad', 'e.tutar', 100));
     }
 }
