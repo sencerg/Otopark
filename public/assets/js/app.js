@@ -13,6 +13,34 @@
     App.toast = (message, icon = 'success') => Swal.fire({ toast: true, position: 'top-end', icon, title: message, showConfirmButton: false, timer: 2500, timerProgressBar: true });
     App.error = (message) => Swal.fire({ icon: 'error', title: 'İşlem başarısız', text: message || 'Beklenmeyen bir hata oluştu.', confirmButtonColor: '#1d4ed8' });
 
+    /* Tema (klasik | vuexy) ve görünüm (light | dark | system) */
+    const root = document.documentElement;
+    const sistemKoyu = window.matchMedia('(prefers-color-scheme: dark)');
+    App.tema = () => root.getAttribute('data-tema') || 'klasik';
+    App.mod = () => localStorage.getItem('mod') || 'light';
+    function temaUygula() {
+        const mod = App.mod();
+        const koyu = mod === 'dark' || (mod === 'system' && sistemKoyu.matches);
+        root.setAttribute('data-tema', localStorage.getItem('tema') === 'vuexy' ? 'vuexy' : 'klasik');
+        root.setAttribute('data-bs-theme', koyu ? 'dark' : 'light');
+        $('[data-mod-ikon]').attr('class', 'mdi ' + (mod === 'system' ? 'mdi-monitor' : koyu ? 'mdi-weather-night' : 'mdi-weather-sunny'));
+        $('[data-tema-sec]').each(function () { $(this).toggleClass('active', this.dataset.temaSec === App.tema()); });
+        $('[data-mod-sec]').each(function () { $(this).toggleClass('active', this.dataset.modSec === mod); });
+        if (window.Chart) {
+            const css = getComputedStyle(root);
+            Chart.defaults.color = css.getPropertyValue('--text').trim() || '#4a5a6b';
+            Chart.defaults.borderColor = css.getPropertyValue('--border').trim() || '#e3e8f2';
+            Object.values(Chart.instances || {}).forEach((c) => c.update('none'));
+        }
+        $(document).trigger('tema-degisti');
+    }
+    App.setTema = (tema) => { localStorage.setItem('tema', tema); temaUygula(); };
+    App.setMod = (mod) => { localStorage.setItem('mod', mod); temaUygula(); };
+    $(document).on('click', '[data-tema-sec]', function () { App.setTema(this.dataset.temaSec); });
+    $(document).on('click', '[data-mod-sec]', function () { App.setMod(this.dataset.modSec); });
+    sistemKoyu.addEventListener('change', () => { if (App.mod() === 'system') temaUygula(); });
+    $(temaUygula);
+
     /* Sidebar */
     const layout = document.getElementById('layout');
     const isDesktop = () => window.matchMedia('(min-width: 1200px)').matches;

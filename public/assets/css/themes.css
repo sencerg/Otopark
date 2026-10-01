@@ -1,0 +1,262 @@
+/*
+ * Tema katmanı: html[data-tema] = klasik | vuexy, html[data-bs-theme] = light | dark.
+ * Klasik + açık, app.css'teki özgün renklerle birebir aynıdır.
+ */
+:root {
+    --surface: #fff;
+    --surface-2: #f7f9fc;
+    --muted: #8595ad;
+    --label: #6b7a90;
+    --border: #e3e8f2;
+    --border-soft: #eef1f7;
+    --input-border: #dfe5ef;
+    --hover: #f4f7fd;
+    --active-bg: #eaf0fe;
+    --search-bg: #f1f4f9;
+    --menu-text: #54657e;
+    --menu-icon: #8595ad;
+    --radius: 6px;
+    --radius-lg: 10px;
+}
+
+/* ───────── Vuexy (açık) ───────── */
+html[data-tema="vuexy"] {
+    --bg: #f8f7fa;
+    --text: #6d6b77;
+    --heading: #444050;
+    --primary: #7367f0;
+    --primary-dark: #685dd8;
+    --navy: #2f2b3d;
+    --surface-2: #f8f7fa;
+    --muted: #acaab1;
+    --label: #6d6b77;
+    --border: #e6e6e8;
+    --border-soft: #e6e6e8;
+    --input-border: #d1d0d4;
+    --hover: rgba(47, 43, 61, .06);
+    --active-bg: rgba(115, 103, 240, .16);
+    --search-bg: transparent;
+    --menu-text: #444050;
+    --menu-icon: #444050;
+    --card-shadow: 0 .1875rem .75rem 0 rgba(47, 43, 61, .14);
+    --bs-primary: #7367f0;
+    --bs-primary-rgb: 115, 103, 240;
+    --bs-link-color-rgb: 115, 103, 240;
+    --bs-body-font-family: "Public Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+    --radius: 6px;
+    --radius-lg: 6px;
+}
+
+/* ───────── Klasik (koyu) ───────── */
+html[data-bs-theme="dark"] {
+    --bg: #0f1729;
+    --surface: #16213a;
+    --surface-2: #1b2846;
+    --text: #b4bfd0;
+    --heading: #e6ecf5;
+    --primary: #4f7cf5;
+    --primary-dark: #3b67e0;
+    --navy: #0b1222;
+    --muted: #7d8aa3;
+    --label: #93a0b8;
+    --border: #26324d;
+    --border-soft: #22304b;
+    --input-border: #2e3c5c;
+    --hover: rgba(255, 255, 255, .04);
+    --active-bg: rgba(79, 124, 245, .16);
+    --search-bg: #1b2846;
+    --menu-text: #b4bfd0;
+    --menu-icon: #7d8aa3;
+    --card-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+    --bs-primary: #4f7cf5;
+    --bs-primary-rgb: 79, 124, 245;
+    --bs-body-bg: #0f1729;
+    --bs-body-color: #b4bfd0;
+    --bs-secondary-bg: #1b2846;
+    --bs-tertiary-bg: #1b2846;
+    --bs-border-color: #2e3c5c;
+    --bs-emphasis-color: #e6ecf5;
+}
+
+/* ───────── Vuexy (koyu) ───────── */
+html[data-tema="vuexy"][data-bs-theme="dark"] {
+    --bg: #25293c;
+    --surface: #2f3349;
+    --surface-2: #2b2f45;
+    --text: #acabc1;
+    --heading: #cfcde4;
+    --primary: #7367f0;
+    --primary-dark: #685dd8;
+    --navy: #25293c;
+    --muted: #76778e;
+    --label: #acabc1;
+    --border: #44485e;
+    --border-soft: #44485e;
+    --input-border: #56596f;
+    --hover: rgba(225, 222, 245, .06);
+    --active-bg: rgba(115, 103, 240, .16);
+    --search-bg: transparent;
+    --menu-text: #cfcde4;
+    --menu-icon: #cfcde4;
+    --card-shadow: 0 .1875rem .75rem 0 rgba(19, 17, 32, .2);
+    --bs-primary: #7367f0;
+    --bs-primary-rgb: 115, 103, 240;
+    --bs-body-bg: #25293c;
+    --bs-body-color: #acabc1;
+    --bs-secondary-bg: #2f3349;
+    --bs-tertiary-bg: #2b2f45;
+    --bs-border-color: #56596f;
+    --bs-emphasis-color: #cfcde4;
+}
+
+/* ───────── Ortak bileşenler (değişkenlere bağlanır) ───────── */
+body { background: var(--bg); color: var(--text); }
+.sidebar { background: var(--surface); border-right-color: var(--border); }
+.sidebar-brand { border-bottom-color: var(--border-soft); }
+.menu-link { color: var(--menu-text); }
+.menu-link > .mdi:first-child { color: var(--menu-icon); }
+.menu-link:hover { background: var(--hover); }
+.menu-link.active { background: var(--active-bg); }
+.topbar { background: var(--surface); box-shadow: 0 1px 0 var(--border); }
+.topbar-search .mdi { color: var(--muted); }
+.topbar-search input { background: var(--search-bg); color: var(--text); }
+.topbar-user:hover { background: var(--hover); }
+.topbar-user small, .breadcrumb-nav, .breadcrumb-nav a, .page-subtitle, .footer, .kpi-sub, .kpi-arrow, .chart-center span, .chart-legend .pct { color: var(--muted); }
+.avatar { background: var(--active-bg); }
+.card, .kpi-card, .mini-stat { background: var(--surface); }
+.card-header { background: var(--surface); border-bottom-color: var(--border-soft); }
+.kpi-split, .form-section, .file-list li, .modal-header { border-color: var(--border-soft); }
+.list-plain li { border-bottom-color: var(--border); }
+.quick-action { background: var(--surface-2); }
+.quick-action:hover { background: var(--active-bg); }
+.kpi-unit, .mini-stat span, .filter-bar .form-label, .dataTables_wrapper .dataTables_info, .dataTables_wrapper .dataTables_length,
+.detail-grid .label { color: var(--label); }
+.form-label, .chart-legend li, .check-grid .form-check-label { color: var(--heading); }
+.form-control, .form-select, .select2-container--bootstrap-5 .select2-selection { border-color: var(--input-border); }
+table.dataTable thead th { background: var(--surface-2); color: var(--label); border-bottom-color: var(--border) !important; }
+.table { --bs-table-bg: transparent; }
+.btn-light { --bs-btn-bg: var(--surface-2); --bs-btn-border-color: var(--surface-2); --bs-btn-color: var(--heading); --bs-btn-hover-bg: var(--hover); --bs-btn-hover-border-color: var(--border); --bs-btn-hover-color: var(--heading); }
+.theme-switch .dropdown-item.active, .theme-switch .dropdown-item:active { background: var(--active-bg); color: var(--primary); }
+
+/* Koyu modda yumuşak rozetler ve kutular */
+html[data-bs-theme="dark"] .badge-soft-success { background: rgba(40, 199, 111, .16); color: #4ade80; }
+html[data-bs-theme="dark"] .badge-soft-warning { background: rgba(255, 159, 67, .16); color: #fbbf24; }
+html[data-bs-theme="dark"] .badge-soft-danger { background: rgba(255, 76, 81, .16); color: #f87171; }
+html[data-bs-theme="dark"] .badge-soft-info { background: rgba(0, 186, 209, .16); color: #38bdf8; }
+html[data-bs-theme="dark"] .badge-soft-secondary { background: rgba(255, 255, 255, .08); color: var(--text); }
+html[data-bs-theme="dark"] .badge-soft-primary { background: var(--active-bg); color: #a5b4fc; }
+html[data-bs-theme="dark"] .badge-soft-dark { background: rgba(255, 255, 255, .12); color: var(--heading); }
+html[data-bs-theme="dark"] .total-box { background: rgba(40, 199, 111, .14); color: #4ade80; }
+html[data-bs-theme="dark"] .table-warning { --bs-table-bg: rgba(255, 159, 67, .12); --bs-table-color: var(--heading); }
+html[data-bs-theme="dark"] .table-info { --bs-table-bg: rgba(0, 186, 209, .12); --bs-table-color: var(--heading); }
+html[data-bs-theme="dark"] .bg-light { background-color: var(--surface-2) !important; }
+html[data-bs-theme="dark"] .text-dark { color: var(--heading) !important; }
+html[data-bs-theme="dark"] .swal2-popup { background: var(--surface); color: var(--text); }
+html[data-bs-theme="dark"] .swal2-title, html[data-bs-theme="dark"] .swal2-html-container { color: var(--heading); }
+html[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown { background: var(--surface); border-color: var(--input-border); color: var(--text); }
+html[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection { background-color: var(--bs-body-bg); color: var(--text); }
+html[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered { color: var(--text); }
+html[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field { background: var(--bs-body-bg); color: var(--text); border-color: var(--input-border); }
+html[data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown .select2-results__options .select2-results__option.select2-results__option--highlighted { background: var(--active-bg); color: var(--heading); }
+html[data-bs-theme="dark"] .page-link { background: var(--surface); border-color: var(--border); color: var(--text); }
+html[data-bs-theme="dark"] .page-item.disabled .page-link { background: var(--surface); color: var(--muted); }
+html[data-bs-theme="dark"] .sidebar-backdrop { background: rgba(0, 0, 0, .5); }
+
+/* ───────── Vuexy yerleşimi ───────── */
+html[data-tema="vuexy"] body { font-size: 15px; }
+html[data-tema="vuexy"] h1, html[data-tema="vuexy"] h2, html[data-tema="vuexy"] h3, html[data-tema="vuexy"] h4, html[data-tema="vuexy"] h5, html[data-tema="vuexy"] h6,
+html[data-tema="vuexy"] .page-title, html[data-tema="vuexy"] .card-title, html[data-tema="vuexy"] .brand-text, html[data-tema="vuexy"] .kpi-value,
+html[data-tema="vuexy"] .mini-stat strong, html[data-tema="vuexy"] .chart-center strong { font-family: var(--bs-body-font-family); }
+
+html[data-tema="vuexy"] .sidebar { border-right: 0; box-shadow: 0 .125rem .5rem 0 rgba(47, 43, 61, .12); width: 260px; }
+html[data-tema="vuexy"] .main { margin-left: 260px; }
+html[data-tema="vuexy"] .layout.sidebar-collapsed .main { margin-left: 0; }
+html[data-tema="vuexy"] .sidebar-brand { border-bottom: 0; height: 64px; padding: 0 22px; }
+html[data-tema="vuexy"] .brand-mark { background: var(--primary); border-radius: 8px; width: 34px; height: 34px; font-size: 20px; }
+html[data-tema="vuexy"] .brand-text { font-weight: 700; font-size: 18px; }
+html[data-tema="vuexy"] .sidebar-scroll { padding-top: 6px; }
+html[data-tema="vuexy"] .menu-link { margin: 2px 14px; padding: 8px 12px; border-radius: 6px; font-weight: 400; font-size: 15px; }
+html[data-tema="vuexy"] .menu-link > .mdi:first-child { font-size: 21px; }
+html[data-tema="vuexy"] .submenu .menu-link { padding-left: 42px; font-size: 14.5px; }
+html[data-tema="vuexy"] .submenu .submenu .menu-link { padding-left: 56px; }
+html[data-tema="vuexy"] .submenu .menu-link::before { content: ""; position: absolute; left: 22px; width: 6px; height: 6px; border-radius: 50%; border: 1px solid currentColor; opacity: .6; }
+html[data-tema="vuexy"] .submenu .menu-link { position: relative; }
+html[data-tema="vuexy"] .menu-item.open > .menu-link { background: var(--hover); }
+html[data-tema="vuexy"] .menu-link.active { color: #fff !important; font-weight: 500; box-shadow: 0 .125rem .375rem 0 rgba(115, 103, 240, .3);
+    background: linear-gradient(270deg, rgba(115, 103, 240, .7) 0%, #7367f0 100%); }
+html[data-tema="vuexy"] .menu-link.active .mdi { color: #fff; }
+html[data-tema="vuexy"] .submenu .menu-link.active::before { background: #fff; opacity: 1; border-color: #fff; }
+
+html[data-tema="vuexy"] .topbar { margin: 12px 24px 0; border-radius: 6px; height: 62px; padding: 0 16px; box-shadow: var(--card-shadow);
+    background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: saturate(200%) blur(6px); top: 12px; }
+html[data-tema="vuexy"] .topbar-search input { height: 40px; font-size: 15px; }
+html[data-tema="vuexy"] .topbar-search input:focus { box-shadow: none; }
+html[data-tema="vuexy"] .avatar { background: var(--primary); color: #fff; }
+
+html[data-tema="vuexy"] .page-content { padding: 24px; }
+html[data-tema="vuexy"] .page-title { text-transform: none; font-weight: 500; font-size: 22px; letter-spacing: 0; }
+html[data-tema="vuexy"] .card { border-radius: var(--radius); box-shadow: var(--card-shadow); margin-bottom: 24px; }
+html[data-tema="vuexy"] .card-header { border-bottom: 0; padding: 20px 24px 8px; border-radius: var(--radius) var(--radius) 0 0; }
+html[data-tema="vuexy"] .card-title, html[data-tema="vuexy"] .card-header h5 { text-transform: none; font-weight: 500; font-size: 18px; letter-spacing: 0; color: var(--heading); }
+html[data-tema="vuexy"] .card-body { padding: 24px; }
+html[data-tema="vuexy"] .section-title, html[data-tema="vuexy"] .form-section { text-transform: none; font-weight: 500; font-size: 15px; letter-spacing: 0; }
+html[data-tema="vuexy"] .kpi-card, html[data-tema="vuexy"] .mini-stat { border-radius: var(--radius); box-shadow: var(--card-shadow); }
+html[data-tema="vuexy"] .kpi-value { font-weight: 600; }
+html[data-tema="vuexy"] .kpi-icon { border-radius: 6px; }
+html[data-tema="vuexy"] .section-banner { border-radius: 6px; background: linear-gradient(72.47deg, #7367f0 22.16%, rgba(115, 103, 240, .7) 76.47%); }
+html[data-tema="vuexy"] .section-banner.green { background: linear-gradient(72.47deg, #28c76f 22.16%, rgba(40, 199, 111, .7) 76.47%); }
+html[data-tema="vuexy"] .section-banner h2 { text-transform: none; font-weight: 500; }
+
+html[data-tema="vuexy"] .btn { border-radius: 6px; font-weight: 500; }
+html[data-tema="vuexy"] .btn-primary { box-shadow: 0 .125rem .375rem 0 rgba(115, 103, 240, .3); }
+html[data-tema="vuexy"] .btn-success { --bs-btn-bg: #28c76f; --bs-btn-border-color: #28c76f; --bs-btn-hover-bg: #24b263; --bs-btn-hover-border-color: #24b263; box-shadow: 0 .125rem .375rem 0 rgba(40, 199, 111, .3); }
+html[data-tema="vuexy"] .btn-danger { --bs-btn-bg: #ff4c51; --bs-btn-border-color: #ff4c51; --bs-btn-hover-bg: #e64449; --bs-btn-hover-border-color: #e64449; }
+html[data-tema="vuexy"] .btn-warning { --bs-btn-bg: #ff9f43; --bs-btn-border-color: #ff9f43; --bs-btn-hover-bg: #e68f3c; --bs-btn-hover-border-color: #e68f3c; --bs-btn-color: #fff; }
+html[data-tema="vuexy"] .btn-info { --bs-btn-bg: #00bad1; --bs-btn-border-color: #00bad1; --bs-btn-hover-bg: #00a7bc; --bs-btn-hover-border-color: #00a7bc; --bs-btn-color: #fff; }
+html[data-tema="vuexy"] .btn-outline-primary { --bs-btn-active-bg: var(--primary); --bs-btn-active-border-color: var(--primary); }
+html[data-tema="vuexy"] .nav-pills .nav-link.active { background: var(--primary); box-shadow: 0 .125rem .375rem 0 rgba(115, 103, 240, .3); }
+html[data-tema="vuexy"] .nav-pills .nav-link { color: var(--heading); }
+html[data-tema="vuexy"] .form-check-input:checked { background-color: var(--primary); border-color: var(--primary); }
+html[data-tema="vuexy"] .page-item.active .page-link { background: var(--primary); border-color: var(--primary); }
+html[data-tema="vuexy"] .form-control:focus, html[data-tema="vuexy"] .form-select:focus { border-color: var(--primary); box-shadow: 0 .125rem .375rem 0 rgba(115, 103, 240, .3); }
+
+html[data-tema="vuexy"] table.dataTable thead th { background: transparent; font-weight: 500; letter-spacing: .2px; font-size: 13px; color: var(--heading); }
+html[data-tema="vuexy"] table.dataTable { font-size: 14.5px; }
+
+html[data-tema="vuexy"] .badge { font-weight: 500; border-radius: 4px; }
+html[data-tema="vuexy"] .badge-soft-success { background: #ddf6e8; color: #28c76f; }
+html[data-tema="vuexy"] .badge-soft-warning { background: #fff0e1; color: #ff9f43; }
+html[data-tema="vuexy"] .badge-soft-danger { background: #ffe2e3; color: #ff4c51; }
+html[data-tema="vuexy"] .badge-soft-info { background: #d6f4f8; color: #00bad1; }
+html[data-tema="vuexy"] .badge-soft-primary { background: #e9e7fd; color: #7367f0; }
+html[data-tema="vuexy"] .badge-soft-secondary { background: #f2f2f3; color: #808390; }
+html[data-tema="vuexy"][data-bs-theme="dark"] .badge-soft-success { background: rgba(40, 199, 111, .16); color: #28c76f; }
+html[data-tema="vuexy"][data-bs-theme="dark"] .badge-soft-warning { background: rgba(255, 159, 67, .16); color: #ff9f43; }
+html[data-tema="vuexy"][data-bs-theme="dark"] .badge-soft-danger { background: rgba(255, 76, 81, .16); color: #ff4c51; }
+html[data-tema="vuexy"][data-bs-theme="dark"] .badge-soft-info { background: rgba(0, 186, 209, .16); color: #00bad1; }
+html[data-tema="vuexy"][data-bs-theme="dark"] .badge-soft-primary { background: rgba(115, 103, 240, .16); color: #7367f0; }
+html[data-tema="vuexy"][data-bs-theme="dark"] .badge-soft-secondary { background: rgba(128, 131, 144, .16); color: #acabc1; }
+
+html[data-tema="vuexy"] .modal-content { border: 0; border-radius: 6px; box-shadow: 0 .25rem 1.125rem rgba(47, 43, 61, .16); }
+html[data-tema="vuexy"] .modal-header { border-bottom: 0; padding: 24px 24px 8px; }
+html[data-tema="vuexy"] .modal-title { font-weight: 500; font-size: 18px; }
+html[data-tema="vuexy"] .dropdown-menu { border: 0; border-radius: 6px; box-shadow: 0 .25rem 1.125rem rgba(47, 43, 61, .16); padding: 8px; }
+html[data-tema="vuexy"] .dropdown-item { border-radius: 6px; padding: 8px 12px; }
+html[data-tema="vuexy"] .alert { border: 0; border-radius: 6px; }
+
+@media (max-width: 1199.98px) {
+    html[data-tema="vuexy"] .main { margin-left: 0; }
+    html[data-tema="vuexy"] .topbar { margin: 12px 12px 0; }
+}
+
+/* Tema önizleme sayfası */
+.tema-kart { border: 2px solid var(--border); border-radius: 10px; padding: 0; overflow: hidden; cursor: pointer; background: none; text-align: left; width: 100%; transition: border-color .15s, transform .15s; }
+.tema-kart:hover { transform: translateY(-2px); }
+.tema-kart.secili { border-color: var(--primary); box-shadow: 0 0 0 3px var(--active-bg); }
+.tema-kart .mini { display: flex; height: 110px; }
+.tema-kart .mini-side { width: 30%; padding: 10px 8px; display: flex; flex-direction: column; gap: 6px; }
+.tema-kart .mini-side i { display: block; height: 7px; border-radius: 4px; }
+.tema-kart .mini-main { flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.tema-kart .mini-main .bar { height: 14px; border-radius: 4px; }
+.tema-kart .mini-main .box { flex: 1; border-radius: 6px; }
+.tema-kart .ad { padding: 10px 12px; font-weight: 600; color: var(--heading); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); }

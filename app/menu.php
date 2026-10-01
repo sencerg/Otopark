@@ -38,5 +38,6 @@ return [
     ['title' => 'Tanımlamalar', 'icon' => 'mdi-cog-outline', 'url' => '/tanimlamalar'],
     ['title' => 'Proje Notları', 'icon' => 'mdi-notebook-outline', 'children' => [
         ['title' => 'BİA ↔ MD Karşılaştırma', 'url' => '/bia_md_karsilastirma'],
+        ['title' => 'Tema Önizleme', 'url' => '/tema_onizleme'],
     ]],
 ];

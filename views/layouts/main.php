@@ -13,6 +13,7 @@ $appName = Env::get('APP_NAME');
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<?= Csrf::token() ?>">
     <title><?= e($pageTitle ?? '') ?> | <?= e($appName) ?></title>
+    <?php require BASE_PATH . '/views/partials/tema_baslat.php'; ?>
     <link rel="stylesheet" href="/vendor/fonts/fonts.css">
     <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
     <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css">
@@ -20,6 +21,7 @@ $appName = Env::get('APP_NAME');
     <link rel="stylesheet" href="/vendor/select2/select2.min.css">
     <link rel="stylesheet" href="/vendor/select2/select2-bootstrap-5-theme.min.css">
     <link rel="stylesheet" href="/assets/css/app.css?v=<?= filemtime(BASE_PATH . '/public/assets/css/app.css') ?>">
+    <link rel="stylesheet" href="/assets/css/themes.css?v=<?= filemtime(BASE_PATH . '/public/assets/css/themes.css') ?>">
 </head>
 <body>
 <div class="layout" id="layout">
@@ -48,6 +50,23 @@ $appName = Env::get('APP_NAME');
                 <button type="button" class="btn btn-sm btn-outline-primary d-none d-md-inline-flex" data-bs-toggle="modal" data-bs-target="#hizli-maliyet-ekle-modal">
                     <i class="mdi mdi-cash-plus me-1"></i> Hızlı Maliyet Ekle
                 </button>
+                <div class="dropdown theme-switch">
+                    <button class="topbar-btn fs-4" data-bs-toggle="dropdown" type="button" title="Tema ve görünüm" aria-label="Tema ve görünüm">
+                        <i class="mdi mdi-weather-sunny" data-mod-ikon></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end" style="min-width: 210px">
+                        <h6 class="dropdown-header">Tema</h6>
+                        <button class="dropdown-item" type="button" data-tema-sec="klasik"><i class="mdi mdi-palette-outline me-2"></i>Klasik</button>
+                        <button class="dropdown-item" type="button" data-tema-sec="vuexy"><i class="mdi mdi-palette-swatch-outline me-2"></i>Vuexy</button>
+                        <div class="dropdown-divider"></div>
+                        <h6 class="dropdown-header">Görünüm</h6>
+                        <button class="dropdown-item" type="button" data-mod-sec="light"><i class="mdi mdi-weather-sunny me-2"></i>Açık</button>
+                        <button class="dropdown-item" type="button" data-mod-sec="dark"><i class="mdi mdi-weather-night me-2"></i>Koyu</button>
+                        <button class="dropdown-item" type="button" data-mod-sec="system"><i class="mdi mdi-monitor me-2"></i>Sistem</button>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/tema_onizleme"><i class="mdi mdi-eye-outline me-2"></i>Tema Önizleme</a>
+                    </div>
+                </div>
                 <div class="dropdown">
                     <button class="topbar-user" data-bs-toggle="dropdown" type="button">
                         <span class="avatar"><?= e(mb_strtoupper(mb_substr($user['name'] ?? '?', 0, 1))) ?></span>

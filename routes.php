@@ -17,6 +17,7 @@ use App\Controllers\RaporController;
 use App\Controllers\SayimController;
 use App\Controllers\TanimController;
 use App\Controllers\TanimlamaController;
+use App\Controllers\TemaController;
 use App\Core\Auth;
 
 /** @var \App\Core\Router $router */
@@ -141,6 +142,8 @@ $router->post('/destek_talepleri/multiple_arsiv', [DestekController::class, 'top
 // Hesabım
 $router->get('/kullanici/hesabim', [HesapController::class, 'index'], $auth);
 $router->post('/kullanici/hesabim', [HesapController::class, 'update'], $auth);
+
+$router->get('/tema_onizleme', [TemaController::class, 'index'], $auth);
 
 // Proje notları
 $router->get('/bia_md_karsilastirma', [KarsilastirmaController::class, 'index'], $auth);
