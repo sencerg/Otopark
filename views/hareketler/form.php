@@ -110,7 +110,19 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                                     <?php if ($x['aciklama']): ?><i class="mdi mdi-note-text-outline me-1"></i><?= e($x['aciklama']) ?><?php endif; ?>
                                     <?php if ($x['cikis_sonrasi']): ?><div class="text-muted"><?= e($x['kullanici'] ?? '-') ?>, <?= date('d.m.Y H:i', strtotime($x['created_at'])) ?></div><?php endif; ?>
                                 </td>
-                                <td class="text-end"><?= number_format((float) $x['tutar'], 2, ',', '.') ?> ₺</td>
+                                <?php if ($readonly): ?>
+                                    <td class="text-end"><?= number_format((float) $x['tutar'], 2, ',', '.') ?> ₺</td>
+                                <?php else:
+                                    $tanimdan = (float) $x['tutar'] <= 0 && (float) $x['varsayilan_tutar'] > 0;
+                                    $deger = (float) $x['tutar'] > 0 ? $x['tutar'] : ($tanimdan ? $x['varsayilan_tutar'] : '');
+                                ?>
+                                    <td class="text-end" style="width: 150px">
+                                        <input type="number" name="mevcut_tutar[<?= $x['id'] ?>]" value="<?= e($deger) ?>" step="0.01" min="0.01"
+                                               class="form-control form-control-sm text-end <?= $deger === '' ? 'is-invalid' : '' ?>" placeholder="Ücret girin" title="Ücreti değiştirebilirsiniz">
+                                        <?php if ($tanimdan): ?><div class="small text-primary mt-1"><i class="mdi mdi-auto-fix"></i> Hizmet tanımındaki fiyat getirildi</div>
+                                        <?php elseif ($deger === ''): ?><div class="small text-danger mt-1">Ücret girilmemiş</div><?php endif; ?>
+                                    </td>
+                                <?php endif; ?>
                                 <td><?php if (!$readonly && $x['cikis_sonrasi']): ?><button type="button" class="btn btn-sm btn-light text-danger" data-hizmet-sil="<?= $x['id'] ?>" title="Sil"><i class="mdi mdi-delete-outline"></i></button><?php endif; ?></td>
                             </tr>
                         <?php endforeach; ?>
@@ -129,7 +141,7 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
 
                     <div class="d-flex justify-content-between align-items-center border-top mt-3 pt-3">
                         <span class="text-muted">Toplam ücret (depolama + hizmetler)</span>
-                        <span class="fs-4 fw-bold text-primary" id="toplam-ucret" data-sabit="<?= $depTutar + $hizmetToplam ?>"><?= number_format($depTutar + $hizmetToplam, 2, ',', '.') ?> ₺</span>
+                        <span class="fs-4 fw-bold text-primary" id="toplam-ucret" data-sabit="<?= $readonly ? $depTutar + $hizmetToplam : $depTutar ?>"><?= number_format($depTutar + $hizmetToplam, 2, ',', '.') ?> ₺</span>
                     </div>
                 </div>
             </div>
@@ -137,7 +149,7 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                 <tr class="table-warning">
                     <td><select name="hizmet_id[]" class="form-select form-select-sm select2" required>
                         <option value="">Seçiniz</option>
-                        <?php foreach ($hizmetler as $hz): ?><option value="<?= $hz['id'] ?>" data-tutar="<?= e($hz['varsayilan_tutar']) ?>"><?= e($hz['ad']) ?></option><?php endforeach; ?>
+                        <?php foreach ($hizmetler as $hz): ?><option value="<?= $hz['id'] ?>" data-tutar="<?= e($hz['varsayilan_tutar']) ?>"><?= e($hz['ad']) ?><?= (float) $hz['varsayilan_tutar'] > 0 ? ' — ' . number_format((float) $hz['varsayilan_tutar'], 2, ',', '.') . ' ₺' : '' ?></option><?php endforeach; ?>
                     </select></td>
                     <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0.01" placeholder="Ücret girin" required></td>
                     <td><input type="text" name="hizmet_not[]" class="form-control form-control-sm" maxlength="500" placeholder="Neden sonradan eklendi?"></td>
@@ -185,9 +197,14 @@ $(function () {
     const $toplam = $('#toplam-ucret');
     const hesapla = () => {
         let t = Number($toplam.data('sabit') || 0);
-        $('#cikis-hizmetleri [name="hizmet_tutar[]"]').each(function () { t += Number(this.value || 0); });
+        $('#cikis-hizmetleri [name="hizmet_tutar[]"], [name^="mevcut_tutar["]').each(function () { t += Number(this.value || 0); });
         $toplam.text(App.money(t));
     };
+    $('[name^="mevcut_tutar["]').on('input', function () {
+        this.classList.toggle('is-invalid', !Number(this.value));
+        hesapla();
+    });
+    hesapla();
     $('#cikis-hizmetleri').on('change', '[name="hizmet_id[]"]', function () {
         const varsayilan = Number($(this).find(':selected').data('tutar') || 0);
         const $tutar = $(this).closest('tr').find('[name="hizmet_tutar[]"]');

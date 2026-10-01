@@ -439,6 +439,23 @@ eq "Hizmete 0 ₺ ücret girilemiyor" 0 "$(q "SELECT count(*) FROM arac_ekstrele
 req "$K" POST /arac_ekstreleri/ek_maliyet_save_modal -F "_csrf=$TK" -F arac_id=$CX -F maliyet_tipi_modal=$SIFIR_HZ -F tutar_ek=0
 eq "Hızlı Maliyet Ekle'de 0 ₺ reddediliyor" false "$(js .success)"
 SONRA_ID=$(q "SELECT id FROM arac_ekstreleri WHERE hareket_id=$CH AND cikis_sonrasi ORDER BY id LIMIT 1")
+guncelle_cikis -F "mevcut_tutar[$SONRA_ID]=425,75"
+eq "Kayıtlı hizmetin ücreti düzenleme ekranından değiştirilebiliyor" "425.75" "$(q "SELECT tutar FROM arac_ekstreleri WHERE id=$SONRA_ID")"
+guncelle_cikis -F "mevcut_tutar[$SONRA_ID]=0"
+eq "Kayıtlı hizmetin ücreti 0 yapılamıyor" "425.75" "$(q "SELECT tutar FROM arac_ekstreleri WHERE id=$SONRA_ID")"
+guncelle_cikis -F "mevcut_tutar[$SONRA_ID]="
+eq "Boş bırakılan ücret kaydı değiştirmiyor" "425.75" "$(q "SELECT tutar FROM arac_ekstreleri WHERE id=$SONRA_ID")"
+BASKA_EKS=$(q "SELECT id FROM arac_ekstreleri WHERE arac_id<>$CX ORDER BY id LIMIT 1"); BASKA_ONCE=$(q "SELECT tutar FROM arac_ekstreleri WHERE id=$BASKA_EKS")
+guncelle_cikis -F "mevcut_tutar[$BASKA_EKS]=1"
+eq "Başka araca ait hizmetin ücreti bu ekrandan değiştirilemiyor" "$BASKA_ONCE" "$(q "SELECT tutar FROM arac_ekstreleri WHERE id=$BASKA_EKS")"
+SIFIR_EKS=$(q "INSERT INTO arac_ekstreleri (arac_id, maliyet_tipi_id, bayi_id, tutar, hareket_id) VALUES ($CX, $HZ, $ANK, 0, $CH) RETURNING id" | head -1)
+page "$K" GET /arac_hareketleri/hareket_duzenle/$CH
+has "0 ₺ kayıtlı hizmette tanımdaki fiyat (750) otomatik geliyor" "name=\"mevcut_tutar[$SIFIR_EKS]\" value=\"750.00\"" "$BODY"
+has "Tanımdan gelen fiyat için bilgi notu görünüyor" "Hizmet tanımındaki fiyat getirildi" "$BODY"
+has "Yeni hizmet listesinde tanımlı fiyat görünüyor" "Test Cila $RUN — 750,00 ₺" "$BODY"
+guncelle_cikis -F "mevcut_tutar[$SIFIR_EKS]=750.00"
+eq "Getirilen fiyat Kaydet ile yazılıyor" "750.00" "$(q "SELECT tutar FROM arac_ekstreleri WHERE id=$SIFIR_EKS")"
+q "DELETE FROM arac_ekstreleri WHERE id=$SIFIR_EKS" >/dev/null
 req "$S" POST "/arac_ekstreleri/maliyet_sil/$SONRA_ID" -F "_csrf=$TS"
 eq "Başka bayi çıkış sonrası hizmeti silemiyor" 1 "$(q "SELECT count(*) FROM arac_ekstreleri WHERE id=$SONRA_ID")"
 req "$K" POST "/arac_ekstreleri/maliyet_sil/$SONRA_ID" -F "_csrf=$TK"

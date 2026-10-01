@@ -90,7 +90,7 @@ $gun = (int) ((time() - strtotime($arac['stoga_giris_tarihi'])) / 86400) + 1;
                 <tr>
                     <td><select name="hizmet_id[]" class="form-select form-select-sm select2" required>
                         <option value="">Seçiniz</option>
-                        <?php foreach ($hizmetler as $h): ?><option value="<?= $h['id'] ?>" data-tutar="<?= e($h['varsayilan_tutar']) ?>"><?= e($h['ad']) ?></option><?php endforeach; ?>
+                        <?php foreach ($hizmetler as $h): ?><option value="<?= $h['id'] ?>" data-tutar="<?= e($h['varsayilan_tutar']) ?>"><?= e($h['ad']) ?><?= (float) $h['varsayilan_tutar'] > 0 ? ' — ' . number_format((float) $h['varsayilan_tutar'], 2, ',', '.') . ' ₺' : '' ?></option><?php endforeach; ?>
                     </select></td>
                     <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0.01" placeholder="Ücret girin" required></td>
                     <td><button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-close"></i></button></td>

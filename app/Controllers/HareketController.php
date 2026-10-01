@@ -155,10 +155,7 @@ final class HareketController extends Controller
     {
         $h = $this->hareket($id);
         $cikis = (int) $h['hareket_tipi'] === 2;
-        $konaklama = $cikis ? array_values(array_filter(
-            DepolamaHesap::arac((int) $h['arac_id']),
-            fn ($d) => $d['cikis_tarihi'] !== null && strtotime($d['cikis_tarihi']) === strtotime($h['hareket_tarihi'])
-        ))[0] ?? null : null;
+        [$konaklama, $eklenenler] = $cikis ? self::cikisKayitlari($h) : [null, []];
         $this->view('hareketler/form', [
             'pageTitle' => $duzenle ? 'Araç Hareketi Düzenle' : 'Hareket Kaydı Detay',
             'breadcrumb' => ['Araç Hareketleri' => $h['hareket_tipi'] == 1 ? '/arac_hareketleri/giris' : '/arac_hareketleri/cikis', $h['sase'] => null],
@@ -166,24 +163,66 @@ final class HareketController extends Controller
             'readonly' => !$duzenle,
             'konaklama' => $konaklama,
             'hizmetler' => $cikis ? Database::fetchAll('SELECT id, ad, varsayilan_tutar FROM maliyet_tipleri WHERE aktif ORDER BY ad') : [],
-            'eklenenler' => $cikis ? Database::fetchAll(
-                'SELECT e.id, mt.ad, e.tutar, e.islem_tarihi, e.aciklama, e.cikis_sonrasi, e.created_at, u.name AS kullanici
-                 FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id LEFT JOIN users u ON u.id = e.kullanici_id
-                 WHERE e.arac_id = :a AND (e.hareket_id = :h OR (e.hareket_id IS NULL AND e.islem_tarihi BETWEEN :g::date AND :c::date))
-                 ORDER BY e.cikis_sonrasi, e.islem_tarihi, e.id',
-                ['a' => $h['arac_id'], 'h' => $h['id'], 'g' => $konaklama['giris_tarihi'] ?? $h['hareket_tarihi'], 'c' => $h['hareket_tarihi']]
-            ) : [],
+            'eklenenler' => $eklenenler,
             'envanter' => array_column(Database::fetchAll('SELECT envanter_id FROM arac_envanterleri WHERE arac_id = :a', ['a' => $h['arac_id']]), 'envanter_id'),
             'dosyalar' => Upload::list('hareket', $id),
         ]);
+    }
+
+    /** Çıkışa ait konaklama ve hizmet kayıtları (çıkışa bağlı olanlar + konaklama süresince yazılanlar). */
+    private static function cikisKayitlari(array $h): array
+    {
+        $konaklama = array_values(array_filter(
+            DepolamaHesap::arac((int) $h['arac_id']),
+            fn ($d) => $d['cikis_tarihi'] !== null && strtotime($d['cikis_tarihi']) === strtotime($h['hareket_tarihi'])
+        ))[0] ?? null;
+        $eklenenler = Database::fetchAll(
+            'SELECT e.id, mt.ad, mt.varsayilan_tutar, e.tutar, e.islem_tarihi, e.aciklama, e.cikis_sonrasi, e.created_at, u.name AS kullanici
+             FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id LEFT JOIN users u ON u.id = e.kullanici_id
+             WHERE e.arac_id = :a AND (e.hareket_id = :h OR (e.hareket_id IS NULL AND e.islem_tarihi BETWEEN :g::date AND :c::date))
+             ORDER BY e.cikis_sonrasi, e.islem_tarihi, e.id',
+            ['a' => $h['arac_id'], 'h' => $h['id'], 'g' => $konaklama['giris_tarihi'] ?? $h['hareket_tarihi'], 'c' => $h['hareket_tarihi']]
+        );
+
+        return [$konaklama, $eklenenler];
+    }
+
+    /** @return array<int, float> ekstre_id => yeni tutar (yalnız değişenler) */
+    private static function mevcutTutarlar(array $h): array
+    {
+        $gelen = (array) ($_POST['mevcut_tutar'] ?? []);
+        if (!$gelen) {
+            return [];
+        }
+        $degisen = [];
+        foreach (self::cikisKayitlari($h)[1] as $x) {
+            if (!isset($gelen[$x['id']]) || !is_scalar($gelen[$x['id']]) || trim((string) $gelen[$x['id']]) === '') {
+                continue;
+            }
+            $tutar = Request::parseDecimal((string) $gelen[$x['id']]);
+            if ($tutar === null || $tutar <= 0) {
+                throw new RuntimeException("{$x['ad']} için 0'dan büyük bir ücret giriniz.");
+            }
+            if (round($tutar, 2) !== round((float) $x['tutar'], 2)) {
+                $degisen[(int) $x['id']] = $tutar;
+            }
+        }
+
+        return $degisen;
     }
 
     public function guncelle(string $id): void
     {
         $h = $this->hareket((int) $id);
         $this->form(function () use ($h) {
-            $hizmetler = (int) $h['hareket_tipi'] === 2 ? self::cikisHizmetleri() : [];
-            Database::transaction(function () use ($h, $hizmetler) {
+            $cikis = (int) $h['hareket_tipi'] === 2;
+            $hizmetler = $cikis ? self::cikisHizmetleri() : [];
+            $tutarlar = $cikis ? self::mevcutTutarlar($h) : [];
+            Database::transaction(function () use ($h, $hizmetler, $tutarlar) {
+                foreach ($tutarlar as $ekstreId => $tutar) {
+                    Database::query('UPDATE arac_ekstreleri SET tutar = :t WHERE id = :id', ['t' => $tutar, 'id' => $ekstreId]);
+                    Log::islem('maliyet', 'Hizmet ücreti güncellendi (' . number_format($tutar, 2, ',', '.') . ' ₺): ' . $h['sase'], $ekstreId);
+                }
                 $alanlar = [
                     'hareket_tipi' => Request::int('hareket_tipi') ?? $h['hareket_tipi'],
                     'hareket_nedeni_id' => Request::int('hareket_nedeni'),
@@ -238,7 +277,9 @@ final class HareketController extends Controller
                 Upload::save('dosya', 'hareket', (int) $h['id'], 'belge', (array) ($_POST['dosya_tanim'] ?? []));
                 Log::islem('hareket', 'Hareket güncellendi: ' . $h['sase'] . ($hizmetler ? ' (' . count($hizmetler) . ' çıkış sonrası hizmet)' : ''), (int) $h['id']);
             });
-            flash('success', 'Hareket kaydı güncellendi.' . ($hizmetler ? ' ' . count($hizmetler) . ' hizmet çıkış sonrası olarak eklendi.' : ''));
+            flash('success', 'Hareket kaydı güncellendi.'
+                . ($tutarlar ? ' ' . count($tutarlar) . ' hizmetin ücreti güncellendi.' : '')
+                . ($hizmetler ? ' ' . count($hizmetler) . ' hizmet çıkış sonrası olarak eklendi.' : ''));
             View::redirect('/arac_hareketleri/hareket_duzenle/' . $h['id']);
         }, '/arac_hareketleri/hareket_duzenle/' . $h['id']);
     }
