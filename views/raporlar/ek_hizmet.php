@@ -20,6 +20,7 @@ use App\Core\Tanim;
             <?php endif; ?>
             <div><label class="form-label">Maliyet Tipi</label><select data-filter="maliyet_tipi_id" class="form-select select2"><?= Tanim::options(Tanim::liste('maliyet_tipleri'), null, 'Tüm Hizmetler') ?></select></div>
             <div><label class="form-label">Marka</label><select name="marka_id" data-filter="marka_id" class="form-select select2"><?= Tanim::options(Tanim::liste('markalar'), null, 'Tüm Markalar') ?></select></div>
+            <div><label class="form-label">Kayıt Türü</label><select data-filter="cikis_sonrasi" class="form-select"><option value="">Tüm Kayıtlar</option><option value="1">Çıkış sonrası eklenenler</option></select></div>
         </div>
 
         <div class="row g-3 my-2" id="ozet"></div>
@@ -61,11 +62,12 @@ $(function () {
             { data: 'firma', render: (v) => App.esc(v || '-') },
             { data: 'marka', render: (v, _, r) => App.esc([v, r.seri].filter(Boolean).join(' ') || '-') },
             { data: 'lokasyon', render: (v) => App.esc(v || '-') },
-            { data: 'maliyet_tipi', render: (v) => App.esc(v) },
-            { data: 'aciklama', render: (v) => App.esc(v || '-') },
+            { data: 'maliyet_tipi', render: (v, _, r) => App.esc(v) + (r.cikis_sonrasi ? '<div><span class="badge bg-warning text-dark">Çıkış sonrası eklendi</span></div>' : '') },
+            { data: 'aciklama', render: (v, _, r) => (r.cikis_sonrasi && v ? '<i class="mdi mdi-note-text-outline text-warning me-1"></i>' : '') + App.esc(v || '-') },
             { data: 'fatura_no', render: (v) => App.esc(v || '-') },
             { data: 'tutar', className: 'text-end fw-semibold', render: (v) => App.money(v) },
         ],
+        createdRow: (row, r) => { if (r.cikis_sonrasi) row.classList.add('table-warning'); },
     });
 });
 </script>

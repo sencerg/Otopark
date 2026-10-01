@@ -50,12 +50,13 @@ $(function () {
             { data: 'plaka', render: (v) => App.esc(v || '-') },
             { data: 'firma', render: (v) => App.esc(v || '-') },
             { data: 'lokasyon', render: (v) => App.esc(v || '-') },
-            { data: 'maliyet_tipi', render: (v) => App.esc(v) },
+            { data: 'maliyet_tipi', render: (v, _, r) => App.esc(v) + (r.cikis_sonrasi ? '<div><span class="badge bg-warning text-dark">Çıkış sonrası eklendi</span></div>' : '') },
             { data: 'aciklama', render: (v) => App.esc(v || '-') },
             { data: 'kullanici', render: (v) => v ? `<i class="mdi mdi-account-circle text-primary"></i> ${App.esc(v)}` : '-' },
             { data: 'kayit_zamani' },
             { data: 'tutar', className: 'text-end fw-semibold', render: (v) => App.money(v) },
         ],
+        createdRow: (row, r) => { if (r.cikis_sonrasi) row.classList.add('table-warning'); },
     });
 });
 </script>

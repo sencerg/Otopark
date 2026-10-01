@@ -190,8 +190,8 @@ final class AracService
         $id = self::insert('arac_ekstreleri', [
             'arac_id' => $aracId,
             'maliyet_tipi_id' => $data['maliyet_tipi_id'],
-            'musteri_id' => $arac['musteri_id'],
-            'bayi_id' => $arac['bayi_id'],
+            'musteri_id' => $data['musteri_id'] ?? $arac['musteri_id'],
+            'bayi_id' => $data['bayi_id'] ?? $arac['bayi_id'],
             'tutar' => $data['tutar'],
             'aciklama' => $data['aciklama'] ?? null,
             'irsaliye' => $data['irsaliye'] ?? null,
@@ -199,6 +199,8 @@ final class AracService
             'fatura_tarihi' => $data['fatura_tarihi'] ?? null,
             'islem_tarihi' => $data['islem_tarihi'] ?? date('Y-m-d'),
             'is_emri_id' => $data['is_emri_id'] ?? null,
+            'hareket_id' => $data['hareket_id'] ?? null,
+            'cikis_sonrasi' => !empty($data['cikis_sonrasi']) ? true : null,
             'kullanici_id' => Auth::id(),
         ]);
         Log::islem('maliyet', 'Maliyet eklendi: ' . $arac['sase'], $id);

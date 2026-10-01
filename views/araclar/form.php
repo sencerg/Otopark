@@ -181,9 +181,9 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                     <thead><tr><th>İşlem Tarihi</th><th>Maliyet Tipi</th><th>Açıklama</th><th>Fatura No</th><th>Lokasyon</th><th>Ekleyen</th><th class="text-end">Tutar</th><th></th></tr></thead>
                     <tbody>
                     <?php $toplam = 0; foreach ($ekstre as $x): $toplam += (float) $x['tutar']; ?>
-                        <tr>
+                        <tr class="<?= $x['cikis_sonrasi'] ? 'table-warning' : '' ?>">
                             <td><?= date('d.m.Y', strtotime($x['islem_tarihi'])) ?></td>
-                            <td><?= e($x['maliyet_tipi']) ?></td>
+                            <td><?= e($x['maliyet_tipi']) ?><?php if ($x['cikis_sonrasi']): ?> <span class="badge bg-warning text-dark">Çıkış sonrası eklendi</span><?php endif; ?></td>
                             <td><?= e($x['aciklama'] ?: '-') ?></td>
                             <td><?= e($x['fatura_no'] ?: '-') ?></td>
                             <td><?= e($x['bayi'] ?: '-') ?></td>

@@ -83,7 +83,8 @@ final class RaporController extends Controller
             Excel::download('ek-hizmet-raporu', [
                 'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri',
                 'lokasyon' => 'Lokasyon', 'maliyet_tipi' => 'Hizmet', 'aciklama' => 'Açıklama', 'fatura_no' => 'Fatura No', 'tutar' => 'Tutar',
-            ], $dt->all());
+                'cikis_sonrasi_ad' => 'Çıkış Sonrası Eklendi',
+            ], array_map(fn ($r) => $r + ['cikis_sonrasi_ad' => $r['cikis_sonrasi'] ? 'Evet' : ''], $dt->all()));
         }
         $dt->response(null, ['toplam' => $dt->sum('e.tutar')]);
     }
@@ -100,6 +101,9 @@ final class RaporController extends Controller
                 $where[] = "e.{$key} = :{$key}";
                 $params[$key] = $v;
             }
+        }
+        if (Request::str('cikis_sonrasi') === '1') {
+            $where[] = 'e.cikis_sonrasi';
         }
         \App\Core\View::json(Database::fetchAll(
             'SELECT mt.ad, COUNT(*) AS adet, SUM(e.tutar) AS tutar FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id

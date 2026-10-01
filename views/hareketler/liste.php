@@ -34,7 +34,7 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-primary"><i class
                     <?php if ($giris): ?>
                         <th>Giriş Tarihi</th><th>Depolama Süresi</th>
                     <?php else: ?>
-                        <th>Hareket Tarihi</th><th>Depolama Süresi</th><th>Sevkiyat Tipi</th><th>Sevkiyat Durumu</th>
+                        <th>Hareket Tarihi</th><th>Depolama Süresi</th><th>Sevkiyat Tipi</th><th>Sevkiyat Durumu</th><th class="text-end">Hizmet Ücreti</th>
                     <?php endif; ?>
                     <th>İşlem</th>
                 </tr>
@@ -98,6 +98,8 @@ $(function () {
             { data: 'depolama_suresi', render: gun },
             { data: 'sevkiyat_tipi_ad', orderable: false },
             { data: 'sevkiyat_durumu_ad', orderable: false, render: (v, _, r) => App.badge(v, sevkRenk[r.sevkiyat_durumu]) },
+            { data: 'hizmet_tutari', className: 'text-end text-nowrap', render: (v, _, r) => (Number(v) ? App.money(v) : '<span class="text-muted">-</span>')
+                + (Number(r.sonradan_adet) ? `<div><span class="badge bg-warning text-dark" title="Çıkıştan sonra eklenen hizmet">+${App.money(r.sonradan_tutar)} çıkış sonrası (${App.num(r.sonradan_adet)})</span></div>` : '') },
             { data: 'id', orderable: false, render: (id, _, r) => App.actions([
                 { url: '/arac_yonetimi/tesellum_formu/' + r.arac_id, icon: 'mdi-file-document-outline', color: 'info', title: 'Tesellüm Formu' },
                 { url: '/arac_hareketleri/hareket_view/' + id, icon: 'mdi-eye', color: 'success', title: 'Görüntüle' },
@@ -109,6 +111,7 @@ $(function () {
     App.table('#liste', {
         url: giris ? '/arac_hareketleri/giris/liste' : '/arac_hareketleri/cikis/liste',
         columns, bulk: true, order: [[7, 'desc']],
+        createdRow: (row, r) => { if (Number(r.sonradan_adet)) row.classList.add('table-warning'); },
     });
 
     $(document).on('click', '[data-etiket]', function (e) {

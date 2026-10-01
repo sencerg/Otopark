@@ -190,7 +190,7 @@ final class AracController extends Controller
                 ['a' => $id]
             ),
             'ekstre' => Database::fetchAll(
-                'SELECT e.id, e.tutar, e.islem_tarihi, e.aciklama, e.fatura_no, mt.ad AS maliyet_tipi, b.ad AS bayi, u.name AS kullanici
+                'SELECT e.id, e.tutar, e.islem_tarihi, e.aciklama, e.fatura_no, e.cikis_sonrasi, mt.ad AS maliyet_tipi, b.ad AS bayi, u.name AS kullanici
                  FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
                  LEFT JOIN bayiler b ON b.id = e.bayi_id LEFT JOIN users u ON u.id = e.kullanici_id
                  WHERE e.arac_id = :a ORDER BY e.islem_tarihi DESC, e.id DESC',

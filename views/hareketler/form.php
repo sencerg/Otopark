@@ -76,6 +76,75 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                     </div>
                 </div>
             </div>
+            <?php if ($cikis):
+                $depTutar = $konaklama ? (float) $konaklama['tutar'] : 0.0;
+                $hizmetToplam = array_sum(array_map(fn ($x) => (float) $x['tutar'], $eklenenler));
+                $sonradanAdet = count(array_filter($eklenenler, fn ($x) => $x['cikis_sonrasi']));
+            ?>
+            <div class="card">
+                <div class="card-header"><h5>Hizmetler ve Ücret</h5>
+                    <?php if ($sonradanAdet): ?><span class="badge bg-warning text-dark"><i class="mdi mdi-clock-alert-outline me-1"></i><?= $sonradanAdet ?> hizmet çıkış sonrası eklendi</span><?php endif; ?>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm align-middle mb-3">
+                        <tbody>
+                        <tr>
+                            <td><i class="mdi mdi-parking text-primary me-1"></i><b>Depolama</b>
+                                <?php if ($konaklama): ?>
+                                    <span class="text-muted small">— <?= (int) $konaklama['gun'] ?> gün ×
+                                        <?php if ($konaklama['fiyat_yok']): ?><span class="badge badge-soft-warning">Fiyat tanımlı değil</span>
+                                        <?php else: ?><?= number_format((float) $konaklama['gunluk_fiyat'], 2, ',', '.') ?> ₺<?php endif; ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td></td>
+                            <td class="text-end fw-semibold"><?= number_format($depTutar, 2, ',', '.') ?> ₺</td>
+                            <td style="width: 40px"></td>
+                        </tr>
+                        <?php foreach ($eklenenler as $x): ?>
+                            <tr class="<?= $x['cikis_sonrasi'] ? 'table-warning' : '' ?>">
+                                <td><?php if ($x['cikis_sonrasi']): ?><i class="mdi mdi-clock-alert-outline text-warning me-1"></i><?php else: ?><i class="mdi mdi-check-circle-outline text-success me-1"></i><?php endif; ?><?= e($x['ad']) ?>
+                                    <span class="text-muted small">— <?= date('d.m.Y', strtotime($x['islem_tarihi'])) ?></span>
+                                    <?php if ($x['cikis_sonrasi']): ?><span class="badge bg-warning text-dark ms-1">Çıkış sonrası eklendi</span><?php endif; ?>
+                                </td>
+                                <td class="small <?= $x['cikis_sonrasi'] ? '' : 'text-muted' ?>">
+                                    <?php if ($x['aciklama']): ?><i class="mdi mdi-note-text-outline me-1"></i><?= e($x['aciklama']) ?><?php endif; ?>
+                                    <?php if ($x['cikis_sonrasi']): ?><div class="text-muted"><?= e($x['kullanici'] ?? '-') ?>, <?= date('d.m.Y H:i', strtotime($x['created_at'])) ?></div><?php endif; ?>
+                                </td>
+                                <td class="text-end"><?= number_format((float) $x['tutar'], 2, ',', '.') ?> ₺</td>
+                                <td><?php if (!$readonly && $x['cikis_sonrasi']): ?><button type="button" class="btn btn-sm btn-light text-danger" data-hizmet-sil="<?= $x['id'] ?>" title="Sil"><i class="mdi mdi-delete-outline"></i></button><?php endif; ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+
+                    <?php if (!$readonly): ?>
+                        <div class="form-section mt-0">Çıkış sonrası hizmet / maliyet ekle</div>
+                        <p class="small text-muted mb-2">Buradan eklenenler bugünün tarihiyle raporlara yansır ve "Çıkış sonrası eklendi" olarak işaretlenir. Kaydet'e basınca yazılır.</p>
+                        <table class="table table-sm align-middle mb-2">
+                            <thead><tr><th>Hizmet</th><th style="width: 150px">Ücret (₺)</th><th>Not</th><th style="width: 40px"></th></tr></thead>
+                            <tbody id="cikis-hizmetleri"></tbody>
+                        </table>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="#hizmet-satir" data-target="#cikis-hizmetleri"><i class="mdi mdi-plus me-1"></i>Hizmet Ekle</button>
+                    <?php endif; ?>
+
+                    <div class="d-flex justify-content-between align-items-center border-top mt-3 pt-3">
+                        <span class="text-muted">Toplam ücret (depolama + hizmetler)</span>
+                        <span class="fs-4 fw-bold text-primary" id="toplam-ucret" data-sabit="<?= $depTutar + $hizmetToplam ?>"><?= number_format($depTutar + $hizmetToplam, 2, ',', '.') ?> ₺</span>
+                    </div>
+                </div>
+            </div>
+            <template id="hizmet-satir">
+                <tr class="table-warning">
+                    <td><select name="hizmet_id[]" class="form-select form-select-sm select2" required>
+                        <option value="">Seçiniz</option>
+                        <?php foreach ($hizmetler as $hz): ?><option value="<?= $hz['id'] ?>" data-tutar="<?= e($hz['varsayilan_tutar']) ?>"><?= e($hz['ad']) ?></option><?php endforeach; ?>
+                    </select></td>
+                    <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0" required></td>
+                    <td><input type="text" name="hizmet_not[]" class="form-control form-control-sm" maxlength="500" placeholder="Neden sonradan eklendi?"></td>
+                    <td><button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-close"></i></button></td>
+                </tr>
+            </template>
+            <?php endif; ?>
         </div>
 
         <div class="col-xl-4">
@@ -110,3 +179,31 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
     </fieldset>
 </form>
 <?php require BASE_PATH . '/views/partials/dosya_sil_formlari.php'; ?>
+<?php if ($cikis && !$readonly): ob_start(); ?>
+<script>
+$(function () {
+    const $toplam = $('#toplam-ucret');
+    const hesapla = () => {
+        let t = Number($toplam.data('sabit') || 0);
+        $('#cikis-hizmetleri [name="hizmet_tutar[]"]').each(function () { t += Number(this.value || 0); });
+        $toplam.text(App.money(t));
+    };
+    $('#cikis-hizmetleri').on('change', '[name="hizmet_id[]"]', function () {
+        $(this).closest('tr').find('[name="hizmet_tutar[]"]').val($(this).find(':selected').data('tutar') ?? '');
+        hesapla();
+    }).on('input', '[name="hizmet_tutar[]"]', hesapla);
+    $(document).on('click', '#cikis-hizmetleri [data-remove-row]', () => setTimeout(hesapla));
+
+    $('[data-hizmet-sil]').on('click', function () {
+        const id = this.dataset.hizmetSil;
+        Swal.fire({ icon: 'warning', title: 'Çıkış sonrası eklenen hizmet silinsin mi?', showCancelButton: true, confirmButtonText: 'Sil', cancelButtonText: 'Vazgeç', confirmButtonColor: '#dc2626' })
+            .then((r) => {
+                if (!r.isConfirmed) return;
+                $.post('/arac_ekstreleri/maliyet_sil/' + id, { _csrf: $('meta[name="csrf-token"]').attr('content') })
+                    .done((res) => { App.toast(res.message); setTimeout(() => location.reload(), 700); })
+                    .fail((x) => App.error(x.responseJSON?.message));
+            });
+    });
+});
+</script>
+<?php $scripts = ob_get_clean(); endif; ?>

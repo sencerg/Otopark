@@ -90,8 +90,13 @@ final class HareketController extends Controller
              LEFT JOIN seriler s ON s.id = a.seri_id
              LEFT JOIN bayiler b ON b.id = h.bayi_id
              LEFT JOIN hareket_nedenleri hn ON hn.id = h.hareket_nedeni_id
-             LEFT JOIN LATERAL (SELECT g.hareket_tarihi FROM arac_hareketleri g WHERE g.arac_id = h.arac_id AND g.hareket_tipi = 1 AND g.hareket_tarihi <= h.hareket_tarihi ORDER BY g.hareket_tarihi DESC LIMIT 1) gh ON TRUE',
+             LEFT JOIN LATERAL (SELECT g.hareket_tarihi FROM arac_hareketleri g WHERE g.arac_id = h.arac_id AND g.hareket_tipi = 1 AND g.hareket_tarihi <= h.hareket_tarihi ORDER BY g.hareket_tarihi DESC LIMIT 1) gh ON TRUE
+             LEFT JOIN LATERAL (SELECT SUM(e.tutar) AS tutar, COUNT(*) FILTER (WHERE e.cikis_sonrasi) AS sonradan,
+                                       SUM(e.tutar) FILTER (WHERE e.cikis_sonrasi) AS sonradan_tutar
+                                FROM arac_ekstreleri e
+                                WHERE e.arac_id = h.arac_id AND (e.hareket_id = h.id OR (e.hareket_id IS NULL AND e.islem_tarihi BETWEEN gh.hareket_tarihi::date AND h.hareket_tarihi::date))) hz ON TRUE',
             [
+                'hizmet_tutari' => 'COALESCE(hz.tutar, 0)', 'sonradan_adet' => 'COALESCE(hz.sonradan, 0)', 'sonradan_tutar' => 'COALESCE(hz.sonradan_tutar, 0)',
                 'id' => 'h.id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad',
                 'lokasyon' => 'b.ad', 'hareket_nedeni' => 'hn.ad',
                 'hareket_tarihi' => "to_char(h.hareket_tarihi, 'DD.MM.YYYY HH24:MI')", 'hareket_tarihi_sort' => 'h.hareket_tarihi',
@@ -114,6 +119,7 @@ final class HareketController extends Controller
                 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
                 'hareket_nedeni' => 'Hareket Nedeni', 'hareket_tarihi' => 'Hareket Tarihi', 'depolama_suresi' => 'Depolama Süresi (Gün)',
                 'sevkiyat_tipi_ad' => 'Sevkiyat Tipi', 'sevkiyat_durumu_ad' => 'Sevkiyat Durumu', 'teslim_alan' => 'Teslim Alan',
+                'hizmet_tutari' => 'Hizmet Ücreti', 'sonradan_tutar' => 'Çıkış Sonrası Eklenen',
             ], array_map($map, $dt->all()));
         }
         $dt->response($map);
@@ -148,11 +154,25 @@ final class HareketController extends Controller
     private function hareketSayfasi(int $id, bool $duzenle): void
     {
         $h = $this->hareket($id);
+        $cikis = (int) $h['hareket_tipi'] === 2;
+        $konaklama = $cikis ? array_values(array_filter(
+            DepolamaHesap::arac((int) $h['arac_id']),
+            fn ($d) => $d['cikis_tarihi'] !== null && strtotime($d['cikis_tarihi']) === strtotime($h['hareket_tarihi'])
+        ))[0] ?? null : null;
         $this->view('hareketler/form', [
             'pageTitle' => $duzenle ? 'Araç Hareketi Düzenle' : 'Hareket Kaydı Detay',
             'breadcrumb' => ['Araç Hareketleri' => $h['hareket_tipi'] == 1 ? '/arac_hareketleri/giris' : '/arac_hareketleri/cikis', $h['sase'] => null],
             'h' => $h,
             'readonly' => !$duzenle,
+            'konaklama' => $konaklama,
+            'hizmetler' => $cikis ? Database::fetchAll('SELECT id, ad, varsayilan_tutar FROM maliyet_tipleri WHERE aktif ORDER BY ad') : [],
+            'eklenenler' => $cikis ? Database::fetchAll(
+                'SELECT e.id, mt.ad, e.tutar, e.islem_tarihi, e.aciklama, e.cikis_sonrasi, e.created_at, u.name AS kullanici
+                 FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id LEFT JOIN users u ON u.id = e.kullanici_id
+                 WHERE e.arac_id = :a AND (e.hareket_id = :h OR (e.hareket_id IS NULL AND e.islem_tarihi BETWEEN :g::date AND :c::date))
+                 ORDER BY e.cikis_sonrasi, e.islem_tarihi, e.id',
+                ['a' => $h['arac_id'], 'h' => $h['id'], 'g' => $konaklama['giris_tarihi'] ?? $h['hareket_tarihi'], 'c' => $h['hareket_tarihi']]
+            ) : [],
             'envanter' => array_column(Database::fetchAll('SELECT envanter_id FROM arac_envanterleri WHERE arac_id = :a', ['a' => $h['arac_id']]), 'envanter_id'),
             'dosyalar' => Upload::list('hareket', $id),
         ]);
@@ -162,7 +182,8 @@ final class HareketController extends Controller
     {
         $h = $this->hareket((int) $id);
         $this->form(function () use ($h) {
-            Database::transaction(function () use ($h) {
+            $hizmetler = (int) $h['hareket_tipi'] === 2 ? self::cikisHizmetleri() : [];
+            Database::transaction(function () use ($h, $hizmetler) {
                 $alanlar = [
                     'hareket_tipi' => Request::int('hareket_tipi') ?? $h['hareket_tipi'],
                     'hareket_nedeni_id' => Request::int('hareket_nedeni'),
@@ -206,10 +227,18 @@ final class HareketController extends Controller
                     Database::query('INSERT INTO arac_envanterleri VALUES (:a, :e)', ['a' => $h['arac_id'], 'e' => $e]);
                 }
 
+                foreach ($hizmetler as [$tipId, $tutar, $not]) {
+                    AracService::maliyetEkle((int) $h['arac_id'], [
+                        'maliyet_tipi_id' => $tipId, 'tutar' => $tutar, 'aciklama' => $not ?? 'Çıkış sonrası eklendi',
+                        'islem_tarihi' => date('Y-m-d'), 'hareket_id' => $h['id'], 'cikis_sonrasi' => true,
+                        'musteri_id' => $alanlar['musteri_id'], 'bayi_id' => $alanlar['bayi_id'],
+                    ]);
+                }
+
                 Upload::save('dosya', 'hareket', (int) $h['id'], 'belge', (array) ($_POST['dosya_tanim'] ?? []));
-                Log::islem('hareket', 'Hareket güncellendi: ' . $h['sase'], (int) $h['id']);
+                Log::islem('hareket', 'Hareket güncellendi: ' . $h['sase'] . ($hizmetler ? ' (' . count($hizmetler) . ' çıkış sonrası hizmet)' : ''), (int) $h['id']);
             });
-            flash('success', 'Hareket kaydı güncellendi.');
+            flash('success', 'Hareket kaydı güncellendi.' . ($hizmetler ? ' ' . count($hizmetler) . ' hizmet çıkış sonrası olarak eklendi.' : ''));
             View::redirect('/arac_hareketleri/hareket_duzenle/' . $h['id']);
         }, '/arac_hareketleri/hareket_duzenle/' . $h['id']);
     }
@@ -268,10 +297,10 @@ final class HareketController extends Controller
                 'sevkiyat_kodu' => Request::str('sevkiyat_kodu'), 'irsaliye_kodu' => Request::str('irsaliye_kodu'), 'aciklama' => Request::str('aciklama'),
                 'hareket_tarihi' => $cikisTarihi,
                 ]);
-                foreach ($hizmetler as [$tipId, $tutar]) {
+                foreach ($hizmetler as [$tipId, $tutar, $not]) {
                     AracService::maliyetEkle((int) $arac['id'], [
-                        'maliyet_tipi_id' => $tipId, 'tutar' => $tutar, 'aciklama' => 'Stoktan çıkış hizmeti',
-                        'islem_tarihi' => substr($cikisTarihi, 0, 10),
+                        'maliyet_tipi_id' => $tipId, 'tutar' => $tutar, 'aciklama' => $not ?? 'Stoktan çıkış hizmeti',
+                        'islem_tarihi' => substr($cikisTarihi, 0, 10), 'hareket_id' => $hareketId,
                     ]);
                 }
 
@@ -284,10 +313,11 @@ final class HareketController extends Controller
         }, $back);
     }
 
-    /** @return list<array{int, float}> [maliyet_tipi_id, tutar] */
+    /** @return list<array{int, float, ?string}> [maliyet_tipi_id, tutar, not] */
     private static function cikisHizmetleri(): array
     {
         $tutarlar = (array) ($_POST['hizmet_tutar'] ?? []);
+        $notlar = (array) ($_POST['hizmet_not'] ?? []);
         $sonuc = [];
         foreach ((array) ($_POST['hizmet_id'] ?? []) as $i => $tipId) {
             if (!is_scalar($tipId) || (int) $tipId <= 0) {
@@ -302,7 +332,8 @@ final class HareketController extends Controller
             if ($tutar === null || $tutar < 0) {
                 throw new RuntimeException("{$tip['ad']} için geçerli bir ücret giriniz.");
             }
-            $sonuc[] = [(int) $tipId, $tutar];
+            $not = is_scalar($notlar[$i] ?? null) ? trim((string) $notlar[$i]) : '';
+            $sonuc[] = [(int) $tipId, $tutar, $not !== '' ? mb_substr($not, 0, 500) : null];
         }
 
         return $sonuc;

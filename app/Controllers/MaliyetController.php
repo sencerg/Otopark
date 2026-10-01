@@ -106,6 +106,7 @@ final class MaliyetController extends Controller
                 'id' => 'e.id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad',
                 'lokasyon' => 'b.ad', 'maliyet_tipi' => 'mt.ad', 'tutar' => 'e.tutar', 'aciklama' => 'e.aciklama', 'fatura_no' => 'e.fatura_no',
                 'islem_tarihi' => "to_char(e.islem_tarihi, 'DD.MM.YYYY')", 'islem_tarihi_sort' => 'e.islem_tarihi',
+                'cikis_sonrasi' => 'e.cikis_sonrasi', 'hareket_id' => 'e.hareket_id',
                 'kullanici' => 'u.name', 'kayit_zamani' => "to_char(e.created_at AT TIME ZONE 'Europe/Istanbul', 'DD.MM.YYYY HH24:MI')", 'kayit_zamani_sort' => 'e.created_at',
             ],
             [Auth::bayiKosulu('e.bayi_id')],
@@ -124,6 +125,9 @@ final class MaliyetController extends Controller
         }
         if ($d = Request::date('bitis')) {
             $dt->where('e.islem_tarihi <= :f_bit', ['f_bit' => $d]);
+        }
+        if (Request::str('cikis_sonrasi') === '1') {
+            $dt->where('e.cikis_sonrasi');
         }
 
         return $dt;

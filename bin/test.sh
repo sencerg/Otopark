@@ -401,6 +401,39 @@ page "$K" POST /arac_hareketleri/stoktan_cikar/$CX -F "_csrf=$TK" -F hareket_ned
 eq "Çıkışta 2 hizmet ücreti araca yazılıyor (boş ücret = varsayılan 750)" "f|$((EK_ONCE + 2))|2000.50" \
     "$(q "SELECT stokta FROM araclar WHERE id=$CX")|$(q "SELECT count(*) FROM arac_ekstreleri WHERE arac_id=$CX")|$(q "SELECT sum(tutar) FROM arac_ekstreleri WHERE arac_id=$CX AND maliyet_tipi_id=$HZ")"
 eq "Hizmet ücretleri çıkış tarihine ve aracın lokasyonuna yazılıyor" "$(date +%F)|$ANK" "$(q "SELECT DISTINCT islem_tarihi||'|'||bayi_id FROM arac_ekstreleri WHERE arac_id=$CX AND maliyet_tipi_id=$HZ")"
+CH=$(q "SELECT id FROM arac_hareketleri WHERE arac_id=$CX AND hareket_tipi=2 ORDER BY id DESC LIMIT 1")
+CX_SASE=$(q "SELECT sase FROM araclar WHERE id=$CX")
+CX_MUS=$(q "SELECT musteri_id FROM arac_hareketleri WHERE id=$CH")
+eq "Çıkışta yazılan hizmetler çıkış hareketine bağlanıyor (çıkış sonrası değil)" "2|0" "$(q "SELECT count(*)||'|'||count(*) FILTER (WHERE cikis_sonrasi) FROM arac_ekstreleri WHERE hareket_id=$CH")"
+page "$K" GET /arac_hareketleri/hareket_duzenle/$CH
+has "Çıkış düzenleme ekranında hizmet ekleme bölümü var" "Çıkış sonrası hizmet / maliyet ekle" "$BODY"
+has "Çıkış düzenleme ekranında çıkışta yazılan hizmetler listeleniyor" "Test Cila $RUN" "$BODY"
+hasnt "Görüntüleme ekranında hizmet ekleme yok" "Çıkış sonrası hizmet / maliyet ekle" "$(page "$K" GET /arac_hareketleri/hareket_view/$CH; echo "$BODY")"
+GH=$(q "SELECT id FROM arac_hareketleri WHERE bayi_id=$ANK AND hareket_tipi=1 ORDER BY id LIMIT 1")
+hasnt "Giriş hareketinde hizmet kartı yok" "Hizmetler ve Ücret" "$(page "$K" GET /arac_hareketleri/hareket_duzenle/$GH; echo "$BODY")"
+guncelle_cikis() { page "$K" POST /arac_hareketleri/hareket_update/$CH -F "_csrf=$TK" -F hareket_tipi=2 -F musteri_id=$CX_MUS -F bayi_id=$ANK \
+    -F hareket_tarihi=$(date +%F) -F hareket_saati=10:00 -F hareket_nedeni=1 "$@"; }
+guncelle_cikis -F teslim_alan=DEGISMEMELI -F "hizmet_id[]=99999999" -F "hizmet_tutar[]=10"
+eq "Geçersiz çıkış sonrası hizmetle hareket de güncellenmiyor" "0|" "$(q "SELECT count(*) FROM arac_ekstreleri WHERE hareket_id=$CH AND cikis_sonrasi")|$(q "SELECT teslim_alan FROM arac_hareketleri WHERE id=$CH AND teslim_alan='DEGISMEMELI'")"
+guncelle_cikis -F "hizmet_id[]=$HZ" -F "hizmet_tutar[]=300" -F "hizmet_not[]=Müşteri sonradan istedi" -F "hizmet_id[]=$HZ" -F "hizmet_tutar[]="
+eq "Çıkış sonrası 2 hizmet bugünün tarihiyle ve işaretli yazılıyor (boş ücret = 750)" "2|1050.00|$(date +%F)|$ANK" \
+    "$(q "SELECT count(*)||'|'||sum(tutar)||'|'||max(islem_tarihi)||'|'||max(bayi_id) FROM arac_ekstreleri WHERE hareket_id=$CH AND cikis_sonrasi")"
+eq "Not girilen hizmette not, girilmeyende varsayılan açıklama var" "Müşteri sonradan istedi|Çıkış sonrası eklendi" \
+    "$(q "SELECT string_agg(aciklama, '|' ORDER BY tutar) FROM arac_ekstreleri WHERE hareket_id=$CH AND cikis_sonrasi")"
+page "$K" GET /arac_hareketleri/hareket_duzenle/$CH
+has "Düzenleme ekranında çıkış sonrası rozeti görünüyor" "2 hizmet çıkış sonrası eklendi" "$BODY"
+has "Düzenleme ekranında hizmet notu görünüyor" "Müşteri sonradan istedi" "$BODY"
+req "$K" GET "/arac_hareketleri/cikis/liste?$(dt "q=$CX_SASE")"
+CX_HZ=$(q "SELECT sum(e.tutar) FROM arac_ekstreleri e, arac_hareketleri h WHERE h.id=$CH AND e.arac_id=h.arac_id AND (e.hareket_id=h.id OR (e.hareket_id IS NULL AND e.islem_tarihi BETWEEN (SELECT max(g.hareket_tarihi)::date FROM arac_hareketleri g WHERE g.arac_id=h.arac_id AND g.hareket_tipi=1 AND g.hareket_tarihi<=h.hareket_tarihi) AND h.hareket_tarihi::date))")
+eq "Stoktan Çıkanlar listesinde hizmet toplamı ve çıkış sonrası tutarı var" "$CX_HZ|2|1050.00" \
+    "$(js '.data[0].hizmet_tutari')|$(js '.data[0].sonradan_adet')|$(js '.data[0].sonradan_tutar')"
+req "$K" GET "/ek_hizmet_raporu/liste?$(dt "q=$CX_SASE&baslangic=$(date +%F)&bitis=$(date +%F)&cikis_sonrasi=1")"
+eq "Ek Hizmet Raporu 'çıkış sonrası' filtresi yalnız sonradan eklenenleri getiriyor" "2|1050|true" "$(js .recordsFiltered)|$(js '.toplam|tonumber')|$(js '[.data[].cikis_sonrasi]|all')"
+SONRA_ID=$(q "SELECT id FROM arac_ekstreleri WHERE hareket_id=$CH AND cikis_sonrasi ORDER BY id LIMIT 1")
+req "$S" POST "/arac_ekstreleri/maliyet_sil/$SONRA_ID" -F "_csrf=$TS"
+eq "Başka bayi çıkış sonrası hizmeti silemiyor" 1 "$(q "SELECT count(*) FROM arac_ekstreleri WHERE id=$SONRA_ID")"
+req "$K" POST "/arac_ekstreleri/maliyet_sil/$SONRA_ID" -F "_csrf=$TK"
+eq "Çıkış sonrası hizmet silinebiliyor" 0 "$(q "SELECT count(*) FROM arac_ekstreleri WHERE id=$SONRA_ID")"
 req "$A" POST /tanimlamalar/hizmet/sil/$HZ -F "_csrf=$TA"
 has "Kullanılmış hizmet silinemiyor" "silinemez" "$(js .message)"
 
