@@ -304,15 +304,23 @@ eq "Çıkan araç tekrar stoğa girebiliyor" "true|t" "$(js .success)|$(q "SELEC
 eq "İki ayrı konaklama oluşuyor" 2 "$(q "SELECT count(*) FROM arac_konaklamalari WHERE arac_id=$AID")"
 eq "İki konaklama tek raporda: 10 gün + 3 gün (20-22 Eylül)" "2|$(php -r "echo (float)(13*$FIYAT);")" "$(req "$K" GET "/depolama_raporu/liste?$(dt "q=$SASE&baslangic=2026-09-01&bitis=2026-09-22")"; echo "$(js .recordsFiltered)|$(js .toplam)")"
 
-GENEL_MUS=$(q "SELECT musteri_id FROM depolama_fiyatlari WHERE bayi_id=$ANK AND arac_tipi_id IS NULL ORDER BY musteri_id LIMIT 1")
-GENEL_FIYAT=$(q "SELECT gunluk_fiyat FROM depolama_fiyatlari WHERE bayi_id=$ANK AND musteri_id=$GENEL_MUS AND arac_tipi_id IS NULL")
+GENEL_MUS=$(q "SELECT id FROM musteriler m WHERE aktif AND NOT EXISTS (SELECT 1 FROM depolama_fiyatlari f WHERE f.musteri_id=m.id AND f.bayi_id=$ANK) ORDER BY id LIMIT 1")
+LOK_FIYAT=$(q "SELECT gunluk_fiyat FROM bayiler WHERE id=$ANK")
 req "$K" POST /arac_yonetimi/hizli_arac_save -F "_csrf=$TK" -F sase="TSTGNL$RUN" -F arac_tipi=$TIP -F hareket_tipi=1 -F musteri_id=$GENEL_MUS \
     -F hareket_tarihi_tarih=2026-09-01 -F hareket_tarihi_saat=09:00
-req "$K" GET "/depolama_raporu/liste?$(dt "q=TSTGNL$RUN&baslangic=2026-09-01&bitis=2026-09-04")"
-eq "Tipli fiyatı olmayan firmada genel (araç tipi boş) fiyat kullanılıyor" "4|$(php -r "echo (float)(4*$GENEL_FIYAT);")|false" "$(js '.data[0].gun')|$(js .toplam)|$(js '.data[0].fiyat_yok')"
-q "DELETE FROM depolama_fiyatlari WHERE bayi_id=$ANK AND musteri_id=$GENEL_MUS" >/dev/null
-req "$K" GET "/depolama_raporu/liste?$(dt "q=TSTGNL$RUN&baslangic=2026-09-01&bitis=2026-09-04")"
-eq "Fiyatı tanımsız firmada uyarı bayrağı dönüyor" "true|0" "$(js '.data[0].fiyat_yok')|$(js .toplam)"
+gnl() { req "$K" GET "/depolama_raporu/liste?$(dt "q=TSTGNL$RUN&baslangic=2026-09-01&bitis=2026-09-04")"; echo "$(js '.data[0].gun')|$(js .toplam)|$(js '.data[0].fiyat_yok')"; }
+eq "Özel fiyatı olmayan firmada otoparkın standart fiyatı kullanılıyor (4 gün × $LOK_FIYAT ₺)" "4|$(php -r "echo (float)(4*$LOK_FIYAT);")|false" "$(gnl)"
+lok() { req "$A" POST /tanimlamalar/lokasyon/kaydet -F "_csrf=$TA" -F id=$ANK -F "ad=BİA ANKARA" -F sehir=Ankara -F gunluk_fiyat="$1" -F fiyat_carpani="$2" -F aktif=1; }
+lok "$LOK_FIYAT" 1,5
+eq "Otopark çarpanı 1,5 standart fiyata uygulanıyor" "4|$(php -r "echo (float)(4*$LOK_FIYAT*1.5);")|false" "$(gnl)"
+OZEL_SASE=$(q "SELECT a.sase FROM araclar a JOIN depolama_fiyatlari f ON f.musteri_id=a.musteri_id AND f.bayi_id=a.bayi_id AND f.arac_tipi_id=a.arac_tipi_id WHERE a.bayi_id=$ANK AND a.stokta ORDER BY a.id LIMIT 1")
+OZEL_FIYAT=$(q "SELECT f.gunluk_fiyat FROM araclar a JOIN depolama_fiyatlari f ON f.musteri_id=a.musteri_id AND f.bayi_id=a.bayi_id AND f.arac_tipi_id=a.arac_tipi_id WHERE a.sase='$OZEL_SASE'")
+req "$K" GET "/depolama_raporu/liste?$(dt "q=$OZEL_SASE&baslangic=$(date +%F)&bitis=$(date +%F)")"
+eq "Çarpan müşteriye özel fiyata da uygulanıyor ($OZEL_FIYAT × 1,5)" "$(php -r "echo (float)($OZEL_FIYAT*1.5);")" "$(js '.data[0].gunluk_fiyat' | php -r 'echo (float) trim(stream_get_contents(STDIN));')"
+lok 0 1
+eq "Otoparkın da fiyatı yoksa uyarı bayrağı dönüyor" "4|0|true" "$(gnl)"
+lok "$LOK_FIYAT" 1
+eq "Otopark fiyatı geri alınınca hesap eski haline dönüyor" "4|$(php -r "echo (float)(4*$LOK_FIYAT);")|false" "$(gnl)"
 
 bolum "7. İş emri"
 AR1=$(q "SELECT id FROM araclar WHERE bayi_id=$ANK AND stokta ORDER BY id DESC LIMIT 1")
@@ -348,6 +356,74 @@ page "$K" POST /arac_yonetimi/excel_toplu_giris -F "_csrf=$TK" -F musteri_id=$MU
 eq "CSV ile 2 geçerli araç stoğa giriyor" 2 "$(q "SELECT count(*) FROM araclar WHERE sase LIKE 'CSV$RUN%' AND stokta AND bayi_id=$ANK")"
 eq "CSV'de başka bayinin stoğundaki araç atlanıyor" "$SEY" "$(q "SELECT bayi_id FROM araclar WHERE id=$S_ARAC")"
 eq "CSV'de marka/seri adları eşleşiyor" "Clio" "$(q "SELECT s.ad FROM araclar a JOIN seriler s ON s.id=a.seri_id WHERE a.sase='CSV${RUN}00000001'")"
+
+bolum "9b. Tanımlamalar ve çıkışta hizmet ücreti"
+page "$K" GET /tanimlamalar; eq "Tanımlamalar sayfası açılıyor (bayi)" 200 "$CODE"
+has "Menüde Tanımlamalar var" 'href="/tanimlamalar"' "$BODY"
+req "$K" GET /tanimlamalar/lokasyon/liste; eq "Bayi otopark listesinde yalnızca kendi otoparkını görüyor" "1|BİA ANKARA" "$(js '.data|length')|$(js '.data[0].ad')"
+req "$A" GET /tanimlamalar/lokasyon/liste; eq "Yönetici tüm otoparkları görüyor" "$(q "SELECT count(*) FROM bayiler")" "$(js '.data|length')"
+req "$K" POST /tanimlamalar/musteri/kaydet -F "_csrf=$TK" -F "ad=Bayi Firması $RUN"
+has "Bayi müşteri ekleyemiyor" "yalnızca yönetici" "$(js .message)"
+req "$A" POST /tanimlamalar/musteri/kaydet -F "_csrf=$TA" -F "ad=Test Filo $RUN" -F yetkili="Ali Veli" -F eposta=filo@ornek.com -F aktif=1
+eq "Yönetici müşteri ekliyor" "true|Ali Veli" "$(js .success)|$(q "SELECT yetkili FROM musteriler WHERE ad='Test Filo $RUN'")"
+req "$A" POST /tanimlamalar/musteri/kaydet -F "_csrf=$TA" -F "ad=test filo $RUN" -F aktif=1
+has "Aynı adlı müşteri (büyük/küçük harf farkı) reddediliyor" "zaten var" "$(js .message)"
+req "$A" POST /tanimlamalar/musteri/kaydet -F "_csrf=$TA" -F "ad=Hatalı Eposta $RUN" -F eposta=abc
+has "Geçersiz e-posta reddediliyor" "e-posta" "$(js .message)"
+has "Yeni müşteri araç girişinde seçilebiliyor" "Test Filo $RUN" "$(page "$K" GET /arac_yonetimi/ekle; echo "$BODY")"
+for c in 0 11 -1; do
+    req "$A" POST /tanimlamalar/lokasyon/kaydet -F "_csrf=$TA" -F id=$ANK -F "ad=BİA ANKARA" -F gunluk_fiyat=100 -F fiyat_carpani=$c -F aktif=1
+    eq "Geçersiz çarpan reddediliyor ($c)" false "$(js .success)"
+done
+eq "Geçersiz çarpanlar otoparkı değiştirmiyor" "1.000" "$(q "SELECT fiyat_carpani FROM bayiler WHERE id=$ANK")"
+req "$A" POST /tanimlamalar/lokasyon/kaydet -F "_csrf=$TA" -F "ad=Test Otopark $RUN" -F sehir=İzmir -F gunluk_fiyat=80 -F fiyat_carpani=1,2 -F aktif=1
+eq "Yeni otopark fiyat ve çarpanla ekleniyor" "80.00|1.200" "$(q "SELECT gunluk_fiyat||'|'||fiyat_carpani FROM bayiler WHERE ad='Test Otopark $RUN'")"
+
+req "$A" POST /tanimlamalar/hizmet/kaydet -F "_csrf=$TA" -F "ad=Test Cila $RUN" -F varsayilan_tutar=750 -F aktif=1
+HZ=$(q "SELECT id FROM maliyet_tipleri WHERE ad='Test Cila $RUN'")
+eq "Yönetici hizmet ekliyor" "true|750.00" "$(js .success)|$(q "SELECT varsayilan_tutar FROM maliyet_tipleri WHERE id=$HZ")"
+req "$K" POST /tanimlamalar/hizmet/kaydet -F "_csrf=$TK" -F "ad=Bayi Hizmeti $RUN" -F varsayilan_tutar=1
+eq "Bayi hizmet ekleyemiyor" false "$(js .success)"
+CX=$(q "SELECT id FROM araclar WHERE bayi_id=$ANK AND stokta AND id <> 1 AND sase NOT LIKE 'TST%' ORDER BY id LIMIT 1")
+page "$K" GET /arac_hareketleri/stoktan_cikar/$CX
+has "Yeni hizmet Stoktan Çıkar ekranında seçilebiliyor" "Test Cila $RUN" "$BODY"
+has "Stoktan Çıkar ekranında depolama ücreti görünüyor" "Toplam ücret" "$BODY"
+has "Yeni hizmet Hızlı Maliyet Ekle penceresinde seçilebiliyor" "Test Cila $RUN" "$(page "$K" GET /arac_hareketleri/giris; echo "$BODY")"
+EK_ONCE=$(q "SELECT count(*) FROM arac_ekstreleri WHERE arac_id=$CX")
+page "$K" POST /arac_hareketleri/stoktan_cikar/$CX -F "_csrf=$TK" -F hareket_nedeni=1 -F hareket_tarihi=$(date +%F) -F hareket_saati=10:00 \
+    -F "hizmet_id[]=99999999" -F "hizmet_tutar[]=10"
+eq "Geçersiz hizmetle çıkış yapılmıyor (araç stokta kalıyor)" "t|$EK_ONCE" "$(q "SELECT stokta FROM araclar WHERE id=$CX")|$(q "SELECT count(*) FROM arac_ekstreleri WHERE arac_id=$CX")"
+page "$K" POST /arac_hareketleri/stoktan_cikar/$CX -F "_csrf=$TK" -F hareket_nedeni=1 -F hareket_tarihi=$(date +%F) -F hareket_saati=10:00 \
+    -F "hizmet_id[]=$HZ" -F "hizmet_tutar[]=" -F "hizmet_id[]=$HZ" -F "hizmet_tutar[]=1.250,50"
+eq "Çıkışta 2 hizmet ücreti araca yazılıyor (boş ücret = varsayılan 750)" "f|$((EK_ONCE + 2))|2000.50" \
+    "$(q "SELECT stokta FROM araclar WHERE id=$CX")|$(q "SELECT count(*) FROM arac_ekstreleri WHERE arac_id=$CX")|$(q "SELECT sum(tutar) FROM arac_ekstreleri WHERE arac_id=$CX AND maliyet_tipi_id=$HZ")"
+eq "Hizmet ücretleri çıkış tarihine ve aracın lokasyonuna yazılıyor" "$(date +%F)|$ANK" "$(q "SELECT DISTINCT islem_tarihi||'|'||bayi_id FROM arac_ekstreleri WHERE arac_id=$CX AND maliyet_tipi_id=$HZ")"
+req "$A" POST /tanimlamalar/hizmet/sil/$HZ -F "_csrf=$TA"
+has "Kullanılmış hizmet silinemiyor" "silinemez" "$(js .message)"
+
+req "$K" POST /tanimlamalar/marka/kaydet -F "_csrf=$TK" -F "ad=TSTMARKA$RUN"
+TM=$(js .id)
+req "$K" POST /tanimlamalar/seri/kaydet -F "_csrf=$TK" -F "ad=Seri X" -F marka_id=$TM
+TSR=$(js .id)
+req "$K" POST /tanimlamalar/model/kaydet -F "_csrf=$TK" -F "ad=1.6 Test" -F seri_id=$TSR
+TMD=$(js .id)
+eq "Marka → seri → model zinciri ekleniyor" "TSTMARKA$RUN|Seri X|1.6 Test" "$(q "SELECT m.ad||'|'||s.ad||'|'||o.ad FROM modeller o JOIN seriler s ON s.id=o.seri_id JOIN markalar m ON m.id=s.marka_id WHERE o.id=$TMD")"
+req "$K" GET "/tanimlamalar/seri/liste?ust_id=$TM"; eq "Seri listesi seçilen markaya göre geliyor" "1|Seri X" "$(js '.data|length')|$(js '.data[0].ad')"
+req "$K" GET "/api/modeller?seri_id=$TSR"; has "Yeni model araç formundaki listeye düşüyor" "1.6 Test" "$BODY"
+req "$K" POST /tanimlamalar/seri/kaydet -F "_csrf=$TK" -F "ad=Sahipsiz"
+eq "Markasız seri eklenemiyor" false "$(js .success)"
+req "$K" POST /tanimlamalar/marka/kaydet -F "_csrf=$TK" -F "ad=TSTMARKA$RUN"
+has "Aynı marka ikinci kez eklenemiyor" "zaten var" "$(js .message)"
+req "$K" POST /tanimlamalar/seri/kaydet -F "_csrf=$TK" -F "ad=seri x" -F marka_id=$TM
+has "Aynı markada aynı seri ikinci kez eklenemiyor" "zaten var" "$(js .message)"
+req "$K" POST /tanimlamalar/seri/kaydet -F "_csrf=$TK" -F "ad=Seri X" -F marka_id=$MARKA
+eq "Aynı seri adı başka markada eklenebiliyor" true "$(js .success)"
+q "DELETE FROM seriler WHERE marka_id=$MARKA AND ad='Seri X'" >/dev/null
+req "$K" POST /tanimlamalar/marka/sil/$TM -F "_csrf=$TK"
+has "Serisi olan marka silinemiyor" "serilerini silin" "$(js .message)"
+req "$K" POST /tanimlamalar/model/sil/$TMD -F "_csrf=$TK"; req "$K" POST /tanimlamalar/seri/sil/$TSR -F "_csrf=$TK"; req "$K" POST /tanimlamalar/marka/sil/$TM -F "_csrf=$TK"
+eq "Model, seri ve marka sırayla siliniyor" 0 "$(q "SELECT count(*) FROM markalar WHERE id=$TM")"
+req "$K" POST /tanimlamalar/olmayan/kaydet -F "_csrf=$TK" -F ad=x; eq "Bilinmeyen tanım tipi 404" 404 "$CODE"
 
 bolum "10. Sağlamlık ve güvenlik"
 for p in "search=abc" "search[value][]=x" "order[0]=x" "order[0][column]=abc&order[0][dir]=asc" "order[0][column]=1&order[0][dir][]=x&columns[1][data]=sase" \

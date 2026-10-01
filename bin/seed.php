@@ -52,6 +52,7 @@ Database::transaction(function () use ($t, $insertNames, $idMap) {
 
     $grup = $idMap('kullanici_gruplari');
     $bayi = $idMap('bayiler');
+    Database::query("UPDATE bayiler SET gunluk_fiyat = CASE WHEN ad = 'BİA SEYRANTEPE' THEN 125 ELSE 100 END WHERE gunluk_fiyat = 0");
     $users = [
         ['Yönetici', 'admin@otopark.local', 'admin123', 'admin', $grup['Yönetici'], null],
         ['Ankara Bayi', 'ankara@otopark.local', 'ankara123', 'bayi', $grup['Bayi Grubu'], $bayi['BİA ANKARA']],
@@ -115,13 +116,6 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
             }
         }
     }
-    // Diğer firmalar: araç tipinden bağımsız genel fiyat (araç tipi boş satır).
-    Database::query(
-        'INSERT INTO depolama_fiyatlari (musteri_id, bayi_id, gunluk_fiyat)
-         SELECT m.id, b.id, CASE WHEN b.id = :s THEN 125 ELSE 100 END FROM musteriler m CROSS JOIN bayiler b
-         WHERE b.id IN (:a, :s2) AND NOT (m.id = ANY(:h::int[]))',
-        ['s' => $seyrantepe, 's2' => $seyrantepe, 'a' => $ankara, 'h' => '{' . implode(',', array_unique($firmaHavuzu)) . '}']
-    );
 
     $seriler = Database::fetchAll('SELECT s.id, s.marka_id, (SELECT array_to_string(array_agg(m.id), \',\') FROM modeller m WHERE m.seri_id = s.id) AS modeller FROM seriler s');
     $renkler = array_slice($ids('renkler'), 0, 19);

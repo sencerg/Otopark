@@ -30,7 +30,15 @@ final class Request
     public static function decimal(string $key): ?float
     {
         $value = self::input($key);
-        if (!is_string($value) || $value === '') {
+
+        return is_string($value) ? self::parseDecimal($value) : null;
+    }
+
+    /** "1.250,50", "1250.50" ve "1.250" (binlik) biçimlerini okur. */
+    public static function parseDecimal(string $value): ?float
+    {
+        $value = trim($value);
+        if ($value === '') {
             return null;
         }
         if (str_contains($value, ',')) {

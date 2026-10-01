@@ -14,6 +14,7 @@ use App\Core\Tanim;
 use App\Core\Upload;
 use App\Core\View;
 use App\Services\AracService;
+use App\Services\DepolamaHesap;
 use RuntimeException;
 
 final class HareketController extends Controller
@@ -224,9 +225,17 @@ final class HareketController extends Controller
             flash('error', 'Bu araç zaten stokta değil.');
             View::redirect('/arac_hareketleri/cikis');
         }
+        $konaklama = array_values(array_filter(DepolamaHesap::arac((int) $arac['id']), fn ($d) => $d['cikis_tarihi'] === null))[0] ?? null;
         $this->view('hareketler/stoktan_cikar', [
             'pageTitle' => 'Stoktan Çıkar',
             'breadcrumb' => ['Stoktaki Araçlar' => '/arac_hareketleri/giris', $arac['sase'] => null],
+            'hizmetler' => Database::fetchAll('SELECT id, ad, varsayilan_tutar FROM maliyet_tipleri WHERE aktif ORDER BY ad'),
+            'konaklama' => $konaklama,
+            'eklenenler' => $konaklama ? Database::fetchAll(
+                'SELECT mt.ad, e.tutar, e.islem_tarihi FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
+                 WHERE e.arac_id = :a AND e.islem_tarihi >= :g::date ORDER BY e.islem_tarihi, e.id',
+                ['a' => $arac['id'], 'g' => $konaklama['giris_tarihi']]
+            ) : [],
             'arac' => Database::fetch(
                 'SELECT a.*, m.ad AS marka, s.ad AS seri, mu.ad AS musteri, b.ad AS bayi FROM araclar a
                  LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN seriler s ON s.id = a.seri_id
@@ -244,7 +253,10 @@ final class HareketController extends Controller
             if (!$arac['stokta']) {
                 throw new RuntimeException('Bu araç zaten stokta değil.');
             }
-            $hareketId = Database::transaction(fn () => AracService::hareketEkle((int) $arac['id'], [
+            $hizmetler = self::cikisHizmetleri();
+            $cikisTarihi = Request::dateTime('hareket_tarihi', 'hareket_saati') ?? date('Y-m-d H:i:s');
+            $hareketId = Database::transaction(function () use ($arac, $hizmetler, $cikisTarihi) {
+                $hareketId = AracService::hareketEkle((int) $arac['id'], [
                 'hareket_tipi' => 2,
                 'hareket_nedeni_id' => Request::int('hareket_nedeni'),
                 'musteri_id' => $arac['musteri_id'], 'bayi_id' => $arac['bayi_id'],
@@ -254,13 +266,46 @@ final class HareketController extends Controller
                 'sevkiyat_tipi' => Request::int('sevkiyat_tipi'), 'sevkiyat_durumu' => Request::int('sevkiyat_durumu') ?? 3,
                 'sofor_adi_soyadi' => Request::str('sofor_adi_soyadi'), 'sofor_telefon' => Request::str('sofor_telefon'), 'cekici_plakasi' => Request::str('cekici_plakasi'),
                 'sevkiyat_kodu' => Request::str('sevkiyat_kodu'), 'irsaliye_kodu' => Request::str('irsaliye_kodu'), 'aciklama' => Request::str('aciklama'),
-                'hareket_tarihi' => Request::dateTime('hareket_tarihi', 'hareket_saati') ?? date('Y-m-d H:i:s'),
-            ]));
+                'hareket_tarihi' => $cikisTarihi,
+                ]);
+                foreach ($hizmetler as [$tipId, $tutar]) {
+                    AracService::maliyetEkle((int) $arac['id'], [
+                        'maliyet_tipi_id' => $tipId, 'tutar' => $tutar, 'aciklama' => 'Stoktan çıkış hizmeti',
+                        'islem_tarihi' => substr($cikisTarihi, 0, 10),
+                    ]);
+                }
+
+                return $hareketId;
+            });
             Upload::save('dosya', 'hareket', $hareketId, 'belge', (array) ($_POST['dosya_tanim'] ?? []));
-            Log::islem('hareket', 'Stoktan çıkış: ' . $arac['sase'], $hareketId);
-            flash('success', $arac['sase'] . ' stoktan çıkarıldı.');
+            Log::islem('hareket', 'Stoktan çıkış: ' . $arac['sase'] . ($hizmetler ? ' (' . count($hizmetler) . ' hizmet)' : ''), $hareketId);
+            flash('success', $arac['sase'] . ' stoktan çıkarıldı.' . ($hizmetler ? ' ' . count($hizmetler) . ' hizmet ücreti araca yansıtıldı.' : ''));
             View::redirect('/arac_hareketleri/cikis');
         }, $back);
+    }
+
+    /** @return list<array{int, float}> [maliyet_tipi_id, tutar] */
+    private static function cikisHizmetleri(): array
+    {
+        $tutarlar = (array) ($_POST['hizmet_tutar'] ?? []);
+        $sonuc = [];
+        foreach ((array) ($_POST['hizmet_id'] ?? []) as $i => $tipId) {
+            if (!is_scalar($tipId) || (int) $tipId <= 0) {
+                continue;
+            }
+            $tip = Database::fetch('SELECT ad, varsayilan_tutar FROM maliyet_tipleri WHERE id = :id AND aktif', ['id' => (int) $tipId]);
+            if (!$tip) {
+                throw new RuntimeException('Seçilen hizmet bulunamadı veya pasif.');
+            }
+            $ham = $tutarlar[$i] ?? '';
+            $tutar = is_scalar($ham) && trim((string) $ham) !== '' ? Request::parseDecimal((string) $ham) : (float) $tip['varsayilan_tutar'];
+            if ($tutar === null || $tutar < 0) {
+                throw new RuntimeException("{$tip['ad']} için geçerli bir ücret giriniz.");
+            }
+            $sonuc[] = [(int) $tipId, $tutar];
+        }
+
+        return $sonuc;
     }
 
     public function etiketFiyati(): void

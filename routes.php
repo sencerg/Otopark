@@ -14,6 +14,7 @@ use App\Controllers\KarsilastirmaController;
 use App\Controllers\MaliyetController;
 use App\Controllers\RaporController;
 use App\Controllers\TanimController;
+use App\Controllers\TanimlamaController;
 use App\Core\Auth;
 
 /** @var \App\Core\Router $router */
@@ -79,6 +80,12 @@ $router->get('/arac_yonetimi/tanimlar/{tip}/data', [TanimController::class, 'dat
 $router->get('/arac_yonetimi/tanimlar/{tip}/getir/{id}', [TanimController::class, 'getir'], $auth);
 $router->post('/arac_yonetimi/tanimlar/{tip}/kaydet', [TanimController::class, 'kaydet'], $auth);
 $router->post('/arac_yonetimi/tanimlar/{tip}/sil/{id}', [TanimController::class, 'sil'], $auth);
+
+// Tanımlamalar (müşteri, otopark, hizmet, marka/seri/model)
+$router->get('/tanimlamalar', [TanimlamaController::class, 'index'], $auth);
+$router->get('/tanimlamalar/{tip}/liste', [TanimlamaController::class, 'liste'], $auth);
+$router->post('/tanimlamalar/{tip}/kaydet', [TanimlamaController::class, 'kaydet'], $auth);
+$router->post('/tanimlamalar/{tip}/sil/{id}', [TanimlamaController::class, 'sil'], $auth);
 
 // Ek maliyet (araç ekstresi)
 $router->post('/arac_ekstreleri/ek_maliyet_save_modal', [MaliyetController::class, 'saveModal'], $auth);

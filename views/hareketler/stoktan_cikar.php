@@ -45,6 +45,57 @@ $gun = (int) ((time() - strtotime($arac['stoga_giris_tarihi'])) / 86400) + 1;
                     </div>
                 </div>
             </div>
+            <?php
+            $depTutar = $konaklama ? (float) $konaklama['tutar'] : 0.0;
+            $eklenenToplam = array_sum(array_map(fn ($x) => (float) $x['tutar'], $eklenenler));
+            ?>
+            <div class="card">
+                <div class="card-header"><h5>Hizmetler ve Ücret</h5><a href="/tanimlamalar" class="small" target="_blank"><i class="mdi mdi-cog-outline"></i> Hizmet tanımları</a></div>
+                <div class="card-body">
+                    <table class="table table-sm align-middle mb-3">
+                        <tbody>
+                        <tr>
+                            <td><i class="mdi mdi-parking text-primary me-1"></i><b>Depolama</b>
+                                <?php if ($konaklama): ?>
+                                    <span class="text-muted small">— <?= (int) $konaklama['gun'] ?> gün ×
+                                        <?php if ($konaklama['fiyat_yok']): ?><span class="badge badge-soft-warning">Fiyat tanımlı değil</span>
+                                        <?php else: ?><?= number_format((float) $konaklama['gunluk_fiyat'], 2, ',', '.') ?> ₺
+                                            <?php if ((float) $konaklama['carpan'] !== 1.0): ?>(<?= number_format((float) $konaklama['taban_fiyat'], 2, ',', '.') ?> ₺ × <?= number_format((float) $konaklama['carpan'], 2, ',', '.') ?> otopark çarpanı)<?php endif; ?>
+                                        <?php endif; ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-end fw-semibold"><?= number_format($depTutar, 2, ',', '.') ?> ₺</td>
+                        </tr>
+                        <?php foreach ($eklenenler as $x): ?>
+                            <tr><td><i class="mdi mdi-check-circle-outline text-success me-1"></i><?= e($x['ad']) ?> <span class="text-muted small">— <?= date('d.m.Y', strtotime($x['islem_tarihi'])) ?></span></td>
+                                <td class="text-end"><?= number_format((float) $x['tutar'], 2, ',', '.') ?> ₺</td></tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+
+                    <div class="form-section mt-0">Çıkışta eklenecek hizmetler</div>
+                    <table class="table table-sm align-middle mb-2">
+                        <thead><tr><th>Hizmet</th><th style="width: 180px">Ücret (₺)</th><th style="width: 40px"></th></tr></thead>
+                        <tbody id="cikis-hizmetleri"></tbody>
+                    </table>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="#hizmet-satir" data-target="#cikis-hizmetleri"><i class="mdi mdi-plus me-1"></i>Hizmet Ekle</button>
+
+                    <div class="d-flex justify-content-between align-items-center border-top mt-3 pt-3">
+                        <span class="text-muted">Toplam ücret (depolama + hizmetler)</span>
+                        <span class="fs-4 fw-bold text-primary" id="toplam-ucret" data-sabit="<?= $depTutar + $eklenenToplam ?>"><?= number_format($depTutar + $eklenenToplam, 2, ',', '.') ?> ₺</span>
+                    </div>
+                </div>
+            </div>
+            <template id="hizmet-satir">
+                <tr>
+                    <td><select name="hizmet_id[]" class="form-select form-select-sm select2" required>
+                        <option value="">Seçiniz</option>
+                        <?php foreach ($hizmetler as $h): ?><option value="<?= $h['id'] ?>" data-tutar="<?= e($h['varsayilan_tutar']) ?>"><?= e($h['ad']) ?></option><?php endforeach; ?>
+                    </select></td>
+                    <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0" required></td>
+                    <td><button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-close"></i></button></td>
+                </tr>
+            </template>
         </div>
         <div class="col-xl-4">
             <div class="card">
@@ -70,3 +121,20 @@ $gun = (int) ((time() - strtotime($arac['stoga_giris_tarihi'])) / 86400) + 1;
     </div>
 </form>
 <?php unset($_SESSION['_old']); ?>
+<?php ob_start(); ?>
+<script>
+$(function () {
+    const $toplam = $('#toplam-ucret');
+    const hesapla = () => {
+        let t = Number($toplam.data('sabit') || 0);
+        $('#cikis-hizmetleri [name="hizmet_tutar[]"]').each(function () { t += Number(this.value || 0); });
+        $toplam.text(App.money(t));
+    };
+    $('#cikis-hizmetleri').on('change', '[name="hizmet_id[]"]', function () {
+        $(this).closest('tr').find('[name="hizmet_tutar[]"]').val($(this).find(':selected').data('tutar') ?? '');
+        hesapla();
+    }).on('input', '[name="hizmet_tutar[]"]', hesapla);
+    $(document).on('click', '#cikis-hizmetleri [data-remove-row]', () => setTimeout(hesapla));
+});
+</script>
+<?php $scripts = ob_get_clean(); ?>
