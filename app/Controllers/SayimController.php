@@ -108,9 +108,7 @@ final class SayimController extends Controller
             }
             $bayi = AracService::bayiKontrol(Request::int('bayi_id'));
             $personel = Request::int('sorumlu_personel');
-            if ($personel && !Database::fetch('SELECT 1 FROM personeller WHERE id = :id AND aktif', ['id' => $personel])) {
-                throw new RuntimeException('Sorumlu personel bulunamadı.');
-            }
+            Auth::dogrulaPersonel($personel, 'Sorumlu personel');
             $kod = self::yeniKod();
             $id = AracService::insert('sayimlar', [
                 'kod' => $kod, 'baslik' => mb_substr($baslik, 0, 200), 'bayi_id' => $bayi,

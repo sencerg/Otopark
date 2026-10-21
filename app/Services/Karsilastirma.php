@@ -51,12 +51,12 @@ final class Karsilastirma
         $maddeler = self::maddeler();
         $hucre = static fn (?string $s) => str_replace(["\r", "\n", '|'], [' ', ' ', '\\|'], (string) $s);
 
-        $out = ["# BİA ↔ MD Karşılaştırması: İş Akışı ve Farklar", ''];
-        $out[] = '> Bu dosya uygulamadaki "BİA ↔ MD Karşılaştırma" sayfasından üretilir (' . date('d.m.Y H:i') . '). Kararlar sayfadan güncellenir.';
+        $out = ["# Referans ↔ MD Karşılaştırması: İş Akışı ve Farklar", ''];
+        $out[] = '> Bu dosya Moex Otopark uygulamasındaki "Referans ↔ MD Karşılaştırma" sayfasından üretilir (' . date('d.m.Y H:i') . '). Kararlar sayfadan güncellenir.';
         $out[] = '';
         $out[] = '## Kaynaklar';
         $out[] = '';
-        foreach (['bia' => 'BİA', 'md' => 'MD', 'sistem' => 'Sistem'] as $k => $ad) {
+        foreach (['referans' => 'Referans', 'md' => 'MD', 'sistem' => 'Moex Otopark'] as $k => $ad) {
             $out[] = "- **{$ad}:** {$v['kaynaklar'][$k]}";
         }
         $out[] = '';
@@ -66,16 +66,16 @@ final class Karsilastirma
             $out[] = "- {$s}";
         }
         $out[] = '';
-        $out[] = '## Sözlük (MD terimi → BİA karşılığı)';
+        $out[] = '## Sözlük (MD terimi → Referans karşılığı)';
         $out[] = '';
-        $out[] = '| MD | BİA | Not |';
+        $out[] = '| MD | Referans | Not |';
         $out[] = '| --- | --- | --- |';
         foreach ($v['sozluk'] as $s) {
-            $out[] = '| ' . $hucre($s['md']) . ' | ' . $hucre($s['bia']) . ' | ' . $hucre($s['not']) . ' |';
+            $out[] = '| ' . $hucre($s['md']) . ' | ' . $hucre($s['referans']) . ' | ' . $hucre($s['not']) . ' |';
         }
         $out[] = '';
         $out[] = '## İş akışı';
-        foreach (['bia' => 'BİA akışı (sistem şu an böyle çalışıyor)', 'md' => 'MD akışı'] as $k => $baslik) {
+        foreach (['referans' => 'Referans akışı (Moex Otopark şu an böyle çalışıyor)', 'md' => 'MD akışı'] as $k => $baslik) {
             $out[] = '';
             $out[] = "### {$baslik}";
             $out[] = '';
@@ -97,7 +97,7 @@ final class Karsilastirma
                 $out[] = "#### {$m['kod']} · {$m['baslik']}";
                 $out[] = '';
                 $out[] = '- **Fark türü:** ' . $v['turler'][$m['tur']][0];
-                $out[] = "- **BİA:** {$m['bia']}";
+                $out[] = "- **Referans:** {$m['referans']}";
                 $out[] = "- **MD:** {$m['md']}";
                 $out[] = "- **Sistemde şu an:** {$m['sistem']}";
                 $out[] = '- **Karar:** ' . ($v['kararlar'][$m['karar']][0] ?? $m['karar']) . ($m['notlar'] !== '' ? ' — ' . $hucre($m['notlar']) : '');

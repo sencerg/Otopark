@@ -3,7 +3,7 @@ use App\Core\Csrf;
 use App\Core\Database;
 use App\Core\Tanim;
 
-$maliyetTipleri = Database::fetchAll('SELECT id, ad, varsayilan_tutar FROM maliyet_tipleri WHERE aktif ORDER BY id');
+$maliyetTipleri = Database::fetchAll('SELECT id, ad, varsayilan_tutar, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY id');
 $bayiler = Tanim::liste('bayiler');
 ?>
 <div class="modal fade" id="hizli-arac-ekle-modal" tabindex="-1">
@@ -17,7 +17,12 @@ $bayiler = Tanim::liste('bayiler');
             </div>
             <div class="modal-body">
                 <div class="row g-3">
-                    <div class="col-md-4"><label class="form-label required">Şasi Numarası</label><input type="text" name="sase" class="form-control text-uppercase" maxlength="30" required></div>
+                    <div class="col-md-4">
+                        <label class="form-label required">Şasi Numarası</label>
+                        <input type="text" name="sase" class="form-control text-uppercase sase-input" maxlength="17" minlength="17" required autocomplete="off" spellcheck="false"
+                               title="17 hane; I, O ve Türkçe harf kullanılamaz">
+                        <div class="form-text">17 hane · I, O, Ü, Ş, Ç vb. yasaktır</div>
+                    </div>
                     <div class="col-md-4"><label class="form-label required">Plaka</label><input type="text" name="plaka" class="form-control text-uppercase" maxlength="20" required></div>
                     <div class="col-md-4"><label class="form-label required">Araç Tipi</label><select name="arac_tipi" class="form-select" required><?= Tanim::options(Tanim::liste('arac_tipleri')) ?></select></div>
                     <div class="col-md-4"><label class="form-label">Marka</label><select name="marka_id" class="form-select select2"><?= Tanim::options(Tanim::liste('markalar')) ?></select></div>
@@ -56,7 +61,7 @@ $bayiler = Tanim::liste('bayiler');
                     <div class="col-md-3"><label class="form-label required">Hareket Tarihi</label>
                         <div class="input-group"><input type="date" name="hareket_tarihi_tarih" class="form-control" required data-default-today><input type="time" name="hareket_tarihi_saat" class="form-control" value="<?= date('H:i') ?>"></div>
                     </div>
-                    <div class="col-md-3"><label class="form-label">Teslim Alan Personel</label><select name="teslim_alan_personel" class="form-select select2"><?= Tanim::options(Tanim::liste('personeller')) ?></select></div>
+                    <div class="col-md-3"><label class="form-label">Personel</label><select name="teslim_alan_personel" class="form-select select2"><?= Tanim::options(Tanim::liste('personeller')) ?></select></div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -81,7 +86,7 @@ $bayiler = Tanim::liste('bayiler');
                     <div class="col-md-8"><label class="form-label required">Maliyet Tipi</label>
                         <select name="maliyet_tipi_modal" class="form-select select2" required data-tutar-target="#hizli-maliyet-tutar">
                             <option value="">Seçiniz</option>
-                            <?php foreach ($maliyetTipleri as $m): ?><option value="<?= $m['id'] ?>" data-tutar="<?= e($m['varsayilan_tutar']) ?>"><?= e($m['ad']) ?></option><?php endforeach; ?>
+                            <?php foreach ($maliyetTipleri as $m): ?><option value="<?= $m['id'] ?>" data-tutar="<?= e($m['varsayilan_tutar']) ?>" data-bayi-degistirebilir="<?= !empty($m['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($m['ad']) ?></option><?php endforeach; ?>
                         </select>
                     </div>
                     <div class="col-md-4"><label class="form-label required">Fiyat (₺)</label><input type="number" step="0.01" min="0" name="tutar_ek" id="hizli-maliyet-tutar" class="form-control" required></div>

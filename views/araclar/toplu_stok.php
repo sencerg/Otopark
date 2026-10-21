@@ -25,7 +25,7 @@ $markaOptions = Tanim::options(Tanim::liste('markalar'));
                     <label class="form-label">Giriş Tarihi</label>
                     <div class="input-group mb-2"><input type="date" name="hareket_tarihi" class="form-control" data-default-today><input type="time" name="hareket_saati" class="form-control" value="<?= date('H:i') ?>"></div>
                     <div class="mb-2"><label class="form-label">Teslim Eden</label><input type="text" name="teslim_eden" class="form-control"></div>
-                    <div class="mb-2"><label class="form-label">Teslim Alan Personel</label><select name="teslim_alan_personel" class="form-select select2"><?= Tanim::options(Tanim::liste('personeller')) ?></select></div>
+                    <div class="mb-2"><label class="form-label">Personel</label><select name="teslim_alan_personel" class="form-select select2"><?= Tanim::options(Tanim::liste('personeller')) ?></select></div>
                     <label class="form-label">Araç Envanteri</label>
                     <div class="check-grid">
                         <?php foreach (Tanim::liste('envanterler') as $id => $ad): ?>
@@ -37,10 +37,13 @@ $markaOptions = Tanim::options(Tanim::liste('markalar'));
         </div>
         <div class="col-xl-8">
             <div class="card">
-                <div class="card-header"><h5>Excel (CSV) ile Yükle</h5></div>
+                <div class="card-header"><h5>Excel ile Yükle</h5></div>
                 <div class="card-body">
-                    <input type="file" name="import_file" class="form-control" accept=".csv,.txt">
-                    <div class="form-text">Sütunlar: <code>sase; plaka; marka; seri; lokasyon_detay; sevkiyat_kodu; irsaliye_kodu; proje_adi</code>. Dosya seçilirse aşağıdaki manuel satırlar dikkate alınmaz.</div>
+                    <input type="file" name="import_file" class="form-control" accept=".xlsx,.xls,.csv,.txt">
+                    <div class="form-text">
+                        “Örnek Şablon İndir” ile XLSX alın. <b>MARKA</b> / <b>Seri</b> adları şablondaki “Araç Markaları” ve “Araç Serileri” sayfalarındaki sistem kayıtlarıyla aynı olmalıdır.
+                        Dosya seçilirse aşağıdaki manuel satırlar dikkate alınmaz.
+                    </div>
                 </div>
             </div>
             <div class="card">

@@ -15,7 +15,8 @@ final class HesapController extends Controller
 {
     public function index(): void
     {
-        $this->view('hesap/index', ['pageTitle' => 'Hesabım', 'user' => Auth::user(), 'breadcrumb' => ['Hesabım' => null]]);
+        $data = ['pageTitle' => 'Hesabım', 'user' => Auth::user(), 'breadcrumb' => ['Hesabım' => null]];
+        View::render('hesap/index', $data, Auth::isMusteri() ? 'musteri' : 'main');
         unset($_SESSION['_old']);
     }
 

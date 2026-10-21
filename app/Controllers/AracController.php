@@ -15,6 +15,7 @@ use App\Core\Upload;
 use App\Core\View;
 use App\Services\AracService;
 use App\Services\DepolamaHesap;
+use App\Services\TopluAktarim;
 use RuntimeException;
 
 final class AracController extends Controller
@@ -101,6 +102,9 @@ final class AracController extends Controller
 
     private function hareketFormVerisi(string $tarihAlani, string $saatAlani): array
     {
+        $personelId = Request::int('teslim_alan_personel');
+        Auth::dogrulaPersonel($personelId, 'Personel');
+
         return [
             'hareket_tipi' => Request::int('hareket_tipi') ?? 1,
             'hareket_nedeni_id' => Request::int('hareket_nedeni'),
@@ -108,7 +112,7 @@ final class AracController extends Controller
             'km' => Request::int('km'), 'yakit_durumu' => Request::int('yakit_durumu'),
             'teslim_eden' => Request::str('teslim_eden'), 'teslim_eden_telefon' => Request::str('teslim_eden_telefon'), 'teslim_eden_eposta' => Request::str('teslim_eden_eposta'),
             'teslim_alan' => Request::str('teslim_alan'), 'teslim_alan_telefon' => Request::str('teslim_alan_telefon'), 'teslim_alan_eposta' => Request::str('teslim_alan_eposta'),
-            'teslim_alan_personel_id' => Request::int('teslim_alan_personel'), 'aciklama' => Request::str('aciklama'),
+            'teslim_alan_personel_id' => $personelId, 'aciklama' => Request::str('aciklama'),
             'hareket_tarihi' => Request::dateTime($tarihAlani, $saatAlani) ?? date('Y-m-d H:i:s'),
         ];
     }
@@ -210,10 +214,7 @@ final class AracController extends Controller
         $this->form(function () use ($arac) {
             $data = $this->aracFormVerisi();
             unset($data['sase']);
-            $yeniSase = AracService::normalizeSase(Request::str('sase'));
-            if (strlen($yeniSase) < 5) {
-                throw new RuntimeException('Geçerli bir şasi numarası giriniz.');
-            }
+            $yeniSase = AracService::dogrulaSase(Request::str('sase'));
             if ($yeniSase !== $arac['sase']) {
                 $data['sase'] = $yeniSase;
             }
@@ -339,7 +340,7 @@ final class AracController extends Controller
     {
         $this->view('araclar/toplu_excel', [
             'pageTitle' => 'Toplu Ek Maliyet Girişi', 'action' => '/arac_yonetimi/excel_toplu_ek_maliyet_giris', 'sablon' => 'maliyet',
-            'aciklama' => 'Her satır bir maliyet kaydıdır. Şasi numarası sistemde kayıtlı olmalıdır. Maliyet tipi adı, tanımlardaki adla aynı yazılmalıdır.',
+            'aciklama' => 'Şablonu indirin. “Hizmet Kalemi” sütununa ikinci sayfadaki (Maliyet Tipleri) adlardan birini yazın; fiyatı girip XLSX olarak yükleyin. Şasi sistemde kayıtlı olmalıdır.',
             'breadcrumb' => ['Araç Yönetimi' => '/arac_yonetimi', 'Toplu Ek Maliyet Girişi' => null],
         ]);
     }
@@ -355,29 +356,121 @@ final class AracController extends Controller
 
     public function sablon(string $tip): void
     {
-        $sablonlar = [
-            'stok' => [['sase', 'plaka', 'marka', 'seri', 'lokasyon_detay', 'sevkiyat_kodu', 'irsaliye_kodu', 'proje_adi'], ['VF1RJA00776597244', '06 ABC 123', 'Renault', 'Clio', 'A Blok 12', 'SV-001', 'IRS-001', '']],
-            'maliyet' => [['sase', 'maliyet_tipi', 'tutar', 'islem_tarihi', 'aciklama', 'fatura_no'], ['VF1RJA00776597244', 'Araç Dış Yıkama Hizmeti', '360', date('Y-m-d'), '', '']],
-            'lokasyon' => [['sase', 'lokasyon_detay', 'park_kodu'], ['VF1RJA00776597244', 'B Blok 4', 'P-104']],
-        ];
-        if (!isset($sablonlar[$tip])) {
-            $this->notFound();
+        if ($tip === 'stok') {
+            $this->stokSablonXlsx();
         }
-        [$basliklar, $ornek] = $sablonlar[$tip];
-        Excel::download('sablon-' . $tip, array_combine($basliklar, $basliklar), [array_combine($basliklar, $ornek)]);
+        if ($tip === 'maliyet') {
+            $this->maliyetSablonXlsx();
+        }
+        if ($tip === 'lokasyon') {
+            Excel::download('sablon-lokasyon', [
+                'sase' => 'sase', 'lokasyon_detay' => 'lokasyon_detay', 'park_kodu' => 'park_kodu',
+            ], [['sase' => 'TMBAN8NZ7TC066835', 'lokasyon_detay' => 'B Blok 4', 'park_kodu' => 'P-104']]);
+        }
+        $this->notFound();
     }
 
-    private function yuklenenDosya(): string
+    private function stokSablonXlsx(): never
+    {
+        $markalar = Database::fetchAll('SELECT id, ad FROM markalar ORDER BY ad');
+        $seriler = Database::fetchAll(
+            'SELECT s.id, m.ad AS marka, s.ad AS seri FROM seriler s JOIN markalar m ON m.id = s.marka_id ORDER BY m.ad, s.ad'
+        );
+        $ornekMarka = $markalar[0]['ad'] ?? 'Renault';
+        $ornekSeri = Database::fetch('SELECT s.ad FROM seriler s JOIN markalar m ON m.id = s.marka_id WHERE m.ad = :a ORDER BY s.ad LIMIT 1', ['a' => $ornekMarka])['ad'] ?? '';
+        Excel::downloadXlsx('Toplu_Stok_Girisi', [
+            'Toplu Stok Girişi' => [
+                'headers' => [
+                    'plaka' => 'Plaka *',
+                    'sase' => 'Şase Numarası *',
+                    'marka' => 'MARKA *',
+                    'seri' => 'Seri *',
+                    'arac_durumu' => 'Araç Durumu *',
+                    'kasa_tipi' => 'Kasa Tipi',
+                    'renk' => 'Renk',
+                    'onceki_plaka' => 'Önceki Plaka',
+                    'arac_tipi' => 'Araç Tipi *',
+                    'yil' => 'Yıl',
+                    'yakit_tipi' => 'Yakıt Tipi',
+                    'vites_tipi' => 'Vites Tipi',
+                    'km' => 'KM',
+                    'yakit_durumu' => 'Yakıt Durumu',
+                    'lokasyon_detay' => 'Lokasyon Detay',
+                    'sevkiyat_kodu' => 'Sevkiyat Kodu',
+                    'irsaliye_kodu' => 'İrsaliye Kodu',
+                ],
+                'rows' => [[
+                    'plaka' => '',
+                    'sase' => 'TMBAN8NZ7TC066835',
+                    'marka' => $ornekMarka,
+                    'seri' => $ornekSeri,
+                    'arac_durumu' => 'Sıfır',
+                    'kasa_tipi' => '-',
+                    'renk' => '-',
+                    'onceki_plaka' => '',
+                    'arac_tipi' => 'Otomobil',
+                    'yil' => date('Y'),
+                    'yakit_tipi' => '',
+                    'vites_tipi' => '',
+                    'km' => '0',
+                    'yakit_durumu' => '0',
+                    'lokasyon_detay' => 'Açık Saha',
+                    'sevkiyat_kodu' => '',
+                    'irsaliye_kodu' => '',
+                ]],
+            ],
+            'Araç Markaları' => [
+                'list' => array_merge([['ID', 'Marka Adı']], array_map(fn ($m) => [(string) $m['id'], $m['ad']], $markalar)),
+            ],
+            'Araç Serileri' => [
+                'list' => array_merge(
+                    [['ID', 'Marka ID', 'Seri Adı']],
+                    array_map(fn ($s) => [(string) $s['id'], $s['marka'], $s['seri']], $seriler)
+                ),
+            ],
+        ]);
+    }
+
+    private function maliyetSablonXlsx(): never
+    {
+        $tipler = Database::fetchAll('SELECT id, ad FROM maliyet_tipleri WHERE aktif ORDER BY ad');
+        $ornekHizmet = $tipler[0]['ad'] ?? 'Araç Hazırlık';
+        Excel::downloadXlsx('Toplu_Ek_Maliyet_Sablonu', [
+            'Worksheet' => [
+                'headers' => [
+                    'plaka' => 'Plaka *',
+                    'sase' => 'Şase Numarası *',
+                    'marka' => 'Marka',
+                    'maliyet_tipi' => 'Hizmet Kalemi *',
+                    'tutar' => 'Fiyat',
+                ],
+                'rows' => [[
+                    'plaka' => '',
+                    'sase' => 'TMBAN8NZ7TC066835',
+                    'marka' => '',
+                    'maliyet_tipi' => $ornekHizmet,
+                    'tutar' => '360',
+                ]],
+            ],
+            'Maliyet Tipleri' => [
+                'list' => array_merge([['ID', 'Maliyet Tipi']], array_map(fn ($t) => [(string) $t['id'], $t['ad']], $tipler)),
+            ],
+        ]);
+    }
+
+    /** @return array{0:string,1:string} [tmp_path, original_name] */
+    private function yuklenenDosya(): array
     {
         $file = $_FILES['import_file'] ?? null;
         if (!$file || $file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
             throw new RuntimeException('Lütfen bir dosya seçiniz.');
         }
-        if (!in_array(strtolower(pathinfo($file['name'], PATHINFO_EXTENSION)), ['csv', 'txt'], true)) {
-            throw new RuntimeException('Dosya CSV formatında olmalıdır. Excel\'de "Farklı Kaydet → CSV UTF-8" seçeneğini kullanın.');
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['csv', 'txt', 'xlsx', 'xls'], true)) {
+            throw new RuntimeException('Dosya XLSX veya CSV formatında olmalıdır.');
         }
 
-        return $file['tmp_name'];
+        return [$file['tmp_name'], $file['name']];
     }
 
     public function excelTopluGiris(): void
@@ -391,7 +484,8 @@ final class AracController extends Controller
 
             $satirlar = [];
             if (!empty($_FILES['import_file']['name'])) {
-                $satirlar = Excel::read($this->yuklenenDosya());
+                [$path, $name] = $this->yuklenenDosya();
+                $satirlar = Excel::read($path, $name);
             } else {
                 foreach ((array) ($_POST['satir']['sase'] ?? []) as $i => $sase) {
                     $satirlar[] = [
@@ -407,31 +501,66 @@ final class AracController extends Controller
                 throw new RuntimeException('Aktarılacak satır bulunamadı.');
             }
 
-            $markalar = array_change_key_case(array_flip(array_map('mb_strtolower', Tanim::liste('markalar'))));
+            $markalar = TopluAktarim::adHaritasi('markalar');
+            $aracTipleri = TopluAktarim::adHaritasi('arac_tipleri');
+            $kasaTipleri = TopluAktarim::adHaritasi('kasa_tipleri');
+            $renkler = TopluAktarim::adHaritasi('renkler');
+            $yakitlar = TopluAktarim::adHaritasi('yakit_tipleri');
+            $vitesler = TopluAktarim::adHaritasi('vites_tipleri');
             $tarih = Request::dateTime('hareket_tarihi', 'hareket_saati') ?? date('Y-m-d H:i:s');
+            $varsayilanAracTipi = Request::int('arac_tipi');
+            $varsayilanDurum = Request::int('arac_durumu');
+            $personelId = Request::int('teslim_alan_personel');
+            Auth::dogrulaPersonel($personelId, 'Personel');
             $basarili = 0;
             $hatalar = [];
 
             foreach (array_values($satirlar) as $i => $s) {
                 try {
-                    $markaId = (int) ($s['marka_id'] ?? 0) ?: ($markalar[mb_strtolower(trim($s['marka'] ?? ''))] ?? null);
+                    $markaId = (int) ($s['marka_id'] ?? 0) ?: TopluAktarim::bul($markalar, $s['marka'] ?? '', 'Marka');
                     $seriId = (int) ($s['seri_id'] ?? 0) ?: null;
-                    if (!$seriId && $markaId && !empty($s['seri'])) {
-                        $seriId = (int) (Database::fetch('SELECT id FROM seriler WHERE marka_id = :m AND lower(ad) = lower(:a)', ['m' => $markaId, 'a' => trim($s['seri'])])['id'] ?? 0)
-                            ?: AracService::insert('seriler', ['marka_id' => $markaId, 'ad' => trim($s['seri'])]);
+                    if (!$seriId) {
+                        $seriId = TopluAktarim::seriId($markaId, (string) ($s['seri'] ?? ''));
                     }
+                    $aracTipiId = TopluAktarim::bul($aracTipleri, $s['arac_tipi'] ?? '', 'Araç tipi', false) ?? $varsayilanAracTipi;
+                    if (!$aracTipiId) {
+                        throw new RuntimeException('Araç tipi seçilmelidir.');
+                    }
+                    $aracDurumu = TopluAktarim::aracDurumu($s['arac_durumu'] ?? null) ?? $varsayilanDurum;
                     AracService::kaydetVeHareket(
                         [
-                            'sase' => $s['sase'], 'plaka' => $s['plaka'] ?? null, 'marka_id' => $markaId, 'seri_id' => $seriId,
-                            'musteri_id' => $musteriId, 'bayi_id' => $bayiId, 'arac_tipi_id' => Request::int('arac_tipi'),
-                            'lokasyon_turu' => Request::int('lokasyon_turu'), 'lokasyon_detay' => $s['lokasyon_detay'] ?? null,
-                            'proje_adi' => ($s['proje_adi'] ?? '') ?: null, 'arac_durumu' => Request::int('arac_durumu'),
+                            'sase' => $s['sase'],
+                            'plaka' => ($s['plaka'] ?? '') !== '' ? $s['plaka'] : null,
+                            'onceki_plaka' => ($s['onceki_plaka'] ?? '') !== '' ? $s['onceki_plaka'] : null,
+                            'marka_id' => $markaId,
+                            'seri_id' => $seriId,
+                            'musteri_id' => $musteriId,
+                            'bayi_id' => $bayiId,
+                            'arac_tipi_id' => $aracTipiId,
+                            'arac_durumu' => $aracDurumu,
+                            'kasa_tipi_id' => TopluAktarim::bul($kasaTipleri, $s['kasa_tipi'] ?? '', 'Kasa tipi', false),
+                            'renk_id' => TopluAktarim::bul($renkler, $s['renk'] ?? '', 'Renk', false),
+                            'model_yili_id' => TopluAktarim::modelYili($s['yil'] ?? null),
+                            'yakit_tipi_id' => TopluAktarim::bul($yakitlar, $s['yakit_tipi'] ?? '', 'Yakıt tipi', false),
+                            'vites_tipi_id' => TopluAktarim::bul($vitesler, $s['vites_tipi'] ?? '', 'Vites tipi', false),
+                            'km' => ($s['km'] ?? '') !== '' ? (int) $s['km'] : null,
+                            'yakit_durumu' => ($s['yakit_durumu'] ?? '') !== '' ? (int) $s['yakit_durumu'] : null,
+                            'lokasyon_turu' => Request::int('lokasyon_turu'),
+                            'lokasyon_detay' => ($s['lokasyon_detay'] ?? '') !== '' ? $s['lokasyon_detay'] : null,
+                            'proje_adi' => ($s['proje_adi'] ?? '') !== '' ? $s['proje_adi'] : null,
                         ],
                         [
-                            'hareket_tipi' => 1, 'hareket_nedeni_id' => Request::int('hareket_nedeni'), 'hareket_tarihi' => $tarih,
-                            'lokasyon_turu' => Request::int('lokasyon_turu'), 'lokasyon_detay' => $s['lokasyon_detay'] ?? null,
-                            'sevkiyat_kodu' => ($s['sevkiyat_kodu'] ?? '') ?: null, 'irsaliye_kodu' => ($s['irsaliye_kodu'] ?? '') ?: null,
-                            'teslim_eden' => Request::str('teslim_eden'), 'teslim_alan_personel_id' => Request::int('teslim_alan_personel'),
+                            'hareket_tipi' => 1,
+                            'hareket_nedeni_id' => Request::int('hareket_nedeni'),
+                            'hareket_tarihi' => $tarih,
+                            'lokasyon_turu' => Request::int('lokasyon_turu'),
+                            'lokasyon_detay' => ($s['lokasyon_detay'] ?? '') !== '' ? $s['lokasyon_detay'] : null,
+                            'sevkiyat_kodu' => ($s['sevkiyat_kodu'] ?? '') !== '' ? $s['sevkiyat_kodu'] : null,
+                            'irsaliye_kodu' => ($s['irsaliye_kodu'] ?? '') !== '' ? $s['irsaliye_kodu'] : null,
+                            'teslim_eden' => Request::str('teslim_eden'),
+                            'teslim_alan_personel_id' => $personelId,
+                            'km' => ($s['km'] ?? '') !== '' ? (int) $s['km'] : null,
+                            'yakit_durumu' => ($s['yakit_durumu'] ?? '') !== '' ? (int) $s['yakit_durumu'] : null,
                         ],
                         Request::ids('arac_envanterleri')
                     );
@@ -456,24 +585,37 @@ final class AracController extends Controller
     public function excelTopluMaliyet(): void
     {
         $this->form(function () {
-            $satirlar = Excel::read($this->yuklenenDosya());
-            $tipler = array_change_key_case(array_flip(array_map('mb_strtolower', Tanim::liste('maliyet_tipleri'))));
+            [$path, $name] = $this->yuklenenDosya();
+            $satirlar = Excel::read($path, $name);
+            $tipler = TopluAktarim::adHaritasi('maliyet_tipleri');
             $basarili = 0;
             $hatalar = [];
             foreach ($satirlar as $i => $s) {
                 try {
-                    $arac = Database::fetch('SELECT id FROM araclar WHERE sase = :s', ['s' => AracService::normalizeSase($s['sase'] ?? '')]);
+                    $sase = AracService::normalizeSase($s['sase'] ?? '');
+                    if ($sase === '') {
+                        throw new RuntimeException('Şasi boş');
+                    }
+                    $arac = Database::fetch(
+                        'SELECT id FROM araclar WHERE sase = :s AND ' . Auth::bayiKosulu('bayi_id'),
+                        ['s' => $sase]
+                    );
+                    if (!$arac && ($s['plaka'] ?? '') !== '') {
+                        $arac = Database::fetch(
+                            "SELECT id FROM araclar WHERE upper(replace(coalesce(plaka,''), ' ', '')) = :p AND " . Auth::bayiKosulu('bayi_id'),
+                            ['p' => mb_strtoupper(str_replace(' ', '', $s['plaka']))]
+                        );
+                    }
                     if (!$arac) {
-                        throw new RuntimeException('Şasi bulunamadı');
+                        throw new RuntimeException('Şasi / plaka bulunamadı');
                     }
-                    $tipId = $tipler[mb_strtolower(trim($s['maliyet_tipi'] ?? ''))] ?? null;
-                    if (!$tipId) {
-                        throw new RuntimeException('Maliyet tipi tanımlı değil');
-                    }
-                    $tutar = str_contains($s['tutar'] ?? '', ',') ? (float) str_replace(['.', ','], ['', '.'], $s['tutar']) : (float) ($s['tutar'] ?? 0);
+                    $tipId = TopluAktarim::bul($tipler, $s['maliyet_tipi'] ?? '', 'Hizmet kalemi');
+                    $tutar = TopluAktarim::parseTutar($s['tutar'] ?? '');
                     AracService::maliyetEkle((int) $arac['id'], [
-                        'maliyet_tipi_id' => $tipId, 'tutar' => $tutar, 'aciklama' => ($s['aciklama'] ?? '') ?: null,
-                        'fatura_no' => ($s['fatura_no'] ?? '') ?: null,
+                        'maliyet_tipi_id' => $tipId,
+                        'tutar' => $tutar,
+                        'aciklama' => ($s['aciklama'] ?? '') !== '' ? $s['aciklama'] : null,
+                        'fatura_no' => ($s['fatura_no'] ?? '') !== '' ? $s['fatura_no'] : null,
                         'islem_tarihi' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $s['islem_tarihi'] ?? '') ? $s['islem_tarihi'] : date('Y-m-d'),
                     ]);
                     $basarili++;
@@ -495,7 +637,8 @@ final class AracController extends Controller
     public function excelTopluLokasyon(): void
     {
         $this->form(function () {
-            $satirlar = Excel::read($this->yuklenenDosya());
+            [$path, $name] = $this->yuklenenDosya();
+            $satirlar = Excel::read($path, $name);
             $basarili = 0;
             foreach ($satirlar as $s) {
                 $n = Database::query(

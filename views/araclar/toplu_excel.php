@@ -10,12 +10,12 @@ $headerActions = '<a href="/arac_yonetimi/sablon/' . e($sablon) . '" class="btn 
             <div class="card-body">
                 <div class="alert alert-info small">
                     <i class="mdi mdi-information-outline me-1"></i><?= e($aciklama) ?><br>
-                    Şablonu indirip doldurun, Excel'de <b>Farklı Kaydet → CSV UTF-8 (virgülle ayrılmış)</b> seçeneğiyle kaydedip yükleyin.
+                    Şablonu XLSX olarak indirip doldurun; aynı formatta yükleyin (CSV de kabul edilir).
                 </div>
                 <form method="post" action="<?= e($action) ?>" enctype="multipart/form-data">
                     <?= Csrf::field() ?>
                     <label class="form-label required">Dosya</label>
-                    <input type="file" name="import_file" class="form-control mb-3" accept=".csv,.txt" required>
+                    <input type="file" name="import_file" class="form-control mb-3" accept=".xlsx,.xls,.csv,.txt" required>
                     <button type="submit" class="btn btn-primary w-100"><i class="mdi mdi-upload me-1"></i> Yükle ve Aktar</button>
                 </form>
             </div>

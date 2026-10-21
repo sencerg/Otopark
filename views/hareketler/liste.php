@@ -37,7 +37,7 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-success"><i class
                     <?php if ($giris): ?>
                         <th>Giriş Tarihi</th><th>Depolama Süresi</th>
                     <?php else: ?>
-                        <th>Hareket Tarihi</th><th>Depolama Süresi</th><th>Sevkiyat Tipi</th><th>Sevkiyat Durumu</th><th class="text-end">Hizmet Ücreti</th>
+                        <th>Hareket Tarihi</th><th>Depolama Süresi</th><th>Sevkiyat Tipi</th><th class="text-end">Hizmet Ücreti</th>
                     <?php endif; ?>
                     <th>İşlem</th>
                 </tr>
@@ -71,7 +71,6 @@ $(function () {
     const giris = <?= $giris ? 'true' : 'false' ?>;
     const saseLink = (r) => `<a href="/arac_yonetimi/duzenle/${r.<?= $giris ? 'id' : 'arac_id' ?>}" class="fw-semibold">${App.esc(r.sase)}</a>`;
     const gun = (v) => v === null ? '-' : App.num(v) + ' Gün';
-    const sevkRenk = { 1: 'warning', 2: 'info', 3: 'success' };
 
     const columns = [
         { data: 'sase', render: (_, __, r) => saseLink(r) },
@@ -88,7 +87,7 @@ $(function () {
             { data: 'id', orderable: false, render: (id, _, r) => App.actions([
                 r.hareket_id && { url: '/arac_hareketleri/hareket_view/' + r.hareket_id, icon: 'mdi-eye', color: 'success', title: 'Görüntüle' },
                 r.hareket_id && { url: '/arac_hareketleri/hareket_duzenle/' + r.hareket_id, icon: 'mdi-pencil-box', color: 'primary', title: 'Düzenle' },
-                { url: '/arac_yonetimi/tesellum_formu/' + id, icon: 'mdi-file-document-outline', color: 'info', title: 'Tesellüm Formu' },
+                { url: '/arac_yonetimi/tesellum_formu/' + id, icon: 'mdi-file-document-outline', color: 'info', title: 'Tesellüm Formu', attrs: 'target="_blank"' },
                 { url: '/arac_yonetimi/qr_toplu?ids[]=' + id, icon: 'mdi-qrcode', color: 'dark', title: 'QR Yazdır', attrs: 'target="_blank"' },
                 { url: '/arac_hareketleri/stoktan_cikar/' + id, icon: 'mdi-car-off', color: 'danger', title: 'Stoktan Çıkar' },
                 { url: '#', icon: 'mdi-tag-outline', color: 'warning', title: 'Etiket Fiyatı', attrs: `data-etiket="${id}" data-sase="${App.esc(r.sase)}" data-fiyat="${r.etiket_fiyati || ''}"` },
@@ -100,11 +99,10 @@ $(function () {
             { data: 'hareket_tarihi' },
             { data: 'depolama_suresi', render: gun },
             { data: 'sevkiyat_tipi_ad', orderable: false },
-            { data: 'sevkiyat_durumu_ad', orderable: false, render: (v, _, r) => App.badge(v, sevkRenk[r.sevkiyat_durumu]) },
             { data: 'hizmet_tutari', className: 'text-end text-nowrap', render: (v, _, r) => (Number(v) ? App.money(v) : '<span class="text-muted">-</span>')
                 + (Number(r.sonradan_adet) ? `<div><span class="badge bg-warning text-dark" title="Çıkıştan sonra eklenen hizmet">+${App.money(r.sonradan_tutar)} çıkış sonrası (${App.num(r.sonradan_adet)})</span></div>` : '') },
             { data: 'id', orderable: false, render: (id, _, r) => App.actions([
-                { url: '/arac_yonetimi/tesellum_formu/' + r.arac_id, icon: 'mdi-file-document-outline', color: 'info', title: 'Tesellüm Formu' },
+                { url: '/arac_yonetimi/tesellum_formu/' + r.arac_id, icon: 'mdi-file-document-outline', color: 'info', title: 'Tesellüm Formu', attrs: 'target="_blank"' },
                 { url: '/arac_hareketleri/hareket_view/' + id, icon: 'mdi-eye', color: 'success', title: 'Görüntüle' },
                 { url: '/arac_hareketleri/hareket_duzenle/' + id, icon: 'mdi-pencil-box', color: 'primary', title: 'Düzenle' },
             ]) },

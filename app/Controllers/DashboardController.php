@@ -10,15 +10,18 @@ use App\Core\Request;
 
 final class DashboardController extends Controller
 {
-    /** Lokasyon filtresi: bayi kullanıcısı her zaman kendi lokasyonu */
+    /** Lokasyon filtresi: bayi yalnızca kendi lokasyonu; yönetici isteğe bağlı bayi_id. */
     private function bayiFiltresi(): ?int
     {
-        return Auth::bayiId() ?? Request::int('bayi_id');
+        return Auth::isAdmin() ? Request::int('bayi_id') : Auth::bayiId();
     }
 
     private function kosul(string $col, array &$params): string
     {
-        $bayi = $this->bayiFiltresi();
+        if (!Auth::isAdmin()) {
+            return Auth::bayiKosulu($col);
+        }
+        $bayi = Request::int('bayi_id');
         if ($bayi === null) {
             return 'TRUE';
         }
@@ -103,7 +106,7 @@ final class DashboardController extends Controller
             'duyurular' => Database::fetchAll('SELECT * FROM duyurular WHERE aktif ORDER BY created_at DESC LIMIT 6'),
             'sonIslemler' => Database::fetchAll(
                 'SELECT l.modul, l.aciklama, l.created_at, u.name FROM islem_loglari l LEFT JOIN users u ON u.id = l.kullanici_id
-                 WHERE ' . (Auth::bayiId() ? 'u.bayi_id = ' . Auth::bayiId() : 'TRUE') . ' ORDER BY l.id DESC LIMIT 8'
+                 WHERE ' . (Auth::isAdmin() ? 'TRUE' : Auth::bayiKosulu('u.bayi_id')) . ' ORDER BY l.id DESC LIMIT 8'
             ),
         ]);
     }
@@ -171,15 +174,18 @@ final class DashboardController extends Controller
         $this->view('dashboard/ik', [
             'pageTitle' => 'İK ve Satın Alma Yönetimi — Dashboard', 'breadcrumb' => ['İK' => null, 'Dashboard' => null],
             'personelSayisi' => Database::fetchAll(
-                'SELECT d.ad, COUNT(p.id) adet FROM departmanlar d LEFT JOIN personeller p ON p.departman_id = d.id AND p.aktif GROUP BY d.ad ORDER BY adet DESC, d.ad'
+                'SELECT d.ad, COUNT(p.id) adet FROM departmanlar d
+                 LEFT JOIN personeller p ON p.departman_id = d.id AND p.aktif AND ' . Auth::bayiKosulu('p.bayi_id') . '
+                 GROUP BY d.ad ORDER BY adet DESC, d.ad'
             ),
             'destek' => Database::fetch(
                 'SELECT COUNT(*) FILTER (WHERE durum = 1) acik, COUNT(*) FILTER (WHERE durum = 2) islemde, COUNT(*) FILTER (WHERE durum IN (3,4)) kapali
-                 FROM destek_talepleri WHERE NOT arsiv' . (Auth::bayiId() ? ' AND talep_eden_id IN (SELECT id FROM users WHERE bayi_id = ' . Auth::bayiId() . ')' : '')
+                 FROM destek_talepleri WHERE NOT arsiv'
+                . (Auth::isAdmin() ? '' : ' AND talep_eden_id IN (SELECT id FROM users WHERE ' . Auth::bayiKosulu('bayi_id') . ')')
             ),
             'loglar' => Database::fetchAll(
                 'SELECT l.modul, l.aciklama, l.created_at, u.name FROM islem_loglari l LEFT JOIN users u ON u.id = l.kullanici_id
-                 WHERE ' . (Auth::bayiId() ? 'u.bayi_id = ' . Auth::bayiId() : 'TRUE') . ' ORDER BY l.id DESC LIMIT 15'
+                 WHERE ' . (Auth::isAdmin() ? 'TRUE' : Auth::bayiKosulu('u.bayi_id')) . ' ORDER BY l.id DESC LIMIT 15'
             ),
         ]);
     }

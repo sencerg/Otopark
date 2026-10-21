@@ -16,8 +16,8 @@ final class KarsilastirmaController extends Controller
     public function index(): void
     {
         $this->view('karsilastirma/index', [
-            'pageTitle' => 'BİA ↔ MD Karşılaştırma',
-            'breadcrumb' => ['Proje Notları' => null, 'BİA ↔ MD Karşılaştırma' => null],
+            'pageTitle' => 'Referans ↔ MD Karşılaştırma',
+            'breadcrumb' => ['Proje Notları' => null, 'Referans ↔ MD Karşılaştırma' => null],
             'veri' => Karsilastirma::veri(),
             'maddeler' => Karsilastirma::maddeler(),
         ]);
@@ -55,7 +55,7 @@ final class KarsilastirmaController extends Controller
     public function indir(): void
     {
         header('Content-Type: text/markdown; charset=utf-8');
-        header('Content-Disposition: attachment; filename="bia-md-karsilastirma.md"');
+        header('Content-Disposition: attachment; filename="referans-md-karsilastirma.md"');
         echo Karsilastirma::markdown();
     }
 }

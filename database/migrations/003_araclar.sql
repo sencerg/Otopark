@@ -85,7 +85,7 @@ CREATE TABLE arac_hareketleri (
 CREATE INDEX arac_hareketleri_arac_idx ON arac_hareketleri (arac_id, hareket_tarihi DESC);
 CREATE INDEX arac_hareketleri_tarih_idx ON arac_hareketleri (hareket_tipi, hareket_tarihi);
 
--- BİA "arac_ekstreleri": araca yazılan ek hizmet / maliyet kalemleri
+-- Referans "arac_ekstreleri": araca yazılan ek hizmet / maliyet kalemleri
 CREATE TABLE arac_ekstreleri (
     id               BIGSERIAL PRIMARY KEY,
     arac_id          BIGINT NOT NULL REFERENCES araclar(id) ON DELETE CASCADE,

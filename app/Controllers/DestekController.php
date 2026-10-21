@@ -15,12 +15,15 @@ use RuntimeException;
 
 final class DestekController extends Controller
 {
-    /** Yönetici tüm talepleri, diğer kullanıcılar kendi lokasyonundaki kullanıcıların taleplerini görür. */
+    /** Yönetici tüm talepleri, bayi yalnızca kendi lokasyonundaki kullanıcıların taleplerini görür. */
     private static function erisim(string $alias = 'd'): string
     {
+        if (Auth::isAdmin()) {
+            return 'TRUE';
+        }
         $bayi = Auth::bayiId();
 
-        return $bayi === null ? 'TRUE' : "{$alias}.talep_eden_id IN (SELECT id FROM users WHERE bayi_id = {$bayi})";
+        return $bayi === null ? 'FALSE' : "{$alias}.talep_eden_id IN (SELECT id FROM users WHERE bayi_id = {$bayi})";
     }
 
     public function index(): void

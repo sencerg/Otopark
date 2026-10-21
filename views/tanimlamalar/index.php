@@ -5,12 +5,14 @@ $sekmeler = [
     'musteri' => ['Müşteriler', 'mdi-domain'],
     'lokasyon' => ['Otoparklar (Lokasyonlar)', 'mdi-parking'],
     'hizmet' => ['Hizmetler', 'mdi-cash-register'],
+    'personel' => ['Personel', 'mdi-account-hard-hat'],
     'arac' => ['Marka / Seri / Model', 'mdi-car-info'],
 ];
 $aciklama = [
-    'musteri' => 'Araç girişinde seçilen firmalar. Pasif yapılan müşteri yeni girişlerde listelenmez, geçmiş kayıtlar korunur.',
-    'lokasyon' => 'Her otoparkın standart günlük depolama fiyatı ve çarpanı vardır. Günlük fiyat = (müşteriye özel fiyat, yoksa otoparkın standart fiyatı) × çarpan.',
-    'hizmet' => 'Buraya eklenen aktif hizmetler Stoktaki Araçlar > Maliyet Ekle, Hızlı Maliyet Ekle ve Stoktan Çıkar ekranlarında seçilir; varsayılan ücret otomatik gelir.',
+    'musteri' => 'Araç girişinde seçilen firmalar. Firmaya özel otopark ve hizmet ücretleri müşteri kartındaki ilgili sekmelerden yönetilir. Pasif müşteri yeni girişlerde listelenmez.',
+    'lokasyon' => 'Otopark yalnızca standart günlük depolama fiyatı ve çarpanını tutar. Firmaya özel günlük ücret müşteri kartından girilir; girildiyse çarpan uygulanmadan o tutar kullanılır.',
+    'hizmet' => 'Genel hizmet tanımları. Varsayılan ücret zorunludur. “Bayi fiyatı değiştirebilir” kapalıysa otopark kullanıcıları hizmeti uygularken tutarı değiştiremez (firma özel / varsayılan fiyat kilitlenir). Açıkysa bayi kendi tutarını yazabilir. Firmaya özel fiyat müşteri kartından girilir.',
+    'personel' => 'Her personel bir otoparka bağlıdır. Bayi kullanıcısı yalnızca kendi otoparkındaki personeli görür ve ekler. Pasif personel seçim listelerinde görünmez.',
 ];
 ?>
 <ul class="nav nav-tabs mb-3" role="tablist">
@@ -20,12 +22,14 @@ $aciklama = [
 </ul>
 
 <div class="tab-content">
-    <?php $ilk = true; foreach (['musteri', 'lokasyon', 'hizmet'] as $kod): $t = $tipler[$kod]; $yaz = !$t['admin'] || $admin; ?>
+    <?php $ilk = true; foreach (['musteri', 'lokasyon', 'hizmet', 'personel'] as $kod): $t = $tipler[$kod]; $yaz = !$t['admin'] || $admin; ?>
         <div class="tab-pane fade <?= $ilk ? 'show active' : '' ?>" id="sekme-<?= $kod ?>">
             <div class="card">
                 <div class="card-header">
                     <h5><?= e($sekmeler[$kod][0]) ?></h5>
-                    <?php if ($yaz): ?>
+                    <?php if ($yaz && $kod === 'musteri'): ?>
+                        <a class="btn btn-primary btn-sm" href="/tanimlamalar/musteri/yeni"><i class="mdi mdi-plus me-1"></i>Yeni Müşteri</a>
+                    <?php elseif ($yaz): ?>
                         <button class="btn btn-primary btn-sm" data-yeni="<?= $kod ?>"><i class="mdi mdi-plus me-1"></i>Yeni <?= e($t['baslik']) ?></button>
                     <?php else: ?>
                         <span class="badge badge-soft-secondary">Sadece görüntüleme (yönetici değiştirebilir)</span>
@@ -63,7 +67,7 @@ $aciklama = [
     </div>
 </div>
 
-<?php foreach (['musteri', 'lokasyon', 'hizmet'] as $kod): $t = $tipler[$kod]; if ($t['admin'] && !$admin) continue; ?>
+<?php foreach (['lokasyon', 'hizmet', 'personel'] as $kod): $t = $tipler[$kod]; if (!empty($t['admin']) && !$admin) continue; ?>
 <div class="modal fade" id="modal-<?= $kod ?>" tabindex="-1">
     <div class="modal-dialog">
         <form class="modal-content" method="post" action="/tanimlamalar/<?= $kod ?>/kaydet" data-ajax data-tip="<?= $kod ?>">
@@ -82,11 +86,20 @@ $aciklama = [
                             <?php else: ?>
                                 <input type="<?= $tur === 'decimal' ? 'number' : 'text' ?>" <?= $tur === 'decimal' ? 'step="0.001" min="0"' : '' ?> name="<?= $alan ?>" class="form-control" <?= $zorunlu ? 'required' : '' ?>>
                             <?php endif; ?>
-                            <?php if ($alan === 'fiyat_carpani'): ?><div class="form-text">1 = değişiklik yok, 1,25 = %25 fazla, 0,90 = %10 indirim. Müşteriye özel fiyatlara da uygulanır.</div><?php endif; ?>
+                            <?php if ($alan === 'fiyat_carpani'): ?><div class="form-text">Yalnızca depolama için. 1 = değişiklik yok, 1,25 = %25 fazla. Hizmet ücretlerine uygulanmaz.</div><?php endif; ?>
+                            <?php if ($alan === 'varsayilan_tutar'): ?><div class="form-text">Zorunlu genel ücret. Firmaya özel fiyat yoksa bu tutar kullanılır.</div><?php endif; ?>
+                            <?php if ($alan === 'bayi_fiyat_degistirebilir'): ?><div class="form-text">Kapalı = bayi hizmet seçince ücreti değiştiremez (kilitli). Açık = bayi kendi fiyatını girebilir.</div><?php endif; ?>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
-                <?php if ($kod === 'lokasyon'): ?><div class="alert alert-secondary py-2 small mb-0">Etkin günlük fiyat: <b data-etkin-fiyat>-</b></div><?php endif; ?>
+                <?php if ($kod === 'lokasyon'): ?><div class="alert alert-secondary py-2 small mb-0">Etkin günlük depolama: <b data-etkin-fiyat>-</b></div><?php endif; ?>
+                <?php if ($kod === 'personel' && $admin): ?>
+                    <div class="mb-3">
+                        <label class="form-label required">Otopark</label>
+                        <select name="bayi_id" class="form-select" required><?= \App\Core\Tanim::options(\App\Core\Tanim::liste('bayiler'), null, 'Seçiniz') ?></select>
+                        <div class="form-text">Personel yalnızca seçilen otoparkta görünür. Bayi kullanıcısı otomatik kendi otoparkına kaydeder.</div>
+                    </div>
+                <?php endif; ?>
             </div>
             <div class="modal-footer"><button type="submit" class="btn btn-primary">Kaydet</button></div>
         </form>
@@ -103,16 +116,31 @@ $(function () {
     const veri = {};
     const secili = { marka: null, seri: null };
     const durum = (v) => v ? App.badge('Aktif', 'success') : App.badge('Pasif', 'secondary');
-    const islem = (tip, id) => yazabilir(tip) ? App.actions([
-        { url: '#', icon: 'mdi-pencil', color: 'primary', title: 'Düzenle', attrs: `data-duzenle="${tip}" data-id="${id}"` },
-        { url: '#', icon: 'mdi-delete', color: 'danger', title: 'Sil', attrs: `data-sil="${tip}" data-id="${id}"` },
-    ]) : '';
+
+    const islem = (tip, id) => {
+        if (tip === 'musteri') {
+            const links = [{ url: `/tanimlamalar/musteri/${id}`, icon: 'mdi-pencil', color: 'primary', title: 'Düzenle' }];
+            if (yazabilir(tip)) links.push({ url: '#', icon: 'mdi-delete', color: 'danger', title: 'Sil', attrs: `data-sil="${tip}" data-id="${id}"` });
+            return App.actions(links);
+        }
+        return yazabilir(tip) ? App.actions([
+            { url: '#', icon: 'mdi-pencil', color: 'primary', title: 'Düzenle', attrs: `data-duzenle="${tip}" data-id="${id}"` },
+            { url: '#', icon: 'mdi-delete', color: 'danger', title: 'Sil', attrs: `data-sil="${tip}" data-id="${id}"` },
+        ]) : '';
+    };
 
     const KOLONLAR = {
         musteri: [
-            ['Firma Adı', (r) => `<b>${App.esc(r.ad)}</b>`], ['Vergi No', (r) => App.esc(r.vergi_no || '-')], ['Yetkili', (r) => App.esc(r.yetkili || '-')],
+            ['Firma Adı', (r) => `<a href="/tanimlamalar/musteri/${r.id}" class="fw-bold text-decoration-none">${App.esc(r.ad)}</a>`],
+            ['Vergi No', (r) => App.esc(r.vergi_no || '-')], ['Yetkili', (r) => App.esc(r.yetkili || '-')],
             ['Telefon', (r) => App.esc(r.telefon || '-')], ['E-posta', (r) => App.esc(r.eposta || '-')],
-            ['Stoktaki Araç', (r) => r.stoktaki, 'text-end'], ['Özel Fiyat', (r) => r.ozel_fiyat > 0 ? App.badge(r.ozel_fiyat + ' tarife', 'info') : App.badge('Standart', 'secondary')],
+            ['Stoktaki Araç', (r) => r.stoktaki, 'text-end'],
+            ['Depolama', (r) => Number(r.ozel_fiyat) > 0
+                ? `<a href="/tanimlamalar/musteri/${r.id}?sekme=otopark">${App.badge(r.ozel_fiyat + ' otopark', 'info')}</a>`
+                : App.badge('Standart', 'secondary')],
+            ['Hizmet Fiyatı', (r) => Number(r.hizmet_fiyat) > 0
+                ? `<a href="/tanimlamalar/musteri/${r.id}?sekme=fiyat">${App.badge(r.hizmet_fiyat + ' hizmet', 'primary')}</a>`
+                : App.badge('Varsayılan', 'secondary')],
             ['Durum', (r) => durum(r.aktif)],
         ],
         lokasyon: [
@@ -123,8 +151,19 @@ $(function () {
             ['Stoktaki Araç', (r) => r.stoktaki, 'text-end'], ['Durum', (r) => durum(r.aktif)],
         ],
         hizmet: [
-            ['Hizmet', (r) => `<b>${App.esc(r.ad)}</b>`], ['Varsayılan Ücret', (r) => App.money(r.varsayilan_tutar), 'text-end'],
-            ['Kullanım', (r) => r.kullanim + ' kayıt', 'text-end'], ['Durum', (r) => durum(r.aktif)],
+            ['Hizmet', (r) => `<b>${App.esc(r.ad)}</b>`],
+            ['Varsayılan Ücret', (r) => App.money(r.varsayilan_tutar), 'text-end'],
+            ['Bayi fiyatı', (r) => r.bayi_fiyat_degistirebilir ? App.badge('Değiştirilebilir', 'success') : App.badge('Kilitli', 'warning')],
+            ['Firma Özel', (r) => Number(r.firma_fiyat) > 0 ? App.badge(r.firma_fiyat + ' firmada', 'secondary') : '—'],
+            ['Kullanım', (r) => r.kullanim + ' kayıt', 'text-end'],
+            ['Durum', (r) => durum(r.aktif)],
+        ],
+        personel: [
+            ['Ad Soyad', (r) => `<b>${App.esc(r.ad_soyad)}</b>`],
+            ['Otopark', (r) => App.esc(r.otopark || '—')],
+            ['Telefon', (r) => App.esc(r.telefon || '-')],
+            ['Kullanım', (r) => r.kullanim + ' hareket', 'text-end'],
+            ['Durum', (r) => durum(r.aktif)],
         ],
     };
 
@@ -132,9 +171,9 @@ $(function () {
         const q = ($(`[data-ara="${tip}"]`).val() || '').toLocaleLowerCase('tr');
         const rows = (veri[tip] || []).filter((r) => !q || Object.values(r).join(' ').toLocaleLowerCase('tr').includes(q));
         const $t = $('#tablo-' + tip);
-        $t.find('thead').html('<tr>' + KOLONLAR[tip].map((k) => `<th class="${k[2] || ''}">${k[0]}</th>`).join('') + (yazabilir(tip) ? '<th>İşlem</th>' : '') + '</tr>');
+        $t.find('thead').html('<tr>' + KOLONLAR[tip].map((k) => `<th class="${k[2] || ''}">${k[0]}</th>`).join('') + '<th>İşlem</th></tr>');
         $t.find('tbody').html(rows.length ? rows.map((r) => '<tr>' + KOLONLAR[tip].map((k) => `<td class="${k[2] || ''}">${k[1](r)}</td>`).join('')
-            + (yazabilir(tip) ? `<td>${islem(tip, r.id)}</td>` : '') + '</tr>').join('') : `<tr><td colspan="9" class="text-center text-muted py-4">Kayıt yok.</td></tr>`);
+            + `<td>${islem(tip, r.id)}</td></tr>`).join('') : `<tr><td colspan="9" class="text-center text-muted py-4">Kayıt yok.</td></tr>`);
     }
 
     function listeCiz(tip) {
@@ -171,10 +210,10 @@ $(function () {
         });
     }
 
-    ['musteri', 'lokasyon', 'hizmet', 'marka'].forEach(yukle);
+    ['musteri', 'lokasyon', 'hizmet', 'personel', 'marka'].forEach(yukle);
     $(document).on('input', '[data-ara]', function () { const tip = this.dataset.ara; KOLONLAR[tip] ? tabloCiz(tip) : listeCiz(tip); });
 
-    /* Müşteri / otopark / hizmet modalı */
+    /* Otopark / hizmet modalı (müşteri ayrı sayfada) */
     const modalAc = (tip, kayit) => {
         const $f = $('#modal-' + tip + ' form');
         $f[0].reset();
@@ -200,7 +239,6 @@ $(function () {
     });
     $(document).on('ajax-form-saved', (_, form) => { if (form.dataset.tip) yukle(form.dataset.tip); });
 
-    /* Silme (tüm tipler) */
     $(document).on('click', '[data-sil]', function (e) {
         e.preventDefault(); e.stopPropagation();
         const tip = this.dataset.sil, id = this.dataset.id;
@@ -214,7 +252,6 @@ $(function () {
         });
     });
 
-    /* Marka → Seri → Model */
     $(document).on('click', '[data-sec]', function () {
         const tip = this.dataset.sec;
         if (tip === 'model') return;
@@ -247,6 +284,11 @@ $(function () {
                 .fail((x) => App.error(x.responseJSON?.message));
         });
     });
+
+    if (location.hash && location.hash.startsWith('#sekme-')) {
+        const btn = document.querySelector(`[data-bs-target="${location.hash}"]`);
+        if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+    }
 });
 </script>
 <?php $scripts = ob_get_clean(); ?>

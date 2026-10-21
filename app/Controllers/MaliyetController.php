@@ -12,6 +12,7 @@ use App\Core\Log;
 use App\Core\Request;
 use App\Core\View;
 use App\Services\AracService;
+use App\Services\HizmetFiyat;
 use RuntimeException;
 
 final class MaliyetController extends Controller
@@ -25,12 +26,13 @@ final class MaliyetController extends Controller
                 throw new RuntimeException('Araç seçilmelidir.');
             }
             $tutar = Request::decimal('tutar_ek');
-            if ($tutar !== null && $tutar <= 0) {
-                throw new RuntimeException("Tutar 0'dan büyük olmalıdır.");
+            if ($tutar !== null && $tutar < 0) {
+                throw new RuntimeException('Tutar negatif olamaz.');
             }
+            // Tutar boş/0 ise AracService firma özel fiyatı veya hizmet varsayılanını kullanır.
             AracService::maliyetEkle($aracId, [
                 'maliyet_tipi_id' => Request::int('maliyet_tipi_modal'),
-                'tutar' => $tutar,
+                'tutar' => ($tutar !== null && $tutar > 0) ? $tutar : null,
                 'aciklama' => Request::str('aciklama_ekstre'),
                 'irsaliye' => Request::str('irsaliye'),
                 'fatura_no' => Request::str('fatura_no'),
@@ -63,12 +65,21 @@ final class MaliyetController extends Controller
     {
         $this->ajax(function () use ($id) {
             $row = $this->bul((int) $id);
-            $tutar = Request::decimal('tutar');
-            if (!Request::int('maliyet_tipi_id') || $tutar === null || $tutar <= 0) {
-                throw new RuntimeException("Maliyet tipi ve 0'dan büyük bir tutar zorunludur.");
+            $tipId = Request::int('maliyet_tipi_id') ?: (int) $row['maliyet_tipi_id'];
+            if (!$tipId) {
+                throw new RuntimeException('Maliyet tipi zorunludur.');
+            }
+            $musteriId = (int) ($row['musteri_id'] ?? 0) ?: null;
+            $tutar = HizmetFiyat::tutarBayiIcin($musteriId, $tipId, Request::decimal('tutar'), Auth::isAdmin());
+            if ($tutar <= 0) {
+                throw new RuntimeException("0'dan büyük bir tutar zorunludur.");
+            }
+            if (!Auth::isAdmin() && !HizmetFiyat::bayiDegistirebilir($tipId)) {
+                $tipId = (int) $row['maliyet_tipi_id'];
+                $tutar = HizmetFiyat::tutar($musteriId, $tipId);
             }
             AracService::guncelle((int) $row['id'], [
-                'maliyet_tipi_id' => Request::int('maliyet_tipi_id'), 'tutar' => $tutar,
+                'maliyet_tipi_id' => $tipId, 'tutar' => $tutar,
                 'islem_tarihi' => Request::date('islem_tarihi') ?? $row['islem_tarihi'],
                 'fatura_no' => Request::str('fatura_no'), 'fatura_tarihi' => Request::date('fatura_tarihi'),
                 'irsaliye' => Request::str('irsaliye'), 'aciklama' => Request::str('aciklama'),

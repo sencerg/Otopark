@@ -9,6 +9,8 @@ use App\Core\Database;
 use App\Core\Log;
 use RuntimeException;
 
+// HizmetFiyat aynı namespace'te (App\Services)
+
 final class AracService
 {
     public const ARAC_ALANLARI = [
@@ -26,7 +28,26 @@ final class AracService
 
     public static function normalizeSase(?string $sase): string
     {
-        return mb_strtoupper(preg_replace('/\s+/', '', (string) $sase));
+        return mb_strtoupper(preg_replace('/\s+/', '', (string) $sase) ?? '', 'UTF-8');
+    }
+
+    /**
+     * Şasi: tam 17 hane, yalnızca A–Z / 0–9; I, O ve Türkçe harfler (Ü, Ş, Ç, Ğ, Ö, İ…) yok.
+     */
+    public static function dogrulaSase(?string $sase): string
+    {
+        $sase = self::normalizeSase($sase);
+        if ($sase === '' || strlen($sase) !== 17) {
+            throw new RuntimeException('Şasi numarası 17 haneli olmalıdır.');
+        }
+        if (preg_match('/[IOQ]/', $sase)) {
+            throw new RuntimeException('Şasi numarasında I, O ve Q harfleri kullanılamaz.');
+        }
+        if (preg_match('/[^A-HJ-NPR-Z0-9]/', $sase)) {
+            throw new RuntimeException('Şasi numarası yalnızca İngilizce harf ve rakam içerebilir (I, O, Q ve Türkçe karakterler yasaktır).');
+        }
+
+        return $sase;
     }
 
     public static function bayiKontrol(?int $bayiId): int
@@ -75,10 +96,7 @@ final class AracService
      */
     public static function kaydetVeHareket(array $arac, ?array $hareket, array $envanterler = [], array $donanimlar = []): array
     {
-        $sase = self::normalizeSase($arac['sase'] ?? '');
-        if (strlen($sase) < 5) {
-            throw new RuntimeException('Geçerli bir şasi numarası giriniz.');
-        }
+        $sase = self::dogrulaSase($arac['sase'] ?? '');
         if (empty($arac['musteri_id'])) {
             throw new RuntimeException('Müşteri seçilmelidir.');
         }
@@ -183,8 +201,21 @@ final class AracService
         if (empty($data['maliyet_tipi_id'])) {
             throw new RuntimeException('Maliyet tipi seçilmelidir.');
         }
-        if (!isset($data['tutar']) || $data['tutar'] < 0) {
-            throw new RuntimeException('Geçerli bir tutar giriniz.');
+        $musteriId = isset($data['musteri_id']) ? (int) $data['musteri_id'] : (int) ($arac['musteri_id'] ?? 0);
+        $tipId = (int) $data['maliyet_tipi_id'];
+        $tutar = HizmetFiyat::tutarBayiIcin(
+            $musteriId ?: null,
+            $tipId,
+            $data['tutar'] ?? null,
+            Auth::isAdmin()
+        );
+        if ($tutar <= 0) {
+            throw new RuntimeException('Geçerli bir tutar giriniz (firma özel fiyatı veya hizmet varsayılan ücreti).');
+        }
+        if (!Auth::isAdmin() && !HizmetFiyat::bayiDegistirebilir($tipId)
+            && isset($data['tutar']) && $data['tutar'] !== null && $data['tutar'] !== ''
+            && abs((float) $data['tutar'] - $tutar) > 0.009) {
+            throw new RuntimeException('Bu hizmetin fiyatı admin tarafından kilitlenmiştir; tutar değiştirilemez.');
         }
 
         $id = self::insert('arac_ekstreleri', [
@@ -192,7 +223,7 @@ final class AracService
             'maliyet_tipi_id' => $data['maliyet_tipi_id'],
             'musteri_id' => $data['musteri_id'] ?? $arac['musteri_id'],
             'bayi_id' => $data['bayi_id'] ?? $arac['bayi_id'],
-            'tutar' => $data['tutar'],
+            'tutar' => $tutar,
             'aciklama' => $data['aciklama'] ?? null,
             'irsaliye' => $data['irsaliye'] ?? null,
             'fatura_no' => $data['fatura_no'] ?? null,

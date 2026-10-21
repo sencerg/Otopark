@@ -40,8 +40,8 @@ curl -s -o /dev/null "$BASE/login" || { echo "Sunucu çalışmıyor: $BASE"; exi
 A=$(mktemp); K=$(mktemp); S=$(mktemp); G=$(mktemp)
 trap 'rm -f "$A" "$K" "$S" "$G" /tmp/otopark_test_*' EXIT
 
-ANK=$(q "SELECT id FROM bayiler WHERE ad='BİA ANKARA'")
-SEY=$(q "SELECT id FROM bayiler WHERE ad='BİA SEYRANTEPE'")
+ANK=$(q "SELECT id FROM bayiler WHERE ad='MOEX ANKARA'")
+SEY=$(q "SELECT id FROM bayiler WHERE ad='MOEX SEYRANTEPE'")
 MUS=$(q "SELECT id FROM musteriler WHERE ad='DOĞUŞ OTO (FİLO 0 ARAÇLAR)'")
 TIP=$(q "SELECT id FROM arac_tipleri ORDER BY id LIMIT 1")
 MARKA=$(q "SELECT id FROM markalar WHERE ad='Renault'")
@@ -90,46 +90,52 @@ login "$K" ankara@otopark.local ankara123; eq "Ankara bayi girişi" "$BASE/" "$L
 login "$S" seyrantepe@otopark.local seyrantepe123; eq "Seyrantepe bayi girişi" "$BASE/" "$LOC"
 TA=$(csrf "$A"); TK=$(csrf "$K"); TS=$(csrf "$S")
 page "$K" GET /
-has "Bayi üst barda kendi lokasyonunu görüyor" "BİA ANKARA" "$BODY"
+has "Bayi üst barda kendi lokasyonunu görüyor" "MOEX ANKARA" "$BODY"
+hasnt "Bayi menüsünde tema önizleme yok" "/tema_onizleme" "$BODY"
+page "$K" GET /tema_onizleme; eq "Bayi tema önizlemeyi açamıyor" 403 "$CODE"
+page "$K" GET /arac_yonetimi/tanimlar/musteriler; eq "Bayi müşteri tanım listesini açamıyor" 403 "$CODE"
+DEP=$(q "SELECT id FROM departmanlar ORDER BY id LIMIT 1")
+req "$K" GET "/api/personeller?departman[]=$DEP"
+eq "Bayi personel API yalnızca kendi lokasyonunu döner" "$(q "SELECT count(*) FROM personeller WHERE aktif AND bayi_id=$ANK AND departman_id=$DEP")" "$(js 'keys | length')"
 
 # ───────────────────────────────────────────────────────────────
-bolum "2. BİA ↔ MD karşılaştırma sayfası"
+bolum "2. Referans ↔ MD karşılaştırma sayfası"
 MADDE_SAYI=$(php -r 'define("BASE_PATH", getcwd()); echo count((require "app/karsilastirma.php")["maddeler"]);')
 KOD_TEKIL=$(php -r 'define("BASE_PATH", getcwd()); $k=array_column((require "app/karsilastirma.php")["maddeler"], "kod"); echo count($k)===count(array_unique($k)) ? "evet" : "hayir";')
 eq "Madde kodları benzersiz" evet "$KOD_TEKIL"
-page "$A" GET /bia_md_karsilastirma
+page "$A" GET /referans_md_karsilastirma
 eq "Yönetici sayfayı açıyor" 200 "$CODE"
 eq "Tüm maddeler listeleniyor" "$MADDE_SAYI" "$(grep -o 'class="card mb-3 madde"' <<<"$BODY" | wc -l | tr -d ' ')"
 eq "Yönetici her madde için karar formu görüyor" "$MADDE_SAYI" "$(grep -o 'class="row g-2 align-items-start karar-form"' <<<"$BODY" | wc -l | tr -d ' ')"
 has "Sözlük sekmesi var" "MD'deki terim" "$BODY"
-has "İş akışı sekmesi var" "BİA akışı" "$BODY"
-page "$K" GET /bia_md_karsilastirma
+has "İş akışı sekmesi var" "Referans akışı" "$BODY"
+page "$K" GET /referans_md_karsilastirma
 eq "Bayi sayfayı açıyor" 200 "$CODE"
 hasnt "Bayi karar formu görmüyor" 'class="row g-2 align-items-start karar-form"' "$BODY"
 page "$A" GET /
-has "Menüde karşılaştırma linki var" "/bia_md_karsilastirma" "$BODY"
+has "Menüde karşılaştırma linki var" "/referans_md_karsilastirma" "$BODY"
 
 XSS='<script>alert(1)</script>'
-req "$A" POST /bia_md_karsilastirma/kaydet --data-urlencode "_csrf=$TA" -d kod=K04 -d karar=md --data-urlencode "notlar=Kapasite eklenecek $XSS"
+req "$A" POST /referans_md_karsilastirma/kaydet --data-urlencode "_csrf=$TA" -d kod=K04 -d karar=md --data-urlencode "notlar=Kapasite eklenecek $XSS"
 eq "Yönetici karar kaydediyor" true "$(js .success)"
 eq "Karar veritabanında" "md" "$(q "SELECT karar FROM karsilastirma_kararlari WHERE kod='K04'")"
-req "$A" POST /bia_md_karsilastirma/kaydet --data-urlencode "_csrf=$TA" -d kod=K04 -d karar=birlestir -d notlar=ikinci
+req "$A" POST /referans_md_karsilastirma/kaydet --data-urlencode "_csrf=$TA" -d kod=K04 -d karar=birlestir -d notlar=ikinci
 eq "Aynı madde tekrar kaydedilince tek kayıt kalıyor" "1|birlestir" "$(q "SELECT count(*)||'|'||max(karar) FROM karsilastirma_kararlari WHERE kod='K04'")"
-req "$A" POST /bia_md_karsilastirma/kaydet --data-urlencode "_csrf=$TA" -d kod=K04 -d karar=md --data-urlencode "notlar=Kapasite eklenecek $XSS"
-page "$A" GET /bia_md_karsilastirma
+req "$A" POST /referans_md_karsilastirma/kaydet --data-urlencode "_csrf=$TA" -d kod=K04 -d karar=md --data-urlencode "notlar=Kapasite eklenecek $XSS"
+page "$A" GET /referans_md_karsilastirma
 hasnt "Not alanındaki script çalıştırılabilir halde basılmıyor (XSS)" "$XSS" "$BODY"
 has "Not kaçışlanarak gösteriliyor" "&lt;script&gt;alert(1)&lt;/script&gt;" "$BODY"
-req "$K" POST /bia_md_karsilastirma/kaydet --data-urlencode "_csrf=$TK" -d kod=K01 -d karar=md
+req "$K" POST /referans_md_karsilastirma/kaydet --data-urlencode "_csrf=$TK" -d kod=K01 -d karar=md
 eq "Bayi karar kaydedemiyor" false "$(js .success)"
 eq "Bayinin denemesi veritabanına yazılmadı" 0 "$(q "SELECT count(*) FROM karsilastirma_kararlari WHERE kod='K01'")"
-req "$A" POST /bia_md_karsilastirma/kaydet --data-urlencode "_csrf=$TA" -d kod=ZZ99 -d karar=md
+req "$A" POST /referans_md_karsilastirma/kaydet --data-urlencode "_csrf=$TA" -d kod=ZZ99 -d karar=md
 eq "Olmayan madde kodu reddediliyor" false "$(js .success)"
-req "$A" POST /bia_md_karsilastirma/kaydet --data-urlencode "_csrf=$TA" -d kod=K02 -d "karar=hack"
+req "$A" POST /referans_md_karsilastirma/kaydet --data-urlencode "_csrf=$TA" -d kod=K02 -d "karar=hack"
 eq "Geçersiz karar değeri reddediliyor" false "$(js .success)"
-req "$A" POST /bia_md_karsilastirma/kaydet -d kod=K02 -d karar=md
+req "$A" POST /referans_md_karsilastirma/kaydet -d kod=K02 -d karar=md
 eq "CSRF anahtarı olmadan karar kaydı reddediliyor" 419 "$CODE"
-curl -s -D /tmp/otopark_test_h -b "$A" "$BASE/bia_md_karsilastirma/indir" -o /tmp/otopark_test_md
-has "Markdown indirme dosya olarak geliyor" "bia-md-karsilastirma.md" "$(cat /tmp/otopark_test_h)"
+curl -s -D /tmp/otopark_test_h -b "$A" "$BASE/referans_md_karsilastirma/indir" -o /tmp/otopark_test_md
+has "Markdown indirme dosya olarak geliyor" "referans-md-karsilastirma.md" "$(cat /tmp/otopark_test_h)"
 has "İndirilen dosyada karar yazıyor" "MD'ye göre değişecek" "$(cat /tmp/otopark_test_md)"
 eq "İndirilen dosyada tüm maddeler var" "$MADDE_SAYI" "$(grep -c '^#### ' /tmp/otopark_test_md)"
 q "DELETE FROM karsilastirma_kararlari" >/dev/null
@@ -313,7 +319,7 @@ req "$K" POST /arac_yonetimi/hizli_arac_save -F "_csrf=$TK" -F sase="TSTGNL$RUN"
     -F hareket_tarihi_tarih=2026-09-01 -F hareket_tarihi_saat=09:00
 gnl() { req "$K" GET "/depolama_raporu/liste?$(dt "q=TSTGNL$RUN&baslangic=2026-09-01&bitis=2026-09-04")"; echo "$(js '.data[0].gun')|$(js .toplam)|$(js '.data[0].fiyat_yok')"; }
 eq "Özel fiyatı olmayan firmada otoparkın standart fiyatı kullanılıyor (4 gün × $LOK_FIYAT ₺)" "4|$(php -r "echo (float)(4*$LOK_FIYAT);")|false" "$(gnl)"
-lok() { req "$A" POST /tanimlamalar/lokasyon/kaydet -F "_csrf=$TA" -F id=$ANK -F "ad=BİA ANKARA" -F sehir=Ankara -F gunluk_fiyat="$1" -F fiyat_carpani="$2" -F aktif=1; }
+lok() { req "$A" POST /tanimlamalar/lokasyon/kaydet -F "_csrf=$TA" -F id=$ANK -F "ad=MOEX ANKARA" -F sehir=Ankara -F gunluk_fiyat="$1" -F fiyat_carpani="$2" -F aktif=1; }
 lok "$LOK_FIYAT" 1,5
 eq "Otopark çarpanı 1,5 standart fiyata uygulanıyor" "4|$(php -r "echo (float)(4*$LOK_FIYAT*1.5);")|false" "$(gnl)"
 OZEL_SASE=$(q "SELECT a.sase FROM araclar a JOIN depolama_fiyatlari f ON f.musteri_id=a.musteri_id AND f.bayi_id=a.bayi_id AND f.arac_tipi_id=a.arac_tipi_id WHERE a.bayi_id=$ANK AND a.stokta ORDER BY a.id LIMIT 1")
@@ -363,7 +369,7 @@ eq "CSV'de marka/seri adları eşleşiyor" "Clio" "$(q "SELECT s.ad FROM araclar
 bolum "9b. Tanımlamalar ve çıkışta hizmet ücreti"
 page "$K" GET /tanimlamalar; eq "Tanımlamalar sayfası açılıyor (bayi)" 200 "$CODE"
 has "Menüde Tanımlamalar var" 'href="/tanimlamalar"' "$BODY"
-req "$K" GET /tanimlamalar/lokasyon/liste; eq "Bayi otopark listesinde yalnızca kendi otoparkını görüyor" "1|BİA ANKARA" "$(js '.data|length')|$(js '.data[0].ad')"
+req "$K" GET /tanimlamalar/lokasyon/liste; eq "Bayi otopark listesinde yalnızca kendi otoparkını görüyor" "1|MOEX ANKARA" "$(js '.data|length')|$(js '.data[0].ad')"
 req "$A" GET /tanimlamalar/lokasyon/liste; eq "Yönetici tüm otoparkları görüyor" "$(q "SELECT count(*) FROM bayiler")" "$(js '.data|length')"
 req "$K" POST /tanimlamalar/musteri/kaydet -F "_csrf=$TK" -F "ad=Bayi Firması $RUN"
 has "Bayi müşteri ekleyemiyor" "yalnızca yönetici" "$(js .message)"
@@ -375,7 +381,7 @@ req "$A" POST /tanimlamalar/musteri/kaydet -F "_csrf=$TA" -F "ad=Hatalı Eposta 
 has "Geçersiz e-posta reddediliyor" "e-posta" "$(js .message)"
 has "Yeni müşteri araç girişinde seçilebiliyor" "Test Filo $RUN" "$(page "$K" GET /arac_yonetimi/ekle; echo "$BODY")"
 for c in 0 11 -1; do
-    req "$A" POST /tanimlamalar/lokasyon/kaydet -F "_csrf=$TA" -F id=$ANK -F "ad=BİA ANKARA" -F gunluk_fiyat=100 -F fiyat_carpani=$c -F aktif=1
+    req "$A" POST /tanimlamalar/lokasyon/kaydet -F "_csrf=$TA" -F id=$ANK -F "ad=MOEX ANKARA" -F gunluk_fiyat=100 -F fiyat_carpani=$c -F aktif=1
     eq "Geçersiz çarpan reddediliyor ($c)" false "$(js .success)"
 done
 eq "Geçersiz çarpanlar otoparkı değiştirmiyor" "1.000" "$(q "SELECT fiyat_carpani FROM bayiler WHERE id=$ANK")"
@@ -514,7 +520,7 @@ eq "Başka lokasyondaki aracın lokasyonu ve markası bayiye gösterilmiyor" "Ba
     "$(js ".disarida[]|select(.sase==\"$SY_SEY\")|.sistem_durumu")|$(js ".disarida[]|select(.sase==\"$SY_SEY\")|.marka")"
 eq "Sistemde olmayan şasi işaretleniyor" "Sistemde kayıtlı değil" "$(js ".disarida[]|select(.sase==\"TSTSAYIM$RUN\")|.sistem_durumu")"
 req "$A" GET /sayim_kayitlari/veri/$SY
-has "Yönetici başka lokasyondaki aracın nerede olduğunu görüyor" "Başka lokasyonda kayıtlı: BİA SEYRANTEPE" "$(js ".disarida[]|select(.sase==\"$SY_SEY\")|.sistem_durumu")"
+has "Yönetici başka lokasyondaki aracın nerede olduğunu görüyor" "Başka lokasyonda kayıtlı: MOEX SEYRANTEPE" "$(js ".disarida[]|select(.sase==\"$SY_SEY\")|.sistem_durumu")"
 req "$S" GET /sayim_kayitlari/veri/$SY; eq "Başka bayi sayımın listelerini göremiyor" false "$(js .success)"
 req "$S" POST /sayim_kayitlari/okut/$SY -F "_csrf=$TS" -F "sase=$SY_SEY"; eq "Başka bayi sayıma okutma yapamıyor" false "$(js .success)"
 page "$S" GET /sayim_kayitlari/detay/$SY; eq "Başka bayi sayım ekranını açamıyor" 404 "$CODE"
@@ -573,7 +579,7 @@ for kim in "admin@otopark.local admin123" "ankara@otopark.local ankara123" "seyr
     eq "smoke ${kim%% *}: $o sayfa OK, beklenmeyen hata yok" "$beklenen" "$h"
     [[ "$h" != "$beklenen" ]] && grep '^HATA' <<<"$out" | sed 's/^/      /'
 done
-page "$A" GET /bia_md_karsilastirma; hasnt "Karşılaştırma sayfasında PHP hatası yok" "Warning:" "$BODY"
+page "$A" GET /referans_md_karsilastirma; hasnt "Karşılaştırma sayfasında PHP hatası yok" "Warning:" "$BODY"
 
 bolum "12. PHP hata günlüğü"
 LOG=$(grep -vE 'SQLSTATE\[23' storage/logs/php-error.log)

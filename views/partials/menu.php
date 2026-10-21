@@ -1,4 +1,6 @@
 <?php
+use App\Core\Auth;
+
 $currentUri = $_SERVER['REQUEST_URI'] ?? '/';
 $currentPath = parse_url($currentUri, PHP_URL_PATH) ?: '/';
 
@@ -14,8 +16,26 @@ $isActive = static function (array $item) use (&$isActive, $currentUri, $current
     return false;
 };
 
+$filtreMenu = static function (array $items) use (&$filtreMenu): array {
+    $sonuc = [];
+    foreach ($items as $item) {
+        if (!empty($item['admin']) && !Auth::isAdmin()) {
+            continue;
+        }
+        if (!empty($item['children'])) {
+            $item['children'] = $filtreMenu($item['children']);
+            if ($item['children'] === [] && empty($item['url'])) {
+                continue;
+            }
+        }
+        $sonuc[] = $item;
+    }
+
+    return $sonuc;
+};
+
 $renderMenu = static function (array $items, int $level = 0) use (&$renderMenu, $isActive): void {
-    foreach ($items as $i => $item) {
+    foreach ($items as $item) {
         $active = $isActive($item);
         if (!empty($item['children'])) {
             $id = 'm' . $level . '-' . md5($item['title']);
@@ -45,5 +65,5 @@ $renderMenu = static function (array $items, int $level = 0) use (&$renderMenu, 
 };
 ?>
 <ul class="sidebar-menu">
-    <?php $renderMenu(require BASE_PATH . '/app/menu.php'); ?>
+    <?php $renderMenu($filtreMenu(require BASE_PATH . '/app/menu.php')); ?>
 </ul>

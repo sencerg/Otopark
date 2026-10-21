@@ -23,9 +23,12 @@ final class IsEmriController extends Controller
     /** Bayi kullanıcısı: kendi lokasyonundaki kullanıcıların açtığı veya kendi lokasyonundaki araçları içeren iş emirleri */
     private static function erisimKosulu(string $alias = 'ie'): string
     {
+        if (Auth::isAdmin()) {
+            return 'TRUE';
+        }
         $bayi = Auth::bayiId();
         if ($bayi === null) {
-            return 'TRUE';
+            return 'FALSE';
         }
 
         return "(EXISTS (SELECT 1 FROM users u2 WHERE u2.id = {$alias}.olusturan_id AND u2.bayi_id = {$bayi})
@@ -125,7 +128,7 @@ final class IsEmriController extends Controller
                         EXISTS (SELECT 1 FROM arac_ekstreleri e WHERE e.is_emri_id = x.is_emri_id AND e.arac_id = x.arac_id) AS maliyet_yazildi
                  FROM is_emri_araclari x JOIN araclar a ON a.id = x.arac_id
                  LEFT JOIN bayiler b ON b.id = a.bayi_id LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN seriler s ON s.id = a.seri_id
-                 WHERE x.is_emri_id = :id ORDER BY x.id',
+                 WHERE x.is_emri_id = :id AND ' . Auth::bayiKosulu('a.bayi_id') . ' ORDER BY x.id',
                 ['id' => $id]
             ),
             'departmanlar' => array_column(Database::fetchAll('SELECT departman_id FROM is_emri_departmanlari WHERE is_emri_id = :id', ['id' => $id]), 'departman_id'),
@@ -188,6 +191,9 @@ final class IsEmriController extends Controller
                 );
             }
 
+            foreach (Request::ids('sorumlu_personel') as $personelId) {
+                Auth::dogrulaPersonel($personelId, 'Sorumlu personel');
+            }
             foreach (['is_emri_departmanlari' => ['departman_id', 'sorumlu_departman'], 'is_emri_personelleri' => ['personel_id', 'sorumlu_personel']] as $table => [$col, $field]) {
                 Database::query("DELETE FROM {$table} WHERE is_emri_id = :id", ['id' => $id]);
                 foreach (Request::ids($field) as $v) {
@@ -250,7 +256,7 @@ final class IsEmriController extends Controller
     private static function tamamlananlaraMaliyetYaz(int $isEmriId): int
     {
         $ie = Database::fetch(
-            'SELECT ie.*, mt.varsayilan_tutar FROM is_emirleri ie JOIN maliyet_tipleri mt ON mt.id = ie.maliyet_tipi_id WHERE ie.id = :id',
+            'SELECT ie.* FROM is_emirleri ie WHERE ie.id = :id',
             ['id' => $isEmriId]
         );
         $bekleyen = Database::fetchAll(
@@ -261,7 +267,7 @@ final class IsEmriController extends Controller
         );
         foreach ($bekleyen as $row) {
             AracService::maliyetEkle((int) $row['arac_id'], [
-                'maliyet_tipi_id' => $ie['maliyet_tipi_id'], 'tutar' => (float) $ie['varsayilan_tutar'],
+                'maliyet_tipi_id' => $ie['maliyet_tipi_id'], 'tutar' => null,
                 'aciklama' => 'İş emri: ' . $ie['kod'], 'islem_tarihi' => $ie['tamamlanma_tarihi'] ?? date('Y-m-d'),
                 'is_emri_id' => $isEmriId,
             ]);

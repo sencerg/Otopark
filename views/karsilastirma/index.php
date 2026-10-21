@@ -6,7 +6,7 @@ $turler = $veri['turler'];
 $kararlar = $veri['kararlar'];
 $turSay = array_count_values(array_column($maddeler, 'tur'));
 
-$headerActions = '<a href="/bia_md_karsilastirma/indir" class="btn btn-sm btn-outline-primary"><i class="mdi mdi-download me-1"></i>Markdown indir</a>'
+$headerActions = '<a href="/referans_md_karsilastirma/indir" class="btn btn-sm btn-outline-primary"><i class="mdi mdi-download me-1"></i>Markdown indir</a>'
     . ' <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="mdi mdi-printer me-1"></i>Yazdır</button>';
 ?>
 <div class="row g-3 mb-3">
@@ -33,7 +33,7 @@ $headerActions = '<a href="/bia_md_karsilastirma/indir" class="btn btn-sm btn-ou
             <?php foreach ($veri['ozet'] as $s): ?><li class="mb-1"><?= e($s) ?></li><?php endforeach; ?>
         </ul>
         <div class="small text-muted">
-            <?php foreach (['bia' => 'BİA', 'md' => 'MD', 'sistem' => 'Sistem'] as $k => $ad): ?>
+            <?php foreach (['referans' => 'Referans', 'md' => 'MD', 'sistem' => 'Moex Otopark'] as $k => $ad): ?>
                 <div><b><?= $ad ?>:</b> <?= e($veri['kaynaklar'][$k]) ?></div>
             <?php endforeach; ?>
         </div>
@@ -96,15 +96,15 @@ $headerActions = '<a href="/bia_md_karsilastirma/indir" class="btn btn-sm btn-ou
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-lg-4">
-                                    <div class="small fw-bold text-primary mb-1"><i class="mdi mdi-web me-1"></i>BİA</div>
-                                    <div class="small"><?= e($m['bia']) ?></div>
+                                    <div class="small fw-bold text-primary mb-1"><i class="mdi mdi-web me-1"></i>Referans</div>
+                                    <div class="small"><?= e($m['referans']) ?></div>
                                 </div>
                                 <div class="col-lg-4">
                                     <div class="small fw-bold text-warning mb-1"><i class="mdi mdi-file-document-outline me-1"></i>MD</div>
                                     <div class="small"><?= e($m['md']) ?></div>
                                 </div>
                                 <div class="col-lg-4">
-                                    <div class="small fw-bold text-success mb-1"><i class="mdi mdi-check-decagram-outline me-1"></i>Sistemde şu an</div>
+                                    <div class="small fw-bold text-success mb-1"><i class="mdi mdi-check-decagram-outline me-1"></i>Moex Otopark</div>
                                     <div class="small"><?= e($m['sistem']) ?>
                                         <?php if (!empty($m['url'])): ?> <a href="<?= e($m['url']) ?>" class="d-print-none">Sayfaya git <i class="mdi mdi-arrow-right"></i></a><?php endif; ?>
                                     </div>
@@ -139,7 +139,7 @@ $headerActions = '<a href="/bia_md_karsilastirma/indir" class="btn btn-sm btn-ou
 
     <div class="tab-pane fade" id="tab-akis">
         <div class="row g-3">
-            <?php foreach (['bia' => ['BİA akışı', 'primary', 'Sistem şu an bu akışla çalışıyor.'], 'md' => ['MD akışı', 'warning', 'Kullanım rehberinde anlatılan akış.']] as $k => [$baslik, $renk, $alt]): ?>
+            <?php foreach (['referans' => ['Referans akışı', 'primary', 'Moex Otopark şu an bu akışla çalışıyor.'], 'md' => ['MD akışı', 'warning', 'Kullanım rehberinde anlatılan akış.']] as $k => [$baslik, $renk, $alt]): ?>
                 <div class="col-lg-6">
                     <div class="card h-100">
                         <div class="card-header"><h5 class="text-<?= $renk ?>"><?= $baslik ?></h5><span class="small text-muted"><?= $alt ?></span></div>
@@ -160,10 +160,10 @@ $headerActions = '<a href="/bia_md_karsilastirma/indir" class="btn btn-sm btn-ou
         <div class="card">
             <div class="card-body table-responsive">
                 <table class="table table-sm align-middle mb-0">
-                    <thead><tr><th>MD'deki terim</th><th>BİA'daki karşılığı</th><th>Not</th></tr></thead>
+                    <thead><tr><th>MD'deki terim</th><th>Referans karşılığı</th><th>Not</th></tr></thead>
                     <tbody>
                         <?php foreach ($veri['sozluk'] as $s): ?>
-                            <tr><td class="fw-semibold"><?= e($s['md']) ?></td><td><?= e($s['bia']) ?></td><td class="small text-muted"><?= e($s['not']) ?></td></tr>
+                            <tr><td class="fw-semibold"><?= e($s['md']) ?></td><td><?= e($s['referans']) ?></td><td class="small text-muted"><?= e($s['not']) ?></td></tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -211,7 +211,7 @@ $headerActions = '<a href="/bia_md_karsilastirma/indir" class="btn btn-sm btn-ou
         e.preventDefault();
         const form = this, kod = form.dataset.kod;
         const $btn = $(form).find('[type="submit"]').prop('disabled', true);
-        $.post('/bia_md_karsilastirma/kaydet', { kod, karar: form.karar.value, notlar: form.notlar.value })
+        $.post('/referans_md_karsilastirma/kaydet', { kod, karar: form.karar.value, notlar: form.notlar.value })
             .done((res) => {
                 if (!res.success) { App.error(res.message); return; }
                 const kart = document.getElementById('madde-' + kod);

@@ -234,6 +234,11 @@
         $.ajax({ url: form.action, method: 'POST', data: new FormData(form), processData: false, contentType: false })
             .done((res) => {
                 if (!res.success) { App.error(res.message); return; }
+                if (res.redirect) {
+                    App.toast(res.message || 'Kaydedildi');
+                    location.href = res.redirect;
+                    return;
+                }
                 Swal.fire({ icon: 'success', title: res.message || 'Kaydedildi', confirmButtonColor: '#1d4ed8', timer: 2200 });
                 form.reset();
                 $(form).find('select').val(null).trigger('change.select2');
@@ -245,11 +250,53 @@
             .always(() => $btn.prop('disabled', false));
     });
 
-    /* Maliyet tipi seçilince varsayılan tutarı getir */
-    $(document).on('change', 'select[data-tutar-target]', function () {
-        const tutar = $(this).find(':selected').data('tutar');
-        const $target = $($(this).data('tutar-target'));
-        if (tutar !== undefined && Number(tutar) > 0 && !$target.val()) $target.val(tutar);
+    /* Maliyet tipi seçilince firma özel fiyatı (yoksa varsayılan) getir; kilitli hizmette tutarı kilitle */
+    const isAdminUser = () => document.body.dataset.admin === '1';
+    function hizmetTutarKilitle($tutar, degistirebilir) {
+        if (!$tutar || !$tutar.length) return;
+        const kilitli = !isAdminUser() && degistirebilir === false;
+        $tutar.prop('readonly', kilitli).toggleClass('bg-light', kilitli);
+        if (kilitli) $tutar.attr('title', 'Bu hizmetin fiyatı admin tarafından kilitlenmiştir');
+        else $tutar.removeAttr('title');
+    }
+    function hizmetTutarDoldur($select, zorla) {
+        const tipId = $select.val();
+        const $form = $select.closest('form');
+        let $target = $select.data('tutar-target') ? $($select.data('tutar-target')) : $();
+        if (!$target.length) {
+            $target = $select.closest('tr').find('[name="hizmet_tutar[]"], [name=tutar_ek], [name=tutar]');
+        }
+        if (!$target.length || !tipId) return;
+        if (!zorla && $target.val() && !$target.prop('readonly')) return;
+        const aracId = $form.find('[name=arac_id]').val();
+        const musteriId = $form.find('[name=musteri_id]').val();
+        const $opt = $select.find(':selected');
+        const fallback = Number($opt.data('tutar') || 0);
+        const optDeg = $opt.data('bayiDegistirebilir');
+        const uygula = (tutar, degistirebilir) => {
+            if (Number(tutar) > 0) $target.val(Number(tutar));
+            else if (fallback > 0) $target.val(fallback);
+            hizmetTutarKilitle($target, degistirebilir !== false && degistirebilir !== 0 && degistirebilir !== '0');
+        };
+        if (aracId || musteriId) {
+            $.getJSON('/api/hizmet_fiyat', { maliyet_tipi_id: tipId, arac_id: aracId || '', musteri_id: musteriId || '' })
+                .done((r) => {
+                    const deg = r.bayi_fiyat_degistirebilir;
+                    uygula(r.success && Number(r.tutar) > 0 ? r.tutar : fallback, deg === undefined ? optDeg : deg);
+                })
+                .fail(() => uygula(fallback, optDeg));
+        } else {
+            uygula(fallback, optDeg);
+        }
+    }
+    $(document).on('change', 'select[data-tutar-target], select[name="hizmet_id[]"], select[name=maliyet_tipi_modal], select[name=maliyet_tipi_id]', function () {
+        hizmetTutarDoldur($(this), true);
+    });
+    $(document).on('change', 'form select[name=arac_id], form select[name=musteri_id]', function () {
+        const $form = $(this).closest('form');
+        $form.find('select[data-tutar-target], select[name="hizmet_id[]"], select[name=maliyet_tipi_modal]').each(function () {
+            if (this.value) hizmetTutarDoldur($(this), true);
+        });
     });
 
     /* Dinamik satır ekleme (dosya/araç listeleri) */
@@ -260,6 +307,82 @@
         App.initSelect2($row);
     });
     $(document).on('click', '[data-remove-row]', function () { $(this).closest('tr, .row-item').remove(); });
+
+    /*
+     * Şasi no: 17 hane; I/O ve Türkçe harfler (Ü, Ş, Ç, Ğ, Ö, İ…) yasak.
+     * Yasaklı tuşa basınca uyarı; yapıştırınca temizlenir.
+     */
+    // Yasak: I, O (ve Q), Türkçe Ü Ş Ç Ğ Ö İ — büyük/küçük fark etmez
+    const SASE_YASAK_RE = /[IiİıOoQqÖöÜüŞşÇçĞğ]/u;
+    let saseUyariSon = 0;
+    function saseHarfGoster(ch) {
+        const u = String(ch).toLocaleUpperCase('tr-TR');
+        if (u === 'İ' || u === 'I') return 'I';
+        if (u === 'O' || u === 'Ö') return u === 'Ö' ? 'Ö' : 'O';
+        return u;
+    }
+    function saseYasakMi(ch) {
+        return SASE_YASAK_RE.test(ch);
+    }
+    function saseUyari(harf) {
+        const now = Date.now();
+        if (now - saseUyariSon < 700) return;
+        saseUyariSon = now;
+        App.toast('Bu harfi basamazsınız: ' + harf, 'warning');
+    }
+    function saseTemizle(deger, uyar) {
+        let temiz = '';
+        let ilkYasak = null;
+        for (const ch of String(deger || '')) {
+            if (/\s/.test(ch)) continue;
+            if (saseYasakMi(ch)) {
+                if (!ilkYasak) ilkYasak = saseHarfGoster(ch);
+                continue;
+            }
+            if (/[A-Za-z0-9]/.test(ch)) {
+                temiz += ch.toLocaleUpperCase('en-US');
+            } else if (!ilkYasak) {
+                ilkYasak = ch;
+            }
+        }
+        if (uyar && ilkYasak) saseUyari(ilkYasak);
+        return temiz.slice(0, 17);
+    }
+    $(document).on('keydown', 'input.sase-input, input[name="sase"]', function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.key.length !== 1) return;
+        if (saseYasakMi(e.key)) {
+            e.preventDefault();
+            saseUyari(saseHarfGoster(e.key));
+        }
+    });
+    $(document).on('beforeinput', 'input.sase-input, input[name="sase"]', function (e) {
+        const data = e.originalEvent?.data;
+        if (!data || data.length !== 1) return;
+        if (saseYasakMi(data)) {
+            e.preventDefault();
+            saseUyari(saseHarfGoster(data));
+        }
+    });
+    $(document).on('input', 'input.sase-input, input[name="sase"]', function () {
+        const temiz = saseTemizle(this.value, true);
+        if (this.value !== temiz) {
+            const pos = this.selectionStart;
+            this.value = temiz;
+            try { this.setSelectionRange(Math.max(0, pos - 1), Math.max(0, pos - 1)); } catch (_) { /* ignore */ }
+        }
+    });
+    $(document).on('paste', 'input.sase-input, input[name="sase"]', function (e) {
+        e.preventDefault();
+        const text = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
+        const ek = saseTemizle(text, true);
+        const el = this;
+        const start = el.selectionStart ?? el.value.length;
+        const end = el.selectionEnd ?? el.value.length;
+        el.value = saseTemizle(el.value.slice(0, start) + ek + el.value.slice(end), false);
+        const caret = Math.min(start + ek.length, 17);
+        try { el.setSelectionRange(caret, caret); } catch (_) { /* ignore */ }
+    });
 
     $(function () {
         App.initSelect2();

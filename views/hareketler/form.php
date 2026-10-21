@@ -66,7 +66,7 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
 
                     <div class="form-section">Sevkiyat Bilgileri</div>
                     <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label">Sevkiyat Tipi</label><select name="sevkiyat_tipi" class="form-select"><?= Tanim::options(Tanim::SEVKIYAT_TIPI, $h['sevkiyat_tipi']) ?></select></div>
+                        <div class="col-md-4"><label class="form-label required">Sevkiyat Tipi</label><select name="sevkiyat_tipi" class="form-select" required><?= Tanim::options(Tanim::SEVKIYAT_TIPI, $h['sevkiyat_tipi']) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Sevkiyat Durumu</label><select name="sevkiyat_durumu" class="form-select"><?= Tanim::options(Tanim::SEVKIYAT_DURUMU, $h['sevkiyat_durumu']) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Çekici Plakası</label><input type="text" name="cekici_plakasi" class="form-control text-uppercase" value="<?= e($h['cekici_plakasi']) ?>"></div>
                         <div class="col-md-4"><label class="form-label">Şoför Adı Soyadı</label><input type="text" name="sofor_adi_soyadi" class="form-control" value="<?= e($h['sofor_adi_soyadi']) ?>"></div>
@@ -91,9 +91,10 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                         <tr>
                             <td><i class="mdi mdi-parking text-primary me-1"></i><b>Depolama</b>
                                 <?php if ($konaklama): ?>
-                                    <span class="text-muted small">— <?= (int) $konaklama['gun'] ?> gün ×
-                                        <?php if ($konaklama['fiyat_yok']): ?><span class="badge badge-soft-warning">Fiyat tanımlı değil</span>
-                                        <?php else: ?><?= number_format((float) $konaklama['gunluk_fiyat'], 2, ',', '.') ?> ₺<?php endif; ?></span>
+                                    <span class="text-muted small">— <?php
+                                        if (!empty($konaklama['fiyat_yok'])): ?><span class="badge badge-soft-warning">Fiyat tanımlı değil</span><?php
+                                        elseif (!empty($konaklama['fiyat_degisti'])): ?><?= e(\App\Services\DepolamaHesap::fiyatAciklama($konaklama)) ?><?php
+                                        else: ?><?= (int) $konaklama['gun'] ?> gün × <?= number_format((float) $konaklama['gunluk_fiyat'], 2, ',', '.') ?> ₺<?php endif; ?></span>
                                 <?php endif; ?>
                             </td>
                             <td></td>
@@ -149,7 +150,7 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                 <tr class="table-warning">
                     <td><select name="hizmet_id[]" class="form-select form-select-sm select2" required>
                         <option value="">Seçiniz</option>
-                        <?php foreach ($hizmetler as $hz): ?><option value="<?= $hz['id'] ?>" data-tutar="<?= e($hz['varsayilan_tutar']) ?>"><?= e($hz['ad']) ?><?= (float) $hz['varsayilan_tutar'] > 0 ? ' — ' . number_format((float) $hz['varsayilan_tutar'], 2, ',', '.') . ' ₺' : '' ?></option><?php endforeach; ?>
+                        <?php foreach ($hizmetler as $hz): ?><option value="<?= $hz['id'] ?>" data-tutar="<?= e($hz['varsayilan_tutar']) ?>" data-bayi-degistirebilir="<?= !empty($hz['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($hz['ad']) ?><?= (float) $hz['varsayilan_tutar'] > 0 ? ' — ' . number_format((float) $hz['varsayilan_tutar'], 2, ',', '.') . ' ₺' : '' ?><?= empty($hz['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?></option><?php endforeach; ?>
                     </select></td>
                     <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0.01" placeholder="Ücret girin" required></td>
                     <td><input type="text" name="hizmet_not[]" class="form-control form-control-sm" maxlength="500" placeholder="Neden sonradan eklendi?"></td>
@@ -168,7 +169,7 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                         <input type="date" name="hareket_tarihi" class="form-control" value="<?= date('Y-m-d', $t) ?>" required>
                         <input type="time" name="hareket_saati" class="form-control" value="<?= date('H:i', $t) ?>">
                     </div>
-                    <label class="form-label">Teslim Alan Personel</label>
+                    <label class="form-label">Personel</label>
                     <select name="teslim_alan_personel" class="form-select select2 mb-3"><?= Tanim::options(Tanim::liste('personeller'), $h['teslim_alan_personel_id']) ?></select>
                     <label class="form-label mt-3">Açıklama / Not</label>
                     <textarea name="aciklama" class="form-control mb-3" rows="3"><?= e($h['aciklama']) ?></textarea>
@@ -206,10 +207,6 @@ $(function () {
     });
     hesapla();
     $('#cikis-hizmetleri').on('change', '[name="hizmet_id[]"]', function () {
-        const varsayilan = Number($(this).find(':selected').data('tutar') || 0);
-        const $tutar = $(this).closest('tr').find('[name="hizmet_tutar[]"]');
-        if (varsayilan > 0) $tutar.val(varsayilan.toFixed(2));
-        else if (!Number($tutar.val())) $tutar.val('').trigger('focus');
         hesapla();
     }).on('input', '[name="hizmet_tutar[]"]', hesapla);
     $(document).on('click', '#cikis-hizmetleri [data-remove-row]', () => setTimeout(hesapla));

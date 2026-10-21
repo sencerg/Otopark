@@ -4,7 +4,8 @@ use App\Core\Csrf;
 use App\Core\Env;
 
 $user = Auth::user();
-$appName = Env::get('APP_NAME');
+$appName = Env::get('APP_NAME', 'Moex Otopark');
+$brandParts = preg_split('/\s+/', trim($appName), 2) ?: ['Moex'];
 ?>
 <!doctype html>
 <html lang="tr">
@@ -23,12 +24,15 @@ $appName = Env::get('APP_NAME');
     <link rel="stylesheet" href="/assets/css/app.css?v=<?= filemtime(BASE_PATH . '/public/assets/css/app.css') ?>">
     <link rel="stylesheet" href="/assets/css/themes.css?v=<?= filemtime(BASE_PATH . '/public/assets/css/themes.css') ?>">
 </head>
-<body>
+<body<?= Auth::isAdmin() ? ' data-admin="1"' : '' ?>>
 <div class="layout" id="layout">
     <aside class="sidebar" id="sidebar">
-        <a href="/" class="sidebar-brand">
+        <a href="/" class="sidebar-brand" title="<?= e($appName) ?>">
             <span class="brand-mark"><i class="mdi mdi-parking"></i></span>
-            <span class="brand-text"><?= e($appName) ?></span>
+            <span class="brand-text">
+                <span class="brand-name"><?= e($brandParts[0] ?? 'Moex') ?></span>
+                <?php if (!empty($brandParts[1])): ?><span class="brand-product"><?= e($brandParts[1]) ?></span><?php endif; ?>
+            </span>
         </a>
         <nav class="sidebar-scroll">
             <?php require BASE_PATH . '/views/partials/menu.php'; ?>
@@ -63,8 +67,10 @@ $appName = Env::get('APP_NAME');
                         <button class="dropdown-item" type="button" data-mod-sec="light"><i class="mdi mdi-weather-sunny me-2"></i>Açık</button>
                         <button class="dropdown-item" type="button" data-mod-sec="dark"><i class="mdi mdi-weather-night me-2"></i>Koyu</button>
                         <button class="dropdown-item" type="button" data-mod-sec="system"><i class="mdi mdi-monitor me-2"></i>Sistem</button>
+                        <?php if (Auth::isAdmin()): ?>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="/tema_onizleme"><i class="mdi mdi-eye-outline me-2"></i>Tema Önizleme</a>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="dropdown">

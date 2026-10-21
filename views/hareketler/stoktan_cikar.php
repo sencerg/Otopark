@@ -3,7 +3,12 @@ use App\Core\Csrf;
 use App\Core\Tanim;
 
 $dosyalar = [];
-$gun = (int) ((time() - strtotime($arac['stoga_giris_tarihi'])) / 86400) + 1;
+$girisTs = strtotime((string) $arac['stoga_giris_tarihi']);
+$gun = (int) ((time() - $girisTs) / 86400) + 1;
+$girisTarih = date('Y-m-d', $girisTs);
+$girisSaat = date('H:i', $girisTs);
+$bugun = date('Y-m-d');
+$simdiSaat = date('H:i');
 ?>
 <form method="post" action="/arac_hareketleri/stoktan_cikar/<?= $arac['id'] ?>" enctype="multipart/form-data" data-confirm="Araç stoktan çıkarılsın mı?">
     <?= Csrf::field() ?>
@@ -35,8 +40,7 @@ $gun = (int) ((time() - strtotime($arac['stoga_giris_tarihi'])) / 86400) + 1;
                     </div>
                     <div class="form-section">Sevkiyat Bilgileri</div>
                     <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label">Sevkiyat Tipi</label><select name="sevkiyat_tipi" class="form-select"><?= Tanim::options(Tanim::SEVKIYAT_TIPI, old('sevkiyat_tipi')) ?></select></div>
-                        <div class="col-md-4"><label class="form-label">Sevkiyat Durumu</label><select name="sevkiyat_durumu" class="form-select"><?= Tanim::options(Tanim::SEVKIYAT_DURUMU, old('sevkiyat_durumu', '3'), null) ?></select></div>
+                        <div class="col-md-4"><label class="form-label required">Sevkiyat Tipi</label><select name="sevkiyat_tipi" class="form-select" required><?= Tanim::options(Tanim::SEVKIYAT_TIPI, old('sevkiyat_tipi')) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Çekici Plakası</label><input type="text" name="cekici_plakasi" class="form-control text-uppercase" value="<?= old('cekici_plakasi') ?>"></div>
                         <div class="col-md-4"><label class="form-label">Şoför Adı Soyadı</label><input type="text" name="sofor_adi_soyadi" class="form-control" value="<?= old('sofor_adi_soyadi') ?>"></div>
                         <div class="col-md-4"><label class="form-label">Şoför Telefon</label><input type="text" name="sofor_telefon" class="form-control" value="<?= old('sofor_telefon') ?>"></div>
@@ -57,9 +61,10 @@ $gun = (int) ((time() - strtotime($arac['stoga_giris_tarihi'])) / 86400) + 1;
                         <tr>
                             <td><i class="mdi mdi-parking text-primary me-1"></i><b>Depolama</b>
                                 <?php if ($konaklama): ?>
-                                    <span class="text-muted small">— <?= (int) $konaklama['gun'] ?> gün ×
-                                        <?php if ($konaklama['fiyat_yok']): ?><span class="badge badge-soft-warning">Fiyat tanımlı değil</span>
-                                        <?php else: ?><?= number_format((float) $konaklama['gunluk_fiyat'], 2, ',', '.') ?> ₺
+                                    <span class="text-muted small">— <?php
+                                        if (!empty($konaklama['fiyat_yok'])): ?><span class="badge badge-soft-warning">Fiyat tanımlı değil</span><?php
+                                        elseif (!empty($konaklama['fiyat_degisti'])): ?><?= e(\App\Services\DepolamaHesap::fiyatAciklama($konaklama)) ?><?php
+                                        else: ?><?= (int) $konaklama['gun'] ?> gün × <?= number_format((float) $konaklama['gunluk_fiyat'], 2, ',', '.') ?> ₺
                                             <?php if ((float) $konaklama['carpan'] !== 1.0): ?>(<?= number_format((float) $konaklama['taban_fiyat'], 2, ',', '.') ?> ₺ × <?= number_format((float) $konaklama['carpan'], 2, ',', '.') ?> otopark çarpanı)<?php endif; ?>
                                         <?php endif; ?></span>
                                 <?php endif; ?>
@@ -90,7 +95,7 @@ $gun = (int) ((time() - strtotime($arac['stoga_giris_tarihi'])) / 86400) + 1;
                 <tr>
                     <td><select name="hizmet_id[]" class="form-select form-select-sm select2" required>
                         <option value="">Seçiniz</option>
-                        <?php foreach ($hizmetler as $h): ?><option value="<?= $h['id'] ?>" data-tutar="<?= e($h['varsayilan_tutar']) ?>"><?= e($h['ad']) ?><?= (float) $h['varsayilan_tutar'] > 0 ? ' — ' . number_format((float) $h['varsayilan_tutar'], 2, ',', '.') . ' ₺' : '' ?></option><?php endforeach; ?>
+                        <?php foreach ($hizmetler as $h): ?><option value="<?= $h['id'] ?>" data-tutar="<?= e($h['varsayilan_tutar']) ?>" data-bayi-degistirebilir="<?= !empty($h['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($h['ad']) ?><?= (float) $h['varsayilan_tutar'] > 0 ? ' — ' . number_format((float) $h['varsayilan_tutar'], 2, ',', '.') . ' ₺' : '' ?><?= empty($h['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?></option><?php endforeach; ?>
                     </select></td>
                     <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0.01" placeholder="Ücret girin" required></td>
                     <td><button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-close"></i></button></td>
@@ -102,12 +107,14 @@ $gun = (int) ((time() - strtotime($arac['stoga_giris_tarihi'])) / 86400) + 1;
                 <div class="card-header"><h5>İşlem</h5></div>
                 <div class="card-body">
                     <label class="form-label required">Çıkış Tarihi</label>
-                    <div class="input-group mb-3">
-                        <input type="date" name="hareket_tarihi" class="form-control" value="<?= date('Y-m-d') ?>" required>
-                        <input type="time" name="hareket_saati" class="form-control" value="<?= date('H:i') ?>">
+                    <div class="input-group mb-1">
+                        <input type="date" name="hareket_tarihi" id="cikis-tarih" class="form-control"
+                               value="<?= e($bugun) ?>" min="<?= e($girisTarih) ?>" max="<?= e($bugun) ?>" required>
+                        <input type="time" name="hareket_saati" id="cikis-saat" class="form-control" value="<?= e($simdiSaat) ?>">
                     </div>
-                    <label class="form-label">Teslim Eden Personel</label>
-                    <select name="teslim_eden_personel" class="form-select select2"><?= Tanim::options(Tanim::liste('personeller')) ?></select>
+                    <div class="form-text mb-3">Giriş: <?= date('d.m.Y H:i', $girisTs) ?> — çıkış bu aralıkta olmalı (ileri tarih yok).</div>
+                    <label class="form-label">Personel</label>
+                    <select name="teslim_alan_personel" class="form-select select2"><?= Tanim::options(Tanim::liste('personeller'), old('teslim_alan_personel'), 'Seçiniz') ?></select>
                     <label class="form-label mt-3">Açıklama / Not</label>
                     <textarea name="aciklama" class="form-control" rows="3"><?= old('aciklama') ?></textarea>
                 </div>
@@ -131,13 +138,62 @@ $(function () {
         $toplam.text(App.money(t));
     };
     $('#cikis-hizmetleri').on('change', '[name="hizmet_id[]"]', function () {
-        const varsayilan = Number($(this).find(':selected').data('tutar') || 0);
-        const $tutar = $(this).closest('tr').find('[name="hizmet_tutar[]"]');
-        if (varsayilan > 0) $tutar.val(varsayilan.toFixed(2));
-        else if (!Number($tutar.val())) $tutar.val('').trigger('focus');
         hesapla();
     }).on('input', '[name="hizmet_tutar[]"]', hesapla);
     $(document).on('click', '#cikis-hizmetleri [data-remove-row]', () => setTimeout(hesapla));
+
+    const GIRIS = new Date(<?= json_encode(date('c', $girisTs)) ?>);
+    const GIRIS_TARIH = <?= json_encode($girisTarih) ?>;
+    const GIRIS_SAAT = <?= json_encode($girisSaat) ?>;
+    const $tarih = $('#cikis-tarih');
+    const $saat = $('#cikis-saat');
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function simdi() {
+        const d = new Date();
+        return {
+            tarih: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()),
+            saat: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+            ts: d.getTime(),
+        };
+    }
+    function secilenTs() {
+        const t = $tarih.val();
+        const s = $saat.val() || '00:00';
+        if (!t) return null;
+        return new Date(t + 'T' + s + ':00').getTime();
+    }
+    function cikisTarihKontrol(sessiz) {
+        const now = simdi();
+        $tarih.attr('max', now.tarih);
+        const ts = secilenTs();
+        if (ts === null) return true;
+        if (ts < GIRIS.getTime()) {
+            if (!sessiz) {
+                App.toast('Çıkış tarihi, stoğa girişten önce olamaz (' + GIRIS.toLocaleString('tr-TR') + ').', 'warning');
+            }
+            $tarih.val(GIRIS_TARIH);
+            $saat.val(GIRIS_SAAT);
+            return false;
+        }
+        if (ts > now.ts) {
+            if (!sessiz) {
+                App.toast('İleri bir tarih/saat seçilemez. En fazla şu anki zaman.', 'warning');
+            }
+            $tarih.val(now.tarih);
+            $saat.val(now.saat);
+            return false;
+        }
+        return true;
+    }
+    $tarih.add($saat).on('change input', () => cikisTarihKontrol(false));
+    $('form[action*="stoktan_cikar"]').on('submit', function (e) {
+        if (!cikisTarihKontrol(false)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    });
+    cikisTarihKontrol(true);
 });
 </script>
 <?php $scripts = ob_get_clean(); ?>

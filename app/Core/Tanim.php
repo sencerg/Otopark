@@ -24,8 +24,9 @@ final class Tanim
     /** @return array<int,string> */
     public static function liste(string $tablo): array
     {
-        if (isset(self::$cache[$tablo])) {
-            return self::$cache[$tablo];
+        $anahtar = $tablo . ':' . (Auth::isAdmin() ? 'a' : ('b' . (Auth::user()['bayi_id'] ?? '0')));
+        if (isset(self::$cache[$anahtar])) {
+            return self::$cache[$anahtar];
         }
 
         $sql = match ($tablo) {
@@ -35,19 +36,12 @@ final class Tanim
             'model_yillari' => 'SELECT id, yil::text AS ad FROM model_yillari ORDER BY yil DESC',
             'musteriler' => 'SELECT id, ad FROM musteriler WHERE aktif ORDER BY ad',
             'maliyet_tipleri' => 'SELECT id, ad FROM maliyet_tipleri WHERE aktif ORDER BY id',
-            'bayiler' => self::bayiSql(),
-            'personeller' => 'SELECT id, ad_soyad AS ad FROM personeller WHERE aktif ORDER BY ad_soyad',
+            'bayiler' => 'SELECT id, ad FROM bayiler WHERE aktif AND ' . Auth::bayiKosulu('id') . ' ORDER BY id',
+            'personeller' => 'SELECT id, ad_soyad AS ad FROM personeller WHERE aktif AND ' . Auth::bayiKosulu('bayi_id') . ' ORDER BY ad_soyad',
             default => throw new \InvalidArgumentException("Bilinmeyen tanım: {$tablo}"),
         };
 
-        return self::$cache[$tablo] = array_column(Database::fetchAll($sql), 'ad', 'id');
-    }
-
-    private static function bayiSql(): string
-    {
-        $bayiId = Auth::bayiId();
-
-        return 'SELECT id, ad FROM bayiler WHERE aktif' . ($bayiId ? ' AND id = ' . $bayiId : '') . ' ORDER BY id';
+        return self::$cache[$anahtar] = array_column(Database::fetchAll($sql), 'ad', 'id');
     }
 
     public static function seriler(int $markaId): array

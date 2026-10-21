@@ -64,7 +64,7 @@ CREATE TABLE hareket_nedenleri (
     ad  VARCHAR(100) NOT NULL UNIQUE
 );
 
--- BİA'da "Maliyet Tipi" ve "İş Emri Türü" aynı listedir.
+-- Referansta "Maliyet Tipi" ve "İş Emri Türü" aynı listedir.
 CREATE TABLE maliyet_tipleri (
     id                SERIAL PRIMARY KEY,
     ad                VARCHAR(150) NOT NULL UNIQUE,

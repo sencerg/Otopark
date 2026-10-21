@@ -36,7 +36,14 @@ if (!$yeni) {
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label required">Şasi Numarası</label><input type="text" name="sase" class="form-control text-uppercase" maxlength="30" value="<?= e($v('sase')) ?>" required></div>
+                        <div class="col-md-4">
+                            <label class="form-label required">Şasi Numarası</label>
+                            <input type="text" name="sase" class="form-control text-uppercase sase-input" maxlength="17" minlength="17"
+                                   pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}"
+                                   title="17 hane; I, O ve Türkçe harf kullanılamaz"
+                                   value="<?= e($v('sase')) ?>" required autocomplete="off" spellcheck="false">
+                            <div class="form-text">17 hane · I, O, Ü, Ş, Ç vb. yasaktır</div>
+                        </div>
                         <div class="col-md-4"><label class="form-label">Plaka No</label><input type="text" name="plaka" class="form-control text-uppercase" value="<?= e($v('plaka')) ?>"></div>
                         <div class="col-md-4"><label class="form-label">Önceki Plaka</label><input type="text" name="onceki_plaka" class="form-control text-uppercase" value="<?= e($v('onceki_plaka')) ?>"></div>
                         <div class="col-md-3"><label class="form-label">Araç Durumu</label><select name="arac_durumu" class="form-select"><?= Tanim::options(Tanim::ARAC_DURUMU, $v('arac_durumu')) ?></select></div>
@@ -84,7 +91,7 @@ if (!$yeni) {
                             <div class="col-md-4"><label class="form-label">Teslim Eden</label><input type="text" name="teslim_eden" class="form-control" value="<?= e($v('teslim_eden')) ?>"></div>
                             <div class="col-md-4"><label class="form-label">Teslim Eden Telefon</label><input type="text" name="teslim_eden_telefon" class="form-control" value="<?= e($v('teslim_eden_telefon')) ?>"></div>
                             <div class="col-md-4"><label class="form-label">Teslim Eden E-posta</label><input type="email" name="teslim_eden_eposta" class="form-control" value="<?= e($v('teslim_eden_eposta')) ?>"></div>
-                            <div class="col-md-6"><label class="form-label">Teslim Alan Personel</label><select name="teslim_alan_personel" class="form-select select2"><?= Tanim::options(Tanim::liste('personeller'), $v('teslim_alan_personel')) ?></select></div>
+                            <div class="col-md-6"><label class="form-label">Personel</label><select name="teslim_alan_personel" class="form-select select2"><?= Tanim::options(Tanim::liste('personeller'), $v('teslim_alan_personel')) ?></select></div>
                             <div class="col-md-6"><label class="form-label">Açıklama</label><input type="text" name="aciklama" class="form-control" value="<?= e($v('aciklama')) ?>"></div>
                         </div>
                     <?php endif; ?>
@@ -165,8 +172,8 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                 <div class="col-md-3"><label class="form-label required">Maliyet Tipi</label>
                     <select name="maliyet_tipi_modal" class="form-select select2" data-tutar-target="#arac-maliyet-tutar" required>
                         <option value="">Seçiniz</option>
-                        <?php foreach (Database::fetchAll('SELECT id, ad, varsayilan_tutar FROM maliyet_tipleri WHERE aktif ORDER BY id') as $mt): ?>
-                            <option value="<?= $mt['id'] ?>" data-tutar="<?= e($mt['varsayilan_tutar']) ?>"><?= e($mt['ad']) ?></option>
+                        <?php foreach (Database::fetchAll('SELECT id, ad, varsayilan_tutar, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY id') as $mt): ?>
+                            <option value="<?= $mt['id'] ?>" data-tutar="<?= e($mt['varsayilan_tutar']) ?>" data-bayi-degistirebilir="<?= !empty($mt['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($mt['ad']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -236,7 +243,11 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                         <td><?= date('d.m.Y', strtotime($d['giris_tarihi'])) ?></td>
                         <td><?= $d['cikis_tarihi'] ? date('d.m.Y', strtotime($d['cikis_tarihi'])) : '<span class="badge badge-soft-success">Stokta</span>' ?></td>
                         <td class="text-end"><?= (int) $d['gun'] ?></td>
-                        <td class="text-end"><?= $d['fiyat_yok'] ? '<span class="badge badge-soft-warning">Fiyat tanımlı değil</span>' : number_format((float) $d['gunluk_fiyat'], 2, ',', '.') . ' ₺' ?></td>
+                        <td class="text-end"><?php
+                            if ($d['fiyat_yok']): ?><span class="badge badge-soft-warning">Fiyat tanımlı değil</span><?php
+                            elseif (!empty($d['fiyat_degisti'])): ?><span class="small"><?= e(\App\Services\DepolamaHesap::fiyatAciklama($d)) ?></span><?php
+                            else: ?><?= number_format((float) $d['gunluk_fiyat'], 2, ',', '.') ?> ₺<?php
+                            endif; ?></td>
                         <td class="text-end fw-semibold"><?= number_format((float) $d['tutar'], 2, ',', '.') ?> ₺</td>
                     </tr>
                 <?php endforeach; ?>

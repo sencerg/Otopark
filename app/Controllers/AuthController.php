@@ -13,8 +13,10 @@ final class AuthController
     /** Yalnızca yerel ortamda giriş ekranında gösterilen demo hesaplar (bin/seed.php ile aynı). */
     private const DEMO_HESAPLAR = [
         ['Yönetici', 'Tüm lokasyonlar', 'admin@otopark.local', 'admin123', 'mdi-shield-account'],
-        ['Ankara Bayi', 'Sadece BİA ANKARA', 'ankara@otopark.local', 'ankara123', 'mdi-store'],
-        ['Seyrantepe Bayi', 'Sadece BİA SEYRANTEPE', 'seyrantepe@otopark.local', 'seyrantepe123', 'mdi-store-outline'],
+        ['Ankara Bayi', 'Sadece Ankara lokasyonu', 'ankara@otopark.local', 'ankara123', 'mdi-store'],
+        ['Seyrantepe Bayi', 'Sadece Seyrantepe lokasyonu', 'seyrantepe@otopark.local', 'seyrantepe123', 'mdi-store-outline'],
+        ['DOĞUŞ OTO', 'Müşteri portalı (stok + hizmet)', 'dogus@otopark.local', 'dogus123', 'mdi-account-tie'],
+        ['osmanın müşteri', 'Müşteri portalı', 'osman@otopark.local', 'osman123', 'mdi-account'],
     ];
 
     public function showLogin(): void
@@ -35,7 +37,7 @@ final class AuthController
             View::redirect('/login');
         }
 
-        View::redirect('/');
+        View::redirect(Auth::homePath());
     }
 
     public function logout(): void

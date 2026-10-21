@@ -10,10 +10,11 @@ use App\Core\DataTable;
 use App\Core\Log;
 use App\Core\Request;
 use App\Core\Tanim;
+use App\Services\DepolamaFiyatGecmisi;
 use RuntimeException;
 
 /**
- * BİA "Araç Tanımları" sayfasındaki tüm tanım listeleri için ortak CRUD.
+ * Referans "Araç Tanımları" sayfasındaki tüm tanım listeleri için ortak CRUD.
  * Alan tipleri: text, number, decimal, select (options: tablo adı veya dizi), bool, textarea, password.
  */
 final class TanimController extends Controller
@@ -46,7 +47,13 @@ final class TanimController extends Controller
             'hareket_nedenleri' => ['baslik' => 'Hareket Nedenleri', 'tablo' => 'hareket_nedenleri', 'icon' => 'mdi-swap-horizontal', 'grup' => 'Operasyon',
                 'alanlar' => ['ad' => ['Hareket Nedeni', 'text', true]]],
             'maliyet_tipleri' => ['baslik' => 'Maliyet Tipleri / İş Emri Türleri', 'tablo' => 'maliyet_tipleri', 'icon' => 'mdi-cash-register', 'grup' => 'Operasyon', 'admin' => true,
-                'alanlar' => ['ad' => ['Maliyet Tipi', 'text', true], 'varsayilan_tutar' => ['Varsayılan Tutar (₺)', 'decimal', true], 'depolama_mi' => ['Depolama Kalemi', 'bool', false], 'aktif' => ['Aktif', 'bool', false]]],
+                'alanlar' => [
+                    'ad' => ['Maliyet Tipi', 'text', true],
+                    'varsayilan_tutar' => ['Varsayılan Tutar (₺)', 'decimal', true],
+                    'bayi_fiyat_degistirebilir' => ['Bayi fiyatı değiştirebilir', 'bool', false],
+                    'depolama_mi' => ['Depolama Kalemi', 'bool', false],
+                    'aktif' => ['Aktif', 'bool', false],
+                ]],
             'depolama_fiyatlari' => ['baslik' => 'Depolama Fiyatları', 'tablo' => 'depolama_fiyatlari', 'icon' => 'mdi-cash-clock', 'grup' => 'Operasyon', 'admin' => true, 'sira' => 'musteri_id, bayi_id',
                 'alanlar' => ['musteri_id' => ['Müşteri', 'select', true, 'musteriler'], 'bayi_id' => ['Lokasyon', 'select', true, 'bayiler'], 'arac_tipi_id' => ['Araç Tipi (boş = tümü)', 'select', false, 'arac_tipleri'], 'gunluk_fiyat' => ['Günlük Fiyat (₺)', 'decimal', true]]],
             'musteriler' => ['baslik' => 'Müşteriler (Firmalar)', 'tablo' => 'musteriler', 'icon' => 'mdi-domain', 'grup' => 'Firma ve Personel', 'admin' => true,
@@ -56,7 +63,7 @@ final class TanimController extends Controller
             'departmanlar' => ['baslik' => 'Departmanlar', 'tablo' => 'departmanlar', 'icon' => 'mdi-sitemap-outline', 'grup' => 'Firma ve Personel', 'admin' => true,
                 'alanlar' => ['ad' => ['Departman', 'text', true]]],
             'personeller' => ['baslik' => 'Personeller', 'tablo' => 'personeller', 'icon' => 'mdi-account-hard-hat-outline', 'grup' => 'Firma ve Personel', 'sira' => 'ad_soyad',
-                'alanlar' => ['ad_soyad' => ['Ad Soyad', 'text', true], 'departman_id' => ['Departman', 'select', false, 'departmanlar'], 'bayi_id' => ['Lokasyon', 'select', false, 'bayiler'], 'telefon' => ['Telefon', 'text', false], 'aktif' => ['Aktif', 'bool', false]]],
+                'alanlar' => ['ad_soyad' => ['Ad Soyad', 'text', true], 'departman_id' => ['Departman', 'select', false, 'departmanlar'], 'bayi_id' => ['Otopark', 'select', true, 'bayiler'], 'telefon' => ['Telefon', 'text', false], 'aktif' => ['Aktif', 'bool', false]]],
             'kullanicilar' => ['baslik' => 'Kullanıcılar', 'tablo' => 'users', 'icon' => 'mdi-account-key-outline', 'grup' => 'Firma ve Personel', 'admin' => true, 'sira' => 'name',
                 'alanlar' => ['name' => ['Ad Soyad', 'text', true], 'email' => ['E-posta (Kullanıcı Adı)', 'text', true], 'password' => ['Şifre (değiştirmek için doldurun)', 'password', false],
                     'role' => ['Rol', 'select', true, ['admin' => 'Yönetici (tüm lokasyonlar)', 'bayi' => 'Bayi Kullanıcısı (sadece kendi lokasyonu)']],
@@ -71,11 +78,17 @@ final class TanimController extends Controller
         if (!$t) {
             $this->notFound();
         }
-        if ($tip === 'kullanicilar') {
+        if ($tip === 'kullanicilar' || ($this->yalnizcaAdminOkuma($t) && !Auth::isAdmin())) {
             Auth::requireAdmin();
         }
 
         return $t;
+    }
+
+    /** Bayi kullanıcısının listesini bile görmemesi gereken (lokasyon alanı olmayan) yönetici tanımları. */
+    private function yalnizcaAdminOkuma(array $t): bool
+    {
+        return !empty($t['admin']) && !isset($t['alanlar']['bayi_id']);
     }
 
     private function yazmaYetkisi(array $t): void
@@ -109,11 +122,17 @@ final class TanimController extends Controller
     {
         $tanimlar = self::tanimlar();
         if (!Auth::isAdmin()) {
-            unset($tanimlar['kullanicilar']);
+            foreach ($tanimlar as $tip => $t) {
+                if ($tip === 'kullanicilar' || $this->yalnizcaAdminOkuma($t)) {
+                    unset($tanimlar[$tip]);
+                }
+            }
         }
         $sayilar = [];
         foreach ($tanimlar as $tip => $t) {
-            $sayilar[$tip] = (int) Database::fetch("SELECT COUNT(*) c FROM {$t['tablo']}")['c'];
+            $sayilar[$tip] = (int) Database::fetch(
+                "SELECT COUNT(*) c FROM {$t['tablo']} WHERE " . $this->bayiKosulu($t)
+            )['c'];
         }
         $this->view('tanimlar/index', [
             'pageTitle' => 'Araç Tanımları', 'tanimlar' => $tanimlar, 'sayilar' => $sayilar,
@@ -166,6 +185,10 @@ final class TanimController extends Controller
             $this->yazmaYetkisi($t);
             $id = Request::int('id');
             $data = [];
+            // Bayi kullanıcısı personel kaydında otopark alanını formdan beklemeden kendi lokasyonuna bağlar.
+            if ($tip === 'personeller' && Auth::bayiId()) {
+                $_POST['bayi_id'] = (string) Auth::bayiId();
+            }
             foreach ($t['alanlar'] as $alan => [$etiket, $tur, $zorunlu]) {
                 $deger = match ($tur) {
                     'bool' => Request::bool($alan),
@@ -208,6 +231,27 @@ final class TanimController extends Controller
             if (isset($t['alanlar']['bayi_id']) && Auth::bayiId()) {
                 $data['bayi_id'] = Auth::bayiId();
             }
+            if ($tip === 'personeller') {
+                $bayiId = (int) ($data['bayi_id'] ?? 0);
+                if (!$bayiId) {
+                    throw new RuntimeException('Personel için otopark seçilmelidir.');
+                }
+                if (!Database::fetch(
+                    'SELECT 1 FROM bayiler WHERE id = :id AND aktif AND ' . Auth::bayiKosulu('id'),
+                    ['id' => $bayiId]
+                )) {
+                    throw new RuntimeException('Seçilen otopark bulunamadı veya erişim yetkiniz yok.');
+                }
+                $data['bayi_id'] = $bayiId;
+            }
+
+            $eskiDepolama = null;
+            if ($tip === 'depolama_fiyatlari' && $id) {
+                $eskiDepolama = Database::fetch(
+                    'SELECT bayi_id, musteri_id, arac_tipi_id FROM depolama_fiyatlari WHERE id = :id AND ' . $this->bayiKosulu($t),
+                    ['id' => $id]
+                );
+            }
 
             if ($id) {
                 $set = implode(', ', array_map(fn ($c) => "{$c} = :{$c}", array_keys($data)));
@@ -222,6 +266,25 @@ final class TanimController extends Controller
                     $data
                 )['id'];
             }
+
+            if ($tip === 'depolama_fiyatlari') {
+                $yeniBayi = (int) $data['bayi_id'];
+                $yeniMusteri = (int) $data['musteri_id'];
+                $yeniTip = ($data['arac_tipi_id'] ?? '') === '' || $data['arac_tipi_id'] === null
+                    ? null : (int) $data['arac_tipi_id'];
+                $yeniFiyat = (float) $data['gunluk_fiyat'];
+                if ($eskiDepolama) {
+                    $eskiTip = $eskiDepolama['arac_tipi_id'] !== null ? (int) $eskiDepolama['arac_tipi_id'] : null;
+                    $anahtarDegisti = (int) $eskiDepolama['bayi_id'] !== $yeniBayi
+                        || (int) $eskiDepolama['musteri_id'] !== $yeniMusteri
+                        || $eskiTip !== $yeniTip;
+                    if ($anahtarDegisti) {
+                        DepolamaFiyatGecmisi::kapat((int) $eskiDepolama['bayi_id'], (int) $eskiDepolama['musteri_id'], $eskiTip);
+                    }
+                }
+                DepolamaFiyatGecmisi::kaydet($yeniBayi, $yeniMusteri, $yeniTip, $yeniFiyat);
+            }
+
             Log::islem('tanim', $t['baslik'] . ' kaydedildi', $id);
             $this->ok('Kayıt kaydedildi.');
         });
@@ -244,8 +307,19 @@ final class TanimController extends Controller
                 throw new RuntimeException('Kendi hesabınızı silemezsiniz.');
             }
             try {
+                $eskiDepolama = null;
+                if ($tip === 'depolama_fiyatlari') {
+                    $eskiDepolama = Database::fetch(
+                        'SELECT bayi_id, musteri_id, arac_tipi_id FROM depolama_fiyatlari WHERE id = :id AND ' . $this->bayiKosulu($t),
+                        ['id' => $id]
+                    );
+                }
                 if (Database::query("DELETE FROM {$t['tablo']} WHERE id = :id AND " . $this->bayiKosulu($t), ['id' => $id])->rowCount() === 0) {
                     throw new RuntimeException('Kayıt bulunamadı veya erişim yetkiniz yok.');
+                }
+                if ($eskiDepolama) {
+                    $eskiTip = $eskiDepolama['arac_tipi_id'] !== null ? (int) $eskiDepolama['arac_tipi_id'] : null;
+                    DepolamaFiyatGecmisi::kapat((int) $eskiDepolama['bayi_id'], (int) $eskiDepolama['musteri_id'], $eskiTip);
                 }
             } catch (\PDOException $e) {
                 if (str_contains($e->getMessage(), 'foreign key')) {

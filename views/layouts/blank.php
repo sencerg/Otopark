@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= e(\App\Core\Env::get('APP_NAME')) ?></title>
+    <title><?= e(\App\Core\Env::get('APP_NAME', 'Moex Otopark')) ?></title>
     <link rel="stylesheet" href="/vendor/fonts/fonts.css">
     <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css">
     <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css">

@@ -77,7 +77,7 @@ $secenekler = [
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6"><label class="form-label required">Şasi Numarası</label><input type="text" class="form-control" value="VF1RJA00576606362"></div>
-                    <div class="col-md-6"><label class="form-label">Lokasyon</label><select class="form-select"><option>BİA ANKARA</option><option>BİA SEYRANTEPE</option></select></div>
+                    <div class="col-md-6"><label class="form-label">Lokasyon</label><select class="form-select"><option>Ankara</option><option>Seyrantepe</option></select></div>
                     <div class="col-md-6"><label class="form-label">Hareket Tarihi</label><input type="date" class="form-control" value="<?= date('Y-m-d') ?>"></div>
                     <div class="col-md-6"><label class="form-label">Fiyat (₺)</label><input type="number" class="form-control" value="750.00"></div>
                     <div class="col-12"><label class="form-check"><input type="checkbox" class="form-check-input" checked> <span class="form-check-label">Yedek anahtar teslim alındı</span></label></div>
@@ -97,9 +97,9 @@ $secenekler = [
                     <table class="table table-hover dataTable w-100 mb-0">
                         <thead><tr><th>Şase</th><th>Plaka</th><th>Marka</th><th>Lokasyon</th><th>Durum</th><th>İşlem</th></tr></thead>
                         <tbody>
-                            <tr><td class="fw-semibold"><a href="#!">VF1RJA00576606362</a></td><td>06 CSV 01</td><td>Renault Clio</td><td>BİA ANKARA</td><td><span class="badge badge-soft-success">Stokta</span></td><td><div class="table-actions"><a class="btn btn-sm btn-success btn-icon" href="#!"><i class="mdi mdi-eye"></i></a><a class="btn btn-sm btn-primary btn-icon" href="#!"><i class="mdi mdi-pencil-box"></i></a></div></td></tr>
-                            <tr class="table-warning"><td class="fw-semibold"><a href="#!">VF13GWVMJN2BZ813R</a></td><td>06 JN 138</td><td>BMW 1 Serisi</td><td>BİA ANKARA</td><td><span class="badge badge-soft-warning">Çıkış sonrası eklendi</span></td><td><div class="table-actions"><a class="btn btn-sm btn-success btn-icon" href="#!"><i class="mdi mdi-eye"></i></a><a class="btn btn-sm btn-primary btn-icon" href="#!"><i class="mdi mdi-pencil-box"></i></a></div></td></tr>
-                            <tr><td class="fw-semibold"><a href="#!">VF1D15R0TRDP83MED</a></td><td>06 GI 180</td><td>Renault Duster</td><td>BİA SEYRANTEPE</td><td><span class="badge badge-soft-danger">Lokasyonda Değil</span></td><td><div class="table-actions"><a class="btn btn-sm btn-success btn-icon" href="#!"><i class="mdi mdi-eye"></i></a><a class="btn btn-sm btn-primary btn-icon" href="#!"><i class="mdi mdi-pencil-box"></i></a></div></td></tr>
+                            <tr><td class="fw-semibold"><a href="#!">VF1RJA00576606362</a></td><td>06 CSV 01</td><td>Renault Clio</td><td>Ankara</td><td><span class="badge badge-soft-success">Stokta</span></td><td><div class="table-actions"><a class="btn btn-sm btn-success btn-icon" href="#!"><i class="mdi mdi-eye"></i></a><a class="btn btn-sm btn-primary btn-icon" href="#!"><i class="mdi mdi-pencil-box"></i></a></div></td></tr>
+                            <tr class="table-warning"><td class="fw-semibold"><a href="#!">VF13GWVMJN2BZ813R</a></td><td>06 JN 138</td><td>BMW 1 Serisi</td><td>Ankara</td><td><span class="badge badge-soft-warning">Çıkış sonrası eklendi</span></td><td><div class="table-actions"><a class="btn btn-sm btn-success btn-icon" href="#!"><i class="mdi mdi-eye"></i></a><a class="btn btn-sm btn-primary btn-icon" href="#!"><i class="mdi mdi-pencil-box"></i></a></div></td></tr>
+                            <tr><td class="fw-semibold"><a href="#!">VF1D15R0TRDP83MED</a></td><td>06 GI 180</td><td>Renault Duster</td><td>Seyrantepe</td><td><span class="badge badge-soft-danger">Lokasyonda Değil</span></td><td><div class="table-actions"><a class="btn btn-sm btn-success btn-icon" href="#!"><i class="mdi mdi-eye"></i></a><a class="btn btn-sm btn-primary btn-icon" href="#!"><i class="mdi mdi-pencil-box"></i></a></div></td></tr>
                         </tbody>
                     </table>
                 </div>

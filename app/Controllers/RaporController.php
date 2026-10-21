@@ -40,10 +40,12 @@ final class RaporController extends Controller
             [
                 'id' => 'd.giris_hareket_id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad',
                 'arac_tipi' => 'at.ad', 'lokasyon' => 'b.ad',
+                'bayi_id' => 'd.bayi_id', 'musteri_id' => 'd.musteri_id', 'arac_tipi_id' => 'a.arac_tipi_id',
+                'dep_bas' => 'd.dep_bas', 'dep_bit' => 'd.dep_bit',
                 'giris_tarihi' => "to_char(d.giris_tarihi, 'DD.MM.YYYY')", 'giris_tarihi_sort' => 'd.giris_tarihi',
                 'cikis_tarihi' => "to_char(d.cikis_tarihi, 'DD.MM.YYYY')", 'cikis_tarihi_sort' => 'd.cikis_tarihi',
                 'donem_bas' => "to_char(d.dep_bas, 'DD.MM.YYYY')", 'donem_bit' => "to_char(d.dep_bit, 'DD.MM.YYYY')",
-                'gun' => 'd.gun', 'gunluk_fiyat' => 'd.gunluk_fiyat', 'tutar' => '(d.gun * d.gunluk_fiyat)', 'fiyat_yok' => 'd.fiyat_yok',
+                'gun' => 'd.gun', 'gunluk_fiyat' => 'd.gunluk_fiyat', 'tutar' => 'd.tutar', 'fiyat_yok' => 'd.fiyat_yok',
             ],
             ['NOT a.arsiv', Auth::bayiKosulu('d.bayi_id')],
             [],
@@ -61,14 +63,44 @@ final class RaporController extends Controller
             default => null,
         };
 
+        $enrich = static function (array $r): array {
+            $hesap = DepolamaHesap::zenginlestir([[
+                'bayi_id' => $r['bayi_id'] ?? null,
+                'musteri_id' => $r['musteri_id'] ?? null,
+                'arac_tipi_id' => $r['arac_tipi_id'] ?? null,
+                'arac_id' => $r['arac_id'] ?? null,
+                'dep_bas' => $r['dep_bas'] ?? null,
+                'dep_bit' => $r['dep_bit'] ?? null,
+                'gunluk_fiyat' => $r['gunluk_fiyat'] ?? 0,
+                'gun' => $r['gun'] ?? 0,
+                'tutar' => $r['tutar'] ?? 0,
+                'fiyat_yok' => $r['fiyat_yok'] ?? false,
+            ]])[0];
+            $r['gun'] = $hesap['gun'];
+            $r['tutar'] = $hesap['tutar'];
+            $r['gunluk_fiyat'] = $hesap['gunluk_fiyat'];
+            $r['fiyat_yok'] = $hesap['fiyat_yok'];
+            $r['fiyat_degisti'] = $hesap['fiyat_degisti'] ?? false;
+            $r['fiyat_ozet'] = $hesap['fiyat_ozet'] ?? null;
+
+            return $r;
+        };
+
         if (Request::input('export')) {
             Excel::download("depolama-raporu-{$bas}-{$bit}", [
                 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'arac_tipi' => 'Araç Tipi', 'lokasyon' => 'Lokasyon',
                 'giris_tarihi' => 'Giriş Tarihi', 'cikis_tarihi' => 'Çıkış Tarihi', 'donem_bas' => 'Dönem Başı', 'donem_bit' => 'Dönem Sonu',
                 'gun' => 'Gün', 'gunluk_fiyat' => 'Günlük Fiyat', 'tutar' => 'Tutar',
-            ], $dt->all());
+            ], array_map(static function (array $r) use ($enrich) {
+                $r = $enrich($r);
+                if (!empty($r['fiyat_degisti']) && !empty($r['fiyat_ozet'])) {
+                    $r['gunluk_fiyat'] = $r['fiyat_ozet'];
+                }
+
+                return $r;
+            }, $dt->all()));
         }
-        $dt->response(null, ['toplam' => $dt->sum('d.gun * d.gunluk_fiyat'), 'toplam_gun' => $dt->sum('d.gun')]);
+        $dt->response($enrich, ['toplam' => $dt->sum('d.tutar'), 'toplam_gun' => $dt->sum('d.gun')]);
     }
 
     public function ekHizmet(): void
@@ -87,11 +119,5 @@ final class RaporController extends Controller
             ], array_map(fn ($r) => $r + ['cikis_sonrasi_ad' => $r['cikis_sonrasi'] ? 'Evet' : ''], $dt->all()));
         }
         $dt->response(null, ['toplam' => $dt->sum('e.tutar'), 'ozet' => $dt->groupSum('mt.ad', 'e.tutar')]);
-    }
-
-    /** Hizmet bazında özet (rapor üstündeki kartlar), tabloyla aynı filtrelerle */
-    public function ekHizmetOzet(): void
-    {
-        \App\Core\View::json(MaliyetController::ekstreTablosu()->groupSum('mt.ad', 'e.tutar', 100));
     }
 }

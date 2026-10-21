@@ -39,7 +39,7 @@ Database::transaction(function () use ($t, $insertNames, $idMap) {
             Database::query('INSERT INTO seriler (marka_id, ad) VALUES (:m, :a) ON CONFLICT DO NOTHING', ['m' => $markalar[$marka], 'a' => $seri]);
         }
     }
-    // BİA'da model listesi seri seçilince dinamik geliyor ve taranmadı; demo için genel paketler.
+    // Referansta model listesi seri seçilince dinamik geliyor ve taranmadı; demo için genel paketler.
     foreach (['1.0 Benzin Manuel', '1.3 Benzin Otomatik', '1.5 Dizel Manuel', '1.5 Dizel Otomatik', 'Hibrit Otomatik', 'Elektrikli'] as $model) {
         Database::query('INSERT INTO modeller (seri_id, ad) SELECT id, :a FROM seriler ON CONFLICT DO NOTHING', ['a' => $model]);
     }
@@ -52,25 +52,57 @@ Database::transaction(function () use ($t, $insertNames, $idMap) {
 
     $grup = $idMap('kullanici_gruplari');
     $bayi = $idMap('bayiler');
-    Database::query("UPDATE bayiler SET gunluk_fiyat = CASE WHEN ad = 'BİA SEYRANTEPE' THEN 125 ELSE 100 END WHERE gunluk_fiyat = 0");
+    Database::query("UPDATE bayiler SET gunluk_fiyat = CASE WHEN ad = 'MOEX SEYRANTEPE' THEN 125 ELSE 100 END WHERE gunluk_fiyat = 0");
     $users = [
-        ['Yönetici', 'admin@otopark.local', 'admin123', 'admin', $grup['Yönetici'], null],
-        ['Ankara Bayi', 'ankara@otopark.local', 'ankara123', 'bayi', $grup['Bayi Grubu'], $bayi['BİA ANKARA']],
-        ['Seyrantepe Bayi', 'seyrantepe@otopark.local', 'seyrantepe123', 'bayi', $grup['Bayi Grubu'], $bayi['BİA SEYRANTEPE']],
+        ['Yönetici', 'admin@otopark.local', 'admin123', 'admin', $grup['Yönetici'], null, null],
+        ['Ankara Bayi', 'ankara@otopark.local', 'ankara123', 'bayi', $grup['Bayi Grubu'], $bayi['MOEX ANKARA'], null],
+        ['Seyrantepe Bayi', 'seyrantepe@otopark.local', 'seyrantepe123', 'bayi', $grup['Bayi Grubu'], $bayi['MOEX SEYRANTEPE'], null],
     ];
-    foreach ($users as [$name, $email, $pass, $role, $grupId, $bayiId]) {
+    foreach ($users as [$name, $email, $pass, $role, $grupId, $bayiId, $musteriId]) {
         Database::query(
-            'INSERT INTO users (name, email, password_hash, role, kullanici_grubu_id, bayi_id)
-             VALUES (:n, :e, :h, :r, :g, :b) ON CONFLICT (email) DO NOTHING',
-            ['n' => $name, 'e' => $email, 'h' => password_hash($pass, PASSWORD_DEFAULT), 'r' => $role, 'g' => $grupId, 'b' => $bayiId]
+            'INSERT INTO users (name, email, password_hash, role, kullanici_grubu_id, bayi_id, musteri_id)
+             VALUES (:n, :e, :h, :r, :g, :b, :m) ON CONFLICT (email) DO NOTHING',
+            ['n' => $name, 'e' => $email, 'h' => password_hash($pass, PASSWORD_DEFAULT), 'r' => $role, 'g' => $grupId, 'b' => $bayiId, 'm' => $musteriId]
+        );
+    }
+
+    $musteriPortalUsers = [
+        ['DOĞUŞ OTO Portal', 'dogus@otopark.local', 'dogus123', "ad ILIKE 'DOĞUŞ OTO%'"],
+        ['osmanın müşteri', 'osman@otopark.local', 'osman123', "ad ILIKE 'osmanın%'"],
+    ];
+    foreach ($musteriPortalUsers as [$name, $email, $pass, $where]) {
+        $m = Database::fetch("SELECT id FROM musteriler WHERE {$where} ORDER BY id LIMIT 1");
+        if (!$m) {
+            continue;
+        }
+        Database::query(
+            'INSERT INTO users (name, email, password_hash, role, kullanici_grubu_id, musteri_id)
+             VALUES (:n, :e, :h, :r, :g, :m)
+             ON CONFLICT (email) DO UPDATE SET
+                password_hash = EXCLUDED.password_hash,
+                role = EXCLUDED.role,
+                kullanici_grubu_id = EXCLUDED.kullanici_grubu_id,
+                musteri_id = EXCLUDED.musteri_id,
+                is_active = TRUE,
+                updated_at = NOW()',
+            [
+                'n' => $name,
+                'e' => $email,
+                'h' => password_hash($pass, PASSWORD_DEFAULT),
+                'r' => 'musteri',
+                'g' => $grup['Müşteri'] ?? null,
+                'm' => (int) $m['id'],
+            ]
         );
     }
 });
 
 echo "Tanımlar ve kullanıcılar hazır.\n";
 echo "  admin@otopark.local / admin123  (tüm lokasyonlar)\n";
-echo "  ankara@otopark.local / ankara123 (sadece BİA ANKARA)\n";
-echo "  seyrantepe@otopark.local / seyrantepe123 (sadece BİA SEYRANTEPE)\n";
+echo "  ankara@otopark.local / ankara123 (sadece MOEX ANKARA)\n";
+echo "  seyrantepe@otopark.local / seyrantepe123 (sadece MOEX SEYRANTEPE)\n";
+echo "  dogus@otopark.local / dogus123 (müşteri portalı — DOĞUŞ OTO)\n";
+echo "  osman@otopark.local / osman123 (müşteri portalı — osmanın müşteri)\n";
 
 if (!$withDemo || Database::fetch('SELECT 1 FROM araclar LIMIT 1')) {
     exit(0);
@@ -82,8 +114,8 @@ $ids = static fn (string $table) => array_map('intval', array_column(Database::f
 
 Database::transaction(function () use ($pick, $ids, $idMap) {
     $bayi = $idMap('bayiler');
-    $ankara = $bayi['BİA ANKARA'];
-    $seyrantepe = $bayi['BİA SEYRANTEPE'];
+    $ankara = $bayi['MOEX ANKARA'];
+    $seyrantepe = $bayi['MOEX SEYRANTEPE'];
     $musteri = $idMap('musteriler');
     $maliyet = $idMap('maliyet_tipleri');
     $departman = $idMap('departmanlar');

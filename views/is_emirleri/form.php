@@ -9,7 +9,11 @@ $v = fn (string $key, ?string $col = null) => $o[$key] ?? ($ie[$col ?? $key] ?? 
 $departmanlar = isset($o['sorumlu_departman']) ? (array) $o['sorumlu_departman'] : $departmanlar;
 $personeller = isset($o['sorumlu_personel']) ? (array) $o['sorumlu_personel'] : $personeller;
 $personelListe = $departmanlar
-    ? array_column(Database::fetchAll('SELECT id, ad_soyad FROM personeller WHERE aktif AND departman_id = ANY(:d::int[]) ORDER BY ad_soyad', ['d' => '{' . implode(',', array_map('intval', $departmanlar)) . '}']), 'ad_soyad', 'id')
+    ? array_column(Database::fetchAll(
+        'SELECT id, ad_soyad FROM personeller WHERE aktif AND departman_id = ANY(:d::int[]) AND '
+        . \App\Core\Auth::bayiKosulu('bayi_id') . ' ORDER BY ad_soyad',
+        ['d' => '{' . implode(',', array_map('intval', $departmanlar)) . '}']
+    ), 'ad_soyad', 'id')
     : [];
 $aracDurumlari = array_slice(Tanim::IS_EMRI_DURUM, 0, 4, true);
 ?>

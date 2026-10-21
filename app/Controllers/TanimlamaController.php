@@ -8,6 +8,9 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Log;
 use App\Core\Request;
+use App\Services\DepolamaFiyatGecmisi;
+use App\Services\DepolamaHesap;
+use App\Services\HizmetFiyat;
 use RuntimeException;
 
 /**
@@ -24,20 +27,37 @@ final class TanimlamaController extends Controller
                 'telefon' => ['Telefon', 'text', false], 'eposta' => ['E-posta', 'text', false], 'adres' => ['Adres', 'textarea', false], 'aktif' => ['Aktif', 'bool', false],
             ],
             'ek' => '(SELECT COUNT(*) FROM araclar a WHERE a.musteri_id = t.id AND a.stokta AND NOT a.arsiv) AS stoktaki,
-                     (SELECT COUNT(*) FROM depolama_fiyatlari f WHERE f.musteri_id = t.id) AS ozel_fiyat',
+                     (SELECT COUNT(*) FROM depolama_fiyatlari f WHERE f.musteri_id = t.id AND f.arac_tipi_id IS NULL) AS ozel_fiyat,
+                     (SELECT COUNT(*) FROM hizmet_fiyatlari hf WHERE hf.musteri_id = t.id) AS hizmet_fiyat',
         ],
         'lokasyon' => [
             'tablo' => 'bayiler', 'baslik' => 'Otopark', 'admin' => true, 'sira' => 't.id', 'bayi' => 't.id',
             'alanlar' => [
                 'ad' => ['Otopark Adı', 'text', true], 'sehir' => ['Şehir', 'text', false], 'adres' => ['Adres', 'textarea', false],
-                'gunluk_fiyat' => ['Standart Günlük Fiyat (₺)', 'decimal', true], 'fiyat_carpani' => ['Günlük Fiyat Çarpanı', 'decimal', true], 'aktif' => ['Aktif', 'bool', false],
+                'gunluk_fiyat' => ['Standart Günlük Depolama Fiyatı (₺)', 'decimal', true], 'fiyat_carpani' => ['Depolama Günlük Çarpanı', 'decimal', true], 'aktif' => ['Aktif', 'bool', false],
             ],
             'ek' => '(SELECT COUNT(*) FROM araclar a WHERE a.bayi_id = t.id AND a.stokta AND NOT a.arsiv) AS stoktaki',
         ],
         'hizmet' => [
             'tablo' => 'maliyet_tipleri', 'baslik' => 'Hizmet', 'admin' => true, 'sira' => 't.ad',
-            'alanlar' => ['ad' => ['Hizmet Adı', 'text', true], 'varsayilan_tutar' => ['Varsayılan Ücret (₺)', 'decimal', true], 'aktif' => ['Aktif', 'bool', false]],
-            'ek' => '(SELECT COUNT(*) FROM arac_ekstreleri e WHERE e.maliyet_tipi_id = t.id) AS kullanim',
+            'alanlar' => [
+                'ad' => ['Hizmet Adı', 'text', true],
+                'varsayilan_tutar' => ['Varsayılan Ücret (₺)', 'decimal', true],
+                'bayi_fiyat_degistirebilir' => ['Bayi fiyatı değiştirebilir', 'bool', false],
+                'aktif' => ['Aktif', 'bool', false],
+            ],
+            'ek' => '(SELECT COUNT(*) FROM arac_ekstreleri e WHERE e.maliyet_tipi_id = t.id) AS kullanim,
+                     (SELECT COUNT(*) FROM hizmet_fiyatlari hf WHERE hf.maliyet_tipi_id = t.id) AS firma_fiyat',
+        ],
+        'personel' => [
+            'tablo' => 'personeller', 'baslik' => 'Personel', 'sira' => 't.ad_soyad', 'ad_alan' => 'ad_soyad', 'bayi' => 't.bayi_id',
+            'alanlar' => [
+                'ad_soyad' => ['Ad Soyad', 'text', true],
+                'telefon' => ['Telefon', 'text', false],
+                'aktif' => ['Aktif', 'bool', false],
+            ],
+            'ek' => '(SELECT COUNT(*) FROM arac_hareketleri h WHERE h.teslim_alan_personel_id = t.id) AS kullanim,
+                     (SELECT b.ad FROM bayiler b WHERE b.id = t.bayi_id) AS otopark',
         ],
         'marka' => [
             'tablo' => 'markalar', 'baslik' => 'Marka', 'sira' => 't.ad',
@@ -88,6 +108,54 @@ final class TanimlamaController extends Controller
         ]);
     }
 
+    /** Müşteri kartı: firma bilgileri + hizmet / otopark fiyatları sekmeli sayfa. */
+    public function musteriForm(?string $id = null): void
+    {
+        if (!Auth::isAdmin()) {
+            http_response_code(403);
+            exit('Bu işlem için yetkiniz yok.');
+        }
+        $yeni = $id === null || $id === 'yeni';
+        $musteri = null;
+        $fiyatlar = [];
+        $otoparkFiyatlari = [];
+        if (!$yeni) {
+            if (!ctype_digit((string) $id)) {
+                $this->notFound();
+            }
+            $musteri = Database::fetch('SELECT * FROM musteriler WHERE id = :id', ['id' => (int) $id]);
+            if (!$musteri) {
+                $this->notFound();
+            }
+            $fiyatlar = HizmetFiyat::liste((int) $musteri['id'], null);
+            $otoparkFiyatlari = DepolamaHesap::musteriOtoparkFiyatlari((int) $musteri['id']);
+        }
+        $hizmetler = Database::fetchAll(
+            'SELECT id, ad, varsayilan_tutar FROM maliyet_tipleri WHERE aktif ORDER BY ad'
+        );
+        $sekme = match (Request::str('sekme')) {
+            'fiyat' => 'fiyat',
+            'otopark' => 'otopark',
+            default => 'bilgi',
+        };
+        $otoparkOzelSayisi = count(array_filter(
+            $otoparkFiyatlari,
+            static fn ($r) => $r['firma_fiyat'] !== null && $r['firma_fiyat'] !== ''
+        ));
+        $this->view('tanimlamalar/musteri', [
+            'pageTitle' => $yeni ? 'Yeni Müşteri' : ($musteri['ad'] ?? 'Müşteri'),
+            'breadcrumb' => ['Tanımlamalar' => '/tanimlamalar', 'Müşteriler' => '/tanimlamalar#sekme-musteri', ($yeni ? 'Yeni' : 'Düzenle') => null],
+            'musteri' => $musteri,
+            'yeni' => $yeni,
+            'fiyatlar' => $fiyatlar,
+            'hizmetler' => $hizmetler,
+            'otoparkFiyatlari' => $otoparkFiyatlari,
+            'otoparkOzelSayisi' => $otoparkOzelSayisi,
+            'admin' => true,
+            'sekme' => $sekme,
+        ]);
+    }
+
     public function liste(string $tip): void
     {
         $t = $this->tip($tip);
@@ -131,10 +199,29 @@ final class TanimlamaController extends Controller
                 $data[$ustAlan] = $ustId;
             }
             $this->dogrula($tip, $data, $id);
+
+            if ($tip === 'personel') {
+                $bayiId = Auth::bayiId() ?? Request::int('bayi_id');
+                if (!$bayiId) {
+                    throw new RuntimeException('Personel için otopark seçilmelidir.');
+                }
+                if (!Database::fetch(
+                    'SELECT 1 FROM bayiler WHERE id = :id AND aktif AND ' . Auth::bayiKosulu('id'),
+                    ['id' => $bayiId]
+                )) {
+                    throw new RuntimeException('Seçilen otopark bulunamadı veya erişim yetkiniz yok.');
+                }
+                $data['bayi_id'] = $bayiId;
+            }
+
+            $adAlan = $t['ad_alan'] ?? 'ad';
             $ustKosul = isset($t['ust']) ? " AND {$t['ust'][0]} = :ust" : '';
+            $bayiTekil = $tip === 'personel' ? ' AND bayi_id = :bayi_tekil' : '';
             if (Database::fetch(
-                "SELECT 1 FROM {$t['tablo']} WHERE lower(ad) = lower(:ad) AND id <> :id{$ustKosul}",
-                ['ad' => $data['ad'], 'id' => $id ?? 0] + (isset($t['ust']) ? ['ust' => $data[$t['ust'][0]]] : [])
+                "SELECT 1 FROM {$t['tablo']} WHERE lower({$adAlan}) = lower(:ad) AND id <> :id{$ustKosul}{$bayiTekil}",
+                ['ad' => $data[$adAlan], 'id' => $id ?? 0]
+                + (isset($t['ust']) ? ['ust' => $data[$t['ust'][0]]] : [])
+                + ($tip === 'personel' ? ['bayi_tekil' => $data['bayi_id']] : [])
             )) {
                 throw new RuntimeException("Bu adla kayıtlı bir " . mb_strtolower($t['baslik']) . ' zaten var.');
             }
@@ -152,9 +239,126 @@ final class TanimlamaController extends Controller
                     $data
                 )['id'];
             }
-            Log::islem('tanim', "{$t['baslik']} kaydedildi: {$data['ad']}", $id);
-            $this->ok("{$t['baslik']} kaydedildi.", ['id' => $id]);
+            if ($tip === 'lokasyon') {
+                $etkin = round((float) $data['gunluk_fiyat'] * (float) $data['fiyat_carpani'], 2);
+                DepolamaFiyatGecmisi::kaydet($id, null, null, $etkin);
+            }
+            if ($tip === 'musteri' && Request::bool('fiyat_senkron')) {
+                $this->musteriHizmetFiyatlariniKaydet($id);
+            }
+            if ($tip === 'musteri' && Request::bool('otopark_senkron')) {
+                $this->musteriOtoparkFiyatlariniKaydet($id);
+            }
+            Log::islem('tanim', "{$t['baslik']} kaydedildi: {$data[$adAlan]}", $id);
+            $yonlendir = null;
+            if ($tip === 'musteri' && Request::bool('sayfa')) {
+                $sekme = Request::bool('otopark_senkron') ? 'otopark'
+                    : (Request::bool('fiyat_senkron') || !Request::int('id') ? 'fiyat' : '');
+                $yonlendir = '/tanimlamalar/musteri/' . $id . ($sekme ? '?sekme=' . $sekme : '');
+            }
+            $this->ok("{$t['baslik']} kaydedildi.", ['id' => $id, 'redirect' => $yonlendir]);
         });
+    }
+
+    /** Firma bazlı hizmet fiyat listesi (yalnızca müşteri bağlamı). */
+    public function fiyatListe(): void
+    {
+        $this->ajax(function () {
+            $musteriId = Request::int('musteri_id');
+            if (!$musteriId) {
+                throw new RuntimeException('Müşteri seçilmelidir.');
+            }
+            $this->ok('', ['data' => HizmetFiyat::liste($musteriId, null)]);
+        });
+    }
+
+    /** Müşteri sayfasından gelen fiyat satırlarını senkronize eder. POST: fiyat_hizmet_id[] + fiyat_tutar[] */
+    private function musteriHizmetFiyatlariniKaydet(int $musteriId): void
+    {
+        $tutarlar = (array) ($_POST['fiyat_tutar'] ?? []);
+        $hizmetler = (array) ($_POST['fiyat_hizmet_id'] ?? []);
+        $gelen = [];
+        foreach ($hizmetler as $i => $hizmetId) {
+            if (!is_scalar($hizmetId) || (int) $hizmetId <= 0) {
+                continue;
+            }
+            $ham = $tutarlar[$i] ?? '';
+            if (!is_scalar($ham) || trim((string) $ham) === '') {
+                continue;
+            }
+            $tutar = Request::parseDecimal((string) $ham);
+            if ($tutar === null || $tutar < 0) {
+                throw new RuntimeException('Firma hizmet fiyatı geçersiz.');
+            }
+            $hizmetId = (int) $hizmetId;
+            if (isset($gelen[$hizmetId])) {
+                throw new RuntimeException('Aynı hizmet için birden fazla fiyat satırı var.');
+            }
+            if (!Database::fetch('SELECT 1 FROM maliyet_tipleri WHERE id = :id AND aktif', ['id' => $hizmetId])) {
+                throw new RuntimeException('Seçilen hizmet bulunamadı veya pasif.');
+            }
+            $gelen[$hizmetId] = true;
+            Database::query(
+                'INSERT INTO hizmet_fiyatlari (musteri_id, maliyet_tipi_id, tutar, updated_at)
+                 VALUES (:m, :t, :u, NOW())
+                 ON CONFLICT (musteri_id, maliyet_tipi_id) DO UPDATE SET tutar = EXCLUDED.tutar, updated_at = NOW()',
+                ['m' => $musteriId, 't' => $hizmetId, 'u' => $tutar]
+            );
+        }
+        $ids = array_map('intval', array_keys($gelen));
+        if ($ids) {
+            Database::query(
+                'DELETE FROM hizmet_fiyatlari WHERE musteri_id = :m AND NOT (maliyet_tipi_id = ANY(:ids::int[]))',
+                ['m' => $musteriId, 'ids' => '{' . implode(',', $ids) . '}']
+            );
+        } else {
+            Database::query('DELETE FROM hizmet_fiyatlari WHERE musteri_id = :m', ['m' => $musteriId]);
+        }
+    }
+
+    /**
+     * Müşteri kartından otopark (depolama) günlük ücretlerini senkronize eder.
+     * POST: otopark_bayi_id[] + otopark_tutar[] — boş tutar = o otoparkta standart fiyata dön.
+     * Araç tipi boş (NULL) satırları yönetir; tip bazlı eski tarifelere dokunulmaz.
+     */
+    private function musteriOtoparkFiyatlariniKaydet(int $musteriId): void
+    {
+        $bayiler = (array) ($_POST['otopark_bayi_id'] ?? []);
+        $tutarlar = (array) ($_POST['otopark_tutar'] ?? []);
+        $gelen = [];
+        foreach ($bayiler as $i => $bayiId) {
+            if (!is_scalar($bayiId) || (int) $bayiId <= 0) {
+                continue;
+            }
+            $bayiId = (int) $bayiId;
+            if (isset($gelen[$bayiId])) {
+                throw new RuntimeException('Aynı otopark için birden fazla satır var.');
+            }
+            if (!Database::fetch('SELECT 1 FROM bayiler WHERE id = :id AND aktif', ['id' => $bayiId])) {
+                throw new RuntimeException('Seçilen otopark bulunamadı veya pasif.');
+            }
+            $gelen[$bayiId] = true;
+            $ham = $tutarlar[$i] ?? '';
+            if (!is_scalar($ham) || trim((string) $ham) === '') {
+                Database::query(
+                    'DELETE FROM depolama_fiyatlari WHERE musteri_id = :m AND bayi_id = :b AND arac_tipi_id IS NULL',
+                    ['m' => $musteriId, 'b' => $bayiId]
+                );
+                DepolamaFiyatGecmisi::kapat($bayiId, $musteriId, null);
+                continue;
+            }
+            $tutar = Request::parseDecimal((string) $ham);
+            if ($tutar === null || $tutar < 0) {
+                throw new RuntimeException('Otopark firma ücreti geçersiz.');
+            }
+            Database::query(
+                'INSERT INTO depolama_fiyatlari (musteri_id, bayi_id, arac_tipi_id, gunluk_fiyat)
+                 VALUES (:m, :b, NULL, :f)
+                 ON CONFLICT (musteri_id, bayi_id, arac_tipi_id) DO UPDATE SET gunluk_fiyat = EXCLUDED.gunluk_fiyat',
+                ['m' => $musteriId, 'b' => $bayiId, 'f' => $tutar]
+            );
+            DepolamaFiyatGecmisi::kaydet($bayiId, $musteriId, null, (float) $tutar);
+        }
     }
 
     private function dogrula(string $tip, array $data, ?int $id): void
@@ -183,8 +387,12 @@ final class TanimlamaController extends Controller
                 }
             }
             try {
-                if (Database::query("DELETE FROM {$t['tablo']} WHERE id = :id", ['id' => (int) $id])->rowCount() === 0) {
-                    throw new RuntimeException('Kayıt bulunamadı.');
+                $kosul = isset($t['bayi']) ? Auth::bayiKosulu($t['bayi']) : 'TRUE';
+                if (Database::query(
+                    "DELETE FROM {$t['tablo']} t WHERE t.id = :id AND {$kosul}",
+                    ['id' => (int) $id]
+                )->rowCount() === 0) {
+                    throw new RuntimeException('Kayıt bulunamadı veya erişim yetkiniz yok.');
                 }
             } catch (\PDOException $e) {
                 if (str_contains($e->getMessage(), 'foreign key')) {

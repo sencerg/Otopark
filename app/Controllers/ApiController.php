@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\Request;
 use App\Core\Tanim;
 use App\Core\View;
+use App\Services\HizmetFiyat;
 
 final class ApiController extends Controller
 {
@@ -26,7 +27,11 @@ final class ApiController extends Controller
     {
         $ids = Request::ids('departman');
         $rows = $ids
-            ? Database::fetchAll('SELECT id, ad_soyad FROM personeller WHERE aktif AND departman_id = ANY(:d::int[]) ORDER BY ad_soyad', ['d' => '{' . implode(',', $ids) . '}'])
+            ? Database::fetchAll(
+                'SELECT id, ad_soyad FROM personeller WHERE aktif AND departman_id = ANY(:d::int[]) AND '
+                . Auth::bayiKosulu('bayi_id') . ' ORDER BY ad_soyad',
+                ['d' => '{' . implode(',', $ids) . '}']
+            )
             : [];
         View::json((object) array_column($rows, 'ad_soyad', 'id'));
     }
@@ -69,5 +74,40 @@ final class ApiController extends Controller
             View::redirect('/arac_yonetimi/duzenle/' . $rows[0]['id']);
         }
         View::redirect('/arac_yonetimi?q=' . urlencode($q));
+    }
+
+    /** Firma bazlı hizmet ücreti: arac_id veya musteri_id + maliyet_tipi_id */
+    public function hizmetFiyat(): void
+    {
+        $tipId = Request::int('maliyet_tipi_id') ?? 0;
+        if ($tipId <= 0) {
+            View::json(['success' => false, 'tutar' => 0, 'kaynak' => null]);
+        }
+        $aracId = Request::int('arac_id');
+        $musteriId = Request::int('musteri_id');
+        if ($aracId) {
+            $arac = Database::fetch(
+                'SELECT musteri_id FROM araclar WHERE id = :id AND ' . Auth::bayiKosulu('bayi_id'),
+                ['id' => $aracId]
+            );
+            if (!$arac) {
+                View::json(['success' => false, 'tutar' => 0, 'kaynak' => null], 404);
+            }
+            $musteriId = (int) ($arac['musteri_id'] ?? 0) ?: null;
+            $tutar = HizmetFiyat::tutar($musteriId, $tipId);
+        } else {
+            $tutar = HizmetFiyat::tutar($musteriId, $tipId);
+        }
+        $ozel = $musteriId && Database::fetch(
+            'SELECT 1 FROM hizmet_fiyatlari WHERE musteri_id = :m AND maliyet_tipi_id = :t',
+            ['m' => $musteriId, 't' => $tipId]
+        );
+        View::json([
+            'success' => true,
+            'tutar' => $tutar,
+            'kaynak' => $ozel ? 'firma' : 'varsayilan',
+            'musteri_id' => $musteriId,
+            'bayi_fiyat_degistirebilir' => HizmetFiyat::bayiDegistirebilir($tipId),
+        ]);
     }
 }
