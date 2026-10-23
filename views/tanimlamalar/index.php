@@ -11,7 +11,7 @@ $sekmeler = [
 $aciklama = [
     'musteri' => 'Araç girişinde seçilen firmalar. Firmaya özel otopark ve hizmet ücretleri müşteri kartındaki ilgili sekmelerden yönetilir. Pasif müşteri yeni girişlerde listelenmez.',
     'lokasyon' => 'Otopark tanımı yalnızca lokasyon bilgisini tutar. Depolama ücreti her müşteri için müşteri kartındaki “Otopark ücretleri” sekmesinden tanımlanır; tanımlanmazsa fiyat belirlenmedi sayılır.',
-    'hizmet' => 'Hizmet adları burada tanımlanır; ücret müşteri kartından girilir. “Bayi fiyatı değiştirebilir” açıksa otopark kullanıcısı hizmeti eklerken tutarı değiştirebilir; kapalıysa müşteriye tanımlı tutar otomatik gelir ve kilitlenir.',
+    'hizmet' => 'Hizmet adları burada tanımlanır; ücret müşteri kartında otopark × hizmet olarak girilir. “Bayi fiyatı değiştirebilir” açıksa otopark kullanıcısı tutarı değiştirebilir; kapalıysa o otopark için müşteri tutarı otomatik gelir ve kilitlenir.',
     'personel' => 'Her personel bir otoparka bağlıdır. Bayi kullanıcısı yalnızca kendi otoparkındaki personeli görür ve ekler. Pasif personel seçim listelerinde görünmez.',
 ];
 ?>

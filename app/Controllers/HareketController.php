@@ -230,7 +230,10 @@ final class HareketController extends Controller
         $h = $this->hareket((int) $id);
         $this->form(function () use ($h) {
             $cikis = (int) $h['hareket_tipi'] === 2;
-            $hizmetler = $cikis ? self::cikisHizmetleri(isset($h['musteri_id']) ? (int) $h['musteri_id'] : null) : [];
+            $hizmetler = $cikis ? self::cikisHizmetleri(
+                isset($h['musteri_id']) ? (int) $h['musteri_id'] : null,
+                isset($h['bayi_id']) ? (int) $h['bayi_id'] : null
+            ) : [];
             $tutarlar = $cikis ? self::mevcutTutarlar($h) : [];
             Database::transaction(function () use ($h, $hizmetler, $tutarlar) {
                 foreach ($tutarlar as $ekstreId => $tutar) {
@@ -339,7 +342,10 @@ final class HareketController extends Controller
             if (!$arac['stokta']) {
                 throw new RuntimeException('Bu araç zaten stokta değil.');
             }
-            $hizmetler = self::cikisHizmetleri(isset($arac['musteri_id']) ? (int) $arac['musteri_id'] : null);
+            $hizmetler = self::cikisHizmetleri(
+                isset($arac['musteri_id']) ? (int) $arac['musteri_id'] : null,
+                isset($arac['bayi_id']) ? (int) $arac['bayi_id'] : null
+            );
             $cikisTarihi = Request::dateTime('hareket_tarihi', 'hareket_saati') ?? date('Y-m-d H:i:s');
             $cikisTs = strtotime($cikisTarihi);
             $girisTs = strtotime((string) ($arac['stoga_giris_tarihi'] ?? ''));
@@ -383,10 +389,11 @@ final class HareketController extends Controller
     }
 
     /**
-     * @param ?int $musteriId Araç/hareket firması; boş tutarda firma özel fiyatı için
+     * @param ?int $musteriId Araç/hareket firması
+     * @param ?int $bayiId Araçın bulunduğu otopark
      * @return list<array{int, float, ?string}> [maliyet_tipi_id, tutar, not]
      */
-    private static function cikisHizmetleri(?int $musteriId = null): array
+    private static function cikisHizmetleri(?int $musteriId = null, ?int $bayiId = null): array
     {
         $tutarlar = (array) ($_POST['hizmet_tutar'] ?? []);
         $notlar = (array) ($_POST['hizmet_not'] ?? []);
@@ -405,13 +412,13 @@ final class HareketController extends Controller
             $ham = $tutarlar[$i] ?? '';
             $gelen = (is_scalar($ham) && trim((string) $ham) !== '') ? Request::parseDecimal((string) $ham) : null;
             $tipIdInt = (int) $tipId;
-            $tanimli = \App\Services\HizmetFiyat::tanimli($musteriId, $tipIdInt);
+            $tanimli = \App\Services\HizmetFiyat::tanimli($musteriId, $tipIdInt, $bayiId);
             $deg = \App\Services\HizmetFiyat::bayiDegistirebilir($tipIdInt);
             if (!$tanimli && !(Auth::isAdmin() && $gelen !== null && $gelen > 0)
                 && !($deg && $gelen !== null && $gelen > 0)) {
-                throw new RuntimeException("{$tip['ad']} için fiyat belirlenmedi.");
+                throw new RuntimeException("{$tip['ad']} için bu otoparkta fiyat belirlenmedi.");
             }
-            $tutar = \App\Services\HizmetFiyat::tutarBayiIcin($musteriId, $tipIdInt, $gelen, Auth::isAdmin());
+            $tutar = \App\Services\HizmetFiyat::tutarBayiIcin($musteriId, $tipIdInt, $gelen, Auth::isAdmin(), $bayiId);
             if ($tutar < 0 || ($tutar <= 0 && !$tanimli)) {
                 throw new RuntimeException("{$tip['ad']} için geçerli bir ücret giriniz.");
             }

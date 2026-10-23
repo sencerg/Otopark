@@ -7,34 +7,36 @@ namespace App\Services;
 use App\Core\Database;
 
 /**
- * Yalnızca müşteri (firma) bazlı hizmet ücreti.
- * Genel / varsayılan fiyat yoktur; kayıt yoksa tutar 0 ve tanimli() false.
+ * Hizmet ücreti: müşteri × otopark (bayi) × hizmet.
+ * Genel / varsayılan fiyat yoktur.
  *
- * maliyet_tipleri.bayi_fiyat_degistirebilir = true ise bayi müşteri fiyatını
- * uygulama anında değiştirebilir; aksi halde katalog tutarı kilitlidir.
+ * maliyet_tipleri.bayi_fiyat_degistirebilir = true ise bayi müşteri+otopark
+ * fiyatını uygulama anında değiştirebilir; aksi halde katalog tutarı kilitlidir.
  */
 final class HizmetFiyat
 {
-    public static function tanimli(?int $musteriId, int $maliyetTipiId): bool
+    public static function tanimli(?int $musteriId, int $maliyetTipiId, ?int $bayiId = null): bool
     {
-        if (!$musteriId) {
+        if (!$musteriId || !$bayiId) {
             return false;
         }
 
         return Database::fetch(
-            'SELECT 1 FROM hizmet_fiyatlari WHERE musteri_id = :m AND maliyet_tipi_id = :t',
-            ['m' => $musteriId, 't' => $maliyetTipiId]
+            'SELECT 1 FROM hizmet_fiyatlari
+             WHERE musteri_id = :m AND maliyet_tipi_id = :t AND bayi_id = :b',
+            ['m' => $musteriId, 't' => $maliyetTipiId, 'b' => $bayiId]
         ) !== null;
     }
 
-    public static function tutar(?int $musteriId, int $maliyetTipiId): float
+    public static function tutar(?int $musteriId, int $maliyetTipiId, ?int $bayiId = null): float
     {
-        if (!$musteriId) {
+        if (!$musteriId || !$bayiId) {
             return 0.0;
         }
         $ozel = Database::fetch(
-            'SELECT tutar FROM hizmet_fiyatlari WHERE musteri_id = :m AND maliyet_tipi_id = :t',
-            ['m' => $musteriId, 't' => $maliyetTipiId]
+            'SELECT tutar FROM hizmet_fiyatlari
+             WHERE musteri_id = :m AND maliyet_tipi_id = :t AND bayi_id = :b',
+            ['m' => $musteriId, 't' => $maliyetTipiId, 'b' => $bayiId]
         );
 
         return $ozel ? round((float) $ozel['tutar'], 2) : 0.0;
@@ -51,13 +53,18 @@ final class HizmetFiyat
     }
 
     /**
-     * Müşteri fiyatı zorunlu (admin elle tutar girebilir).
+     * Müşteri+otopark fiyatı zorunlu (admin elle tutar girebilir).
      * Bayi: kilitli hizmette yalnızca katalog; değiştirilebilirde gelen tutar geçerli.
      */
-    public static function tutarBayiIcin(?int $musteriId, int $maliyetTipiId, mixed $gelenTutar, bool $admin = false): float
-    {
-        if (self::tanimli($musteriId, $maliyetTipiId)) {
-            $katalog = self::tutar($musteriId, $maliyetTipiId);
+    public static function tutarBayiIcin(
+        ?int $musteriId,
+        int $maliyetTipiId,
+        mixed $gelenTutar,
+        bool $admin = false,
+        ?int $bayiId = null
+    ): float {
+        if (self::tanimli($musteriId, $maliyetTipiId, $bayiId)) {
+            $katalog = self::tutar($musteriId, $maliyetTipiId, $bayiId);
             if (!$admin && !self::bayiDegistirebilir($maliyetTipiId)) {
                 return $katalog;
             }
@@ -72,7 +79,6 @@ final class HizmetFiyat
             return round((float) $gelenTutar, 2);
         }
 
-        // Bayi, fiyat tanımsızken ve değiştirilebilir hizmette elle tutar girebilir
         if (!$admin && self::bayiDegistirebilir($maliyetTipiId)
             && $gelenTutar !== null && $gelenTutar !== '' && (float) $gelenTutar > 0) {
             return round((float) $gelenTutar, 2);
@@ -83,13 +89,22 @@ final class HizmetFiyat
 
     public static function aracIcin(int $aracId, int $maliyetTipiId): float
     {
-        $arac = Database::fetch('SELECT musteri_id FROM araclar WHERE id = :id', ['id' => $aracId]);
+        $arac = Database::fetch('SELECT musteri_id, bayi_id FROM araclar WHERE id = :id', ['id' => $aracId]);
+        if (!$arac) {
+            return 0.0;
+        }
 
-        return self::tutar($arac ? (int) ($arac['musteri_id'] ?? 0) ?: null : null, $maliyetTipiId);
+        return self::tutar(
+            (int) ($arac['musteri_id'] ?? 0) ?: null,
+            $maliyetTipiId,
+            (int) ($arac['bayi_id'] ?? 0) ?: null
+        );
     }
 
-    /** @return list<array{id:int,musteri_id:int,maliyet_tipi_id:int,tutar:float,musteri:?string,hizmet:?string}> */
-    public static function liste(?int $musteriId = null, ?int $maliyetTipiId = null): array
+    /**
+     * @return list<array{id:int,musteri_id:int,bayi_id:int,maliyet_tipi_id:int,tutar:float,musteri:?string,hizmet:?string,otopark:?string}>
+     */
+    public static function liste(?int $musteriId = null, ?int $maliyetTipiId = null, ?int $bayiId = null): array
     {
         $kosul = ['TRUE'];
         $p = [];
@@ -101,14 +116,20 @@ final class HizmetFiyat
             $kosul[] = 'f.maliyet_tipi_id = :t';
             $p['t'] = $maliyetTipiId;
         }
+        if ($bayiId) {
+            $kosul[] = 'f.bayi_id = :b';
+            $p['b'] = $bayiId;
+        }
 
         return Database::fetchAll(
-            'SELECT f.id, f.musteri_id, f.maliyet_tipi_id, f.tutar, mu.ad AS musteri, mt.ad AS hizmet
+            'SELECT f.id, f.musteri_id, f.bayi_id, f.maliyet_tipi_id, f.tutar,
+                    mu.ad AS musteri, mt.ad AS hizmet, b.ad AS otopark
              FROM hizmet_fiyatlari f
              JOIN musteriler mu ON mu.id = f.musteri_id
              JOIN maliyet_tipleri mt ON mt.id = f.maliyet_tipi_id
+             JOIN bayiler b ON b.id = f.bayi_id
              WHERE ' . implode(' AND ', $kosul) . '
-             ORDER BY mu.ad, mt.ad',
+             ORDER BY b.ad, mt.ad',
             $p
         );
     }

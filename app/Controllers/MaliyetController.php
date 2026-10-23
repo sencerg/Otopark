@@ -72,17 +72,18 @@ final class MaliyetController extends Controller
                 throw new RuntimeException('Maliyet tipi zorunludur.');
             }
             $musteriId = (int) ($row['musteri_id'] ?? 0) ?: null;
+            $bayiId = (int) ($row['bayi_id'] ?? 0) ?: null;
             $gelen = Request::decimal('tutar');
             if (!Auth::isAdmin()) {
                 $tipId = (int) $row['maliyet_tipi_id'];
             }
-            $tanimli = HizmetFiyat::tanimli($musteriId, $tipId);
+            $tanimli = HizmetFiyat::tanimli($musteriId, $tipId, $bayiId);
             $deg = HizmetFiyat::bayiDegistirebilir($tipId);
             if (!$tanimli && !(Auth::isAdmin() && $gelen !== null && $gelen > 0)
                 && !($deg && $gelen !== null && $gelen > 0)) {
-                throw new RuntimeException('Bu hizmet için fiyat belirlenmedi.');
+                throw new RuntimeException('Bu hizmet için müşteri / otopark fiyatı belirlenmedi.');
             }
-            $tutar = HizmetFiyat::tutarBayiIcin($musteriId, $tipId, $gelen, Auth::isAdmin());
+            $tutar = HizmetFiyat::tutarBayiIcin($musteriId, $tipId, $gelen, Auth::isAdmin(), $bayiId);
             if ($tutar < 0 || ($tutar <= 0 && !$tanimli)) {
                 throw new RuntimeException('Geçerli bir tutar giriniz.');
             }

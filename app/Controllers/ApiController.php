@@ -76,7 +76,7 @@ final class ApiController extends Controller
         View::redirect('/arac_yonetimi?q=' . urlencode($q));
     }
 
-    /** Firma bazlı hizmet ücreti: arac_id veya musteri_id + maliyet_tipi_id */
+    /** Müşteri × otopark hizmet ücreti: arac_id veya musteri_id + bayi_id + maliyet_tipi_id */
     public function hizmetFiyat(): void
     {
         $tipId = Request::int('maliyet_tipi_id') ?? 0;
@@ -85,26 +85,27 @@ final class ApiController extends Controller
         }
         $aracId = Request::int('arac_id');
         $musteriId = Request::int('musteri_id');
+        $bayiId = Request::int('bayi_id');
         if ($aracId) {
             $arac = Database::fetch(
-                'SELECT musteri_id FROM araclar WHERE id = :id AND ' . Auth::bayiKosulu('bayi_id'),
+                'SELECT musteri_id, bayi_id FROM araclar WHERE id = :id AND ' . Auth::bayiKosulu('bayi_id'),
                 ['id' => $aracId]
             );
             if (!$arac) {
                 View::json(['success' => false, 'tutar' => 0, 'kaynak' => null], 404);
             }
             $musteriId = (int) ($arac['musteri_id'] ?? 0) ?: null;
-            $tutar = HizmetFiyat::tutar($musteriId, $tipId);
-        } else {
-            $tutar = HizmetFiyat::tutar($musteriId, $tipId);
+            $bayiId = (int) ($arac['bayi_id'] ?? 0) ?: null;
         }
-        $tanimli = HizmetFiyat::tanimli($musteriId, $tipId);
+        $tutar = HizmetFiyat::tutar($musteriId, $tipId, $bayiId);
+        $tanimli = HizmetFiyat::tanimli($musteriId, $tipId, $bayiId);
         View::json([
             'success' => true,
             'tutar' => $tutar,
             'tanimli' => $tanimli,
-            'kaynak' => $tanimli ? 'firma' : null,
+            'kaynak' => $tanimli ? 'firma_otopark' : null,
             'musteri_id' => $musteriId,
+            'bayi_id' => $bayiId,
             'bayi_fiyat_degistirebilir' => HizmetFiyat::bayiDegistirebilir($tipId),
         ]);
     }

@@ -8,6 +8,11 @@ $hizmetJson = array_map(static fn ($h) => [
     'id' => (int) $h['id'],
     'ad' => $h['ad'],
 ], $hizmetler);
+$bayiJson = array_map(static fn ($b) => [
+    'id' => (int) $b['id'],
+    'ad' => $b['ad'],
+    'sehir' => $b['sehir'] ?? '',
+], $bayiler ?? []);
 ?>
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <div>
@@ -167,12 +172,13 @@ $hizmetJson = array_map(static fn ($h) => [
                 <div class="card-header">
                     <h5>Bu firmaya özel hizmet ücretleri</h5>
                     <?php if ($yaz): ?>
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="fiyat-satir-ekle"><i class="mdi mdi-plus me-1"></i>Hizmet ekle</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="fiyat-satir-ekle"><i class="mdi mdi-plus me-1"></i>Satır ekle</button>
                     <?php endif; ?>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info py-2 small"><i class="mdi mdi-information-outline me-1"></i>
-                        Listede olmayan hizmetler için bu firmada <b>fiyat belirlenmedi</b> kabul edilir; genel varsayılan ücret yoktur.
+                        Aynı hizmet farklı otoparklarda farklı ücret alabilir. Her satırda <b>otopark + hizmet</b> seçin.
+                        Tanımsız çiftler için <b>fiyat belirlenmedi</b> kabul edilir.
                     </div>
                     <form method="post" action="/tanimlamalar/musteri/kaydet" data-ajax data-tip="musteri" id="form-fiyat">
                         <?= Csrf::field() ?>
@@ -191,25 +197,36 @@ $hizmetJson = array_map(static fn ($h) => [
                             <table class="table table-hover align-middle" id="tablo-fiyat">
                                 <thead>
                                     <tr>
-                                        <th style="min-width:16rem">Hizmet</th>
+                                        <th style="min-width:14rem">Otopark</th>
+                                        <th style="min-width:14rem">Hizmet</th>
                                         <th class="text-end" style="width:12rem">Firma ücreti (₺)</th>
                                         <?php if ($yaz): ?><th style="width:3rem"></th><?php endif; ?>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (!$fiyatlar): ?>
-                                        <tr class="text-muted" data-bos-satir><td colspan="3" class="text-center py-4">Henüz fiyat yok. “Hizmet ekle” ile ekleyin.</td></tr>
+                                        <tr class="text-muted" data-bos-satir><td colspan="4" class="text-center py-4">Henüz fiyat yok. “Satır ekle” ile ekleyin.</td></tr>
                                     <?php endif; ?>
                                     <?php foreach ($fiyatlar as $f):
                                         $hid = (int) $f['maliyet_tipi_id'];
+                                        $bid = (int) ($f['bayi_id'] ?? 0);
                                         ?>
                                         <tr data-fiyat-satir>
+                                            <td>
+                                                <select name="fiyat_bayi_id[]" class="form-select" required <?= $yaz ? '' : 'disabled' ?>>
+                                                    <option value="">Otopark seçiniz</option>
+                                                    <?php foreach ($bayiler ?? [] as $b): ?>
+                                                        <option value="<?= (int) $b['id'] ?>" <?= (int) $b['id'] === $bid ? 'selected' : '' ?>>
+                                                            <?= e($b['ad']) ?><?= !empty($b['sehir']) ? ' — ' . e($b['sehir']) : '' ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </td>
                                             <td>
                                                 <select name="fiyat_hizmet_id[]" class="form-select" required <?= $yaz ? '' : 'disabled' ?>>
                                                     <option value="">Hizmet seçiniz</option>
                                                     <?php foreach ($hizmetler as $h): ?>
-                                                        <option value="<?= (int) $h['id'] ?>"
-                                                            <?= (int) $h['id'] === $hid ? 'selected' : '' ?>>
+                                                        <option value="<?= (int) $h['id'] ?>" <?= (int) $h['id'] === $hid ? 'selected' : '' ?>>
                                                             <?= e($h['ad']) ?>
                                                         </option>
                                                     <?php endforeach; ?>
@@ -243,6 +260,11 @@ $hizmetJson = array_map(static fn ($h) => [
 <template id="tpl-fiyat-satir">
     <tr data-fiyat-satir>
         <td>
+            <select name="fiyat_bayi_id[]" class="form-select" required>
+                <option value="">Otopark seçiniz</option>
+            </select>
+        </td>
+        <td>
             <select name="fiyat_hizmet_id[]" class="form-select" required>
                 <option value="">Hizmet seçiniz</option>
             </select>
@@ -257,29 +279,51 @@ $hizmetJson = array_map(static fn ($h) => [
 <script>
 $(function () {
     const HIZMETLER = <?= json_encode($hizmetJson, JSON_UNESCAPED_UNICODE) ?>;
+    const BAYILER = <?= json_encode($bayiJson, JSON_UNESCAPED_UNICODE) ?>;
     const yaz = <?= $yaz ? 'true' : 'false' ?>;
-    if (!yaz || !HIZMETLER.length) return;
+    if (!yaz || !HIZMETLER.length || !BAYILER.length) return;
 
     const $tbody = $('#tablo-fiyat tbody');
     const tpl = document.getElementById('tpl-fiyat-satir');
 
-    function seciliHizmetler(haricSelect) {
+    function ciftAnahtar(bayiId, hizmetId) {
+        return String(bayiId || '') + ':' + String(hizmetId || '');
+    }
+
+    function kullanilanCiftler(haricTr) {
         const ids = new Set();
-        $tbody.find('select[name="fiyat_hizmet_id[]"]').each(function () {
-            if (this === haricSelect) return;
-            if (this.value) ids.add(String(this.value));
+        $tbody.find('[data-fiyat-satir]').each(function () {
+            if (this === haricTr) return;
+            const b = $(this).find('[name="fiyat_bayi_id[]"]').val();
+            const h = $(this).find('[name="fiyat_hizmet_id[]"]').val();
+            if (b && h) ids.add(ciftAnahtar(b, h));
         });
         return ids;
     }
 
-    function optionDoldur(select, seciliId) {
-        const kullanilan = seciliHizmetler(select);
+    function bayiOptionDoldur(select, seciliId) {
+        const $sel = $(select);
+        const mevcut = seciliId || $sel.val() || '';
+        $sel.empty().append('<option value="">Otopark seçiniz</option>');
+        BAYILER.forEach((b) => {
+            const id = String(b.id);
+            const label = b.sehir ? (b.ad + ' — ' + b.sehir) : b.ad;
+            const $opt = $('<option></option>').val(id).text(label);
+            if (id === String(mevcut)) $opt.prop('selected', true);
+            $sel.append($opt);
+        });
+        if (mevcut) $sel.val(mevcut);
+    }
+
+    function hizmetOptionDoldur(select, seciliId, bayiId, haricTr) {
+        const kullanilan = kullanilanCiftler(haricTr);
         const $sel = $(select);
         const mevcut = seciliId || $sel.val() || '';
         $sel.empty().append('<option value="">Hizmet seçiniz</option>');
         HIZMETLER.forEach((h) => {
             const id = String(h.id);
-            if (kullanilan.has(id) && id !== String(mevcut)) return;
+            const key = ciftAnahtar(bayiId, id);
+            if (bayiId && kullanilan.has(key) && id !== String(mevcut)) return;
             const $opt = $('<option></option>').val(id).text(h.ad);
             if (id === String(mevcut)) $opt.prop('selected', true);
             $sel.append($opt);
@@ -287,53 +331,60 @@ $(function () {
         if (mevcut) $sel.val(mevcut);
     }
 
+    function satirYenile($tr) {
+        const bayiSel = $tr.find('[name="fiyat_bayi_id[]"]')[0];
+        const hizmetSel = $tr.find('[name="fiyat_hizmet_id[]"]')[0];
+        bayiOptionDoldur(bayiSel, bayiSel.value);
+        hizmetOptionDoldur(hizmetSel, hizmetSel.value, bayiSel.value, $tr[0]);
+    }
+
     function tumSelectleriYenile() {
-        $tbody.find('select[name="fiyat_hizmet_id[]"]').each(function () {
-            optionDoldur(this, this.value);
+        $tbody.find('[data-fiyat-satir]').each(function () {
+            satirYenile($(this));
         });
         $('#fiyat-adet').text($tbody.find('[data-fiyat-satir]').length);
     }
 
-    function satirEkle(seciliId, tutar) {
+    function satirEkle(bayiId, hizmetId, tutar) {
         if (!tpl) return;
         $tbody.find('[data-bos-satir]').remove();
         const node = tpl.content.cloneNode(true);
         $tbody.append(node);
         const $tr = $tbody.find('[data-fiyat-satir]').last();
-        const select = $tr.find('select')[0];
-        optionDoldur(select, seciliId || '');
-        if (seciliId && tutar !== undefined && tutar !== null && tutar !== '') {
+        bayiOptionDoldur($tr.find('[name="fiyat_bayi_id[]"]')[0], bayiId || '');
+        hizmetOptionDoldur($tr.find('[name="fiyat_hizmet_id[]"]')[0], hizmetId || '', bayiId || '', $tr[0]);
+        if (tutar !== undefined && tutar !== null && tutar !== '') {
             $tr.find('[name="fiyat_tutar[]"]').val(tutar);
         }
         tumSelectleriYenile();
         return $tr;
     }
 
-    $tbody.find('select[name="fiyat_hizmet_id[]"]').each(function () {
-        optionDoldur(this, this.value);
+    $tbody.find('[data-fiyat-satir]').each(function () {
+        satirYenile($(this));
     });
 
     $('#fiyat-satir-ekle').on('click', function () {
-        const kalan = HIZMETLER.length - $tbody.find('[data-fiyat-satir]').length;
-        if (kalan <= 0) {
-            App.toast('Tüm hizmetler için satır eklendi.', 'warning');
+        const max = BAYILER.length * HIZMETLER.length;
+        if ($tbody.find('[data-fiyat-satir]').length >= max) {
+            App.toast('Tüm otopark × hizmet kombinasyonları eklendi.', 'warning');
             return;
         }
         const $tr = satirEkle();
-        $tr.find('select').trigger('focus');
+        $tr.find('[name="fiyat_bayi_id[]"]').trigger('focus');
     });
 
     $(document).on('click', '#tablo-fiyat [data-fiyat-sil]', function () {
         $(this).closest('tr').remove();
         if (!$tbody.find('[data-fiyat-satir]').length) {
-            $tbody.html('<tr class="text-muted" data-bos-satir><td colspan="3" class="text-center py-4">Henüz fiyat yok. “Hizmet ekle” ile ekleyin.</td></tr>');
+            $tbody.html('<tr class="text-muted" data-bos-satir><td colspan="4" class="text-center py-4">Henüz fiyat yok. “Satır ekle” ile ekleyin.</td></tr>');
             $('#fiyat-adet').text('0');
         } else {
             tumSelectleriYenile();
         }
     });
 
-    $(document).on('change', '#tablo-fiyat select[name="fiyat_hizmet_id[]"]', function () {
+    $(document).on('change', '#tablo-fiyat select[name="fiyat_bayi_id[]"], #tablo-fiyat select[name="fiyat_hizmet_id[]"]', function () {
         tumSelectleriYenile();
     });
 });

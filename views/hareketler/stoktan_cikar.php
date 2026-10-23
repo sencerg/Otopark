@@ -17,6 +17,7 @@ $simdiSaat = date('H:i');
     <?= Csrf::field() ?>
     <input type="hidden" name="arac_id" value="<?= (int) $arac['id'] ?>">
     <?php if (!empty($arac['musteri_id'])): ?><input type="hidden" name="musteri_id" value="<?= (int) $arac['musteri_id'] ?>"><?php endif; ?>
+    <?php if (!empty($arac['bayi_id'])): ?><input type="hidden" name="bayi_id" value="<?= (int) $arac['bayi_id'] ?>"><?php endif; ?>
     <div class="row">
         <div class="col-xl-8">
             <div class="card">

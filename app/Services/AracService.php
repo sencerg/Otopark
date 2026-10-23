@@ -202,20 +202,22 @@ final class AracService
             throw new RuntimeException('Maliyet tipi seçilmelidir.');
         }
         $musteriId = isset($data['musteri_id']) ? (int) $data['musteri_id'] : (int) ($arac['musteri_id'] ?? 0);
+        $bayiId = isset($data['bayi_id']) ? (int) $data['bayi_id'] : (int) ($arac['bayi_id'] ?? 0);
         $tipId = (int) $data['maliyet_tipi_id'];
         $gelen = $data['tutar'] ?? null;
-        $tanimli = HizmetFiyat::tanimli($musteriId ?: null, $tipId);
+        $tanimli = HizmetFiyat::tanimli($musteriId ?: null, $tipId, $bayiId ?: null);
         $deg = HizmetFiyat::bayiDegistirebilir($tipId);
         if (!$tanimli
             && !(Auth::isAdmin() && $gelen !== null && $gelen !== '' && (float) $gelen > 0)
             && !($deg && $gelen !== null && $gelen !== '' && (float) $gelen > 0)) {
-            throw new RuntimeException('Bu hizmet için müşteri fiyatı belirlenmedi.');
+            throw new RuntimeException('Bu hizmet için müşteri / otopark fiyatı belirlenmedi.');
         }
         $tutar = HizmetFiyat::tutarBayiIcin(
             $musteriId ?: null,
             $tipId,
             $gelen,
-            Auth::isAdmin()
+            Auth::isAdmin(),
+            $bayiId ?: null
         );
         if ($tutar < 0 || ($tutar <= 0 && !$tanimli)) {
             throw new RuntimeException('Geçerli bir tutar giriniz.');

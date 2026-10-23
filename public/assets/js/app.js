@@ -256,7 +256,7 @@
         if (!$tutar || !$tutar.length) return;
         const kilitli = !isAdminUser() && !degistirebilir;
         $tutar.prop('readonly', kilitli).toggleClass('bg-light', kilitli);
-        if (kilitli) $tutar.attr('title', 'Bu hizmetin fiyatı kilitli; müşteriye tanımlı tutar kullanılır');
+        if (kilitli) $tutar.attr('title', 'Bu hizmetin fiyatı kilitli; müşteri + otopark tutarı kullanılır');
         else $tutar.removeAttr('title');
     }
     function hizmetTutarDoldur($select, zorla) {
@@ -270,6 +270,7 @@
         if (!zorla && $target.val() && !$target.prop('readonly')) return;
         const aracId = $form.find('[name=arac_id]').val();
         const musteriId = $form.find('[name=musteri_id]').val();
+        const bayiId = $form.find('[name=bayi_id]').val();
         const $opt = $select.find(':selected');
         const optDeg = $opt.data('bayiDegistirebilir');
         const uygula = (tutar, tanimli, degistirebilir) => {
@@ -282,8 +283,13 @@
             }
             hizmetTutarKilitle($target, degistirebilir);
         };
-        if (aracId || musteriId) {
-            $.getJSON('/api/hizmet_fiyat', { maliyet_tipi_id: tipId, arac_id: aracId || '', musteri_id: musteriId || '' })
+        if (aracId || (musteriId && bayiId)) {
+            $.getJSON('/api/hizmet_fiyat', {
+                maliyet_tipi_id: tipId,
+                arac_id: aracId || '',
+                musteri_id: musteriId || '',
+                bayi_id: bayiId || '',
+            })
                 .done((r) => {
                     const deg = r.bayi_fiyat_degistirebilir;
                     const degOk = deg === undefined
@@ -299,7 +305,7 @@
     $(document).on('change', 'select[data-tutar-target], select[name="hizmet_id[]"], select[name=maliyet_tipi_modal], select[name=maliyet_tipi_id]', function () {
         hizmetTutarDoldur($(this), true);
     });
-    $(document).on('change', 'form select[name=arac_id], form select[name=musteri_id]', function () {
+    $(document).on('change', 'form select[name=arac_id], form select[name=musteri_id], form select[name=bayi_id]', function () {
         const $form = $(this).closest('form');
         $form.find('select[data-tutar-target], select[name="hizmet_id[]"], select[name=maliyet_tipi_modal]').each(function () {
             if (this.value) hizmetTutarDoldur($(this), true);

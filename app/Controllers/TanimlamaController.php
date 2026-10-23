@@ -132,6 +132,7 @@ final class TanimlamaController extends Controller
         $hizmetler = Database::fetchAll(
             'SELECT id, ad FROM maliyet_tipleri WHERE aktif ORDER BY ad'
         );
+        $bayiler = Database::fetchAll('SELECT id, ad, sehir FROM bayiler WHERE aktif ORDER BY ad');
         $sekme = match (Request::str('sekme')) {
             'fiyat' => 'fiyat',
             'otopark' => 'otopark',
@@ -148,6 +149,7 @@ final class TanimlamaController extends Controller
             'yeni' => $yeni,
             'fiyatlar' => $fiyatlar,
             'hizmetler' => $hizmetler,
+            'bayiler' => $bayiler,
             'otoparkFiyatlari' => $otoparkFiyatlari,
             'otoparkOzelSayisi' => $otoparkOzelSayisi,
             'admin' => true,
@@ -275,16 +277,25 @@ final class TanimlamaController extends Controller
         });
     }
 
-    /** Müşteri sayfasından gelen fiyat satırlarını senkronize eder. POST: fiyat_hizmet_id[] + fiyat_tutar[] */
+    /**
+     * POST: fiyat_bayi_id[] + fiyat_hizmet_id[] + fiyat_tutar[]
+     * Aynı otopark + hizmet çifti bir kez; tüm satırlar müşteri için senkronize edilir.
+     */
     private function musteriHizmetFiyatlariniKaydet(int $musteriId): void
     {
         $tutarlar = (array) ($_POST['fiyat_tutar'] ?? []);
         $hizmetler = (array) ($_POST['fiyat_hizmet_id'] ?? []);
+        $bayiler = (array) ($_POST['fiyat_bayi_id'] ?? []);
         $gelen = [];
         foreach ($hizmetler as $i => $hizmetId) {
             if (!is_scalar($hizmetId) || (int) $hizmetId <= 0) {
                 continue;
             }
+            $bayiId = $bayiler[$i] ?? null;
+            if (!is_scalar($bayiId) || (int) $bayiId <= 0) {
+                throw new RuntimeException('Hizmet fiyatı için otopark seçilmelidir.');
+            }
+            $bayiId = (int) $bayiId;
             $ham = $tutarlar[$i] ?? '';
             if (!is_scalar($ham) || trim((string) $ham) === '') {
                 continue;
@@ -294,25 +305,37 @@ final class TanimlamaController extends Controller
                 throw new RuntimeException('Firma hizmet fiyatı geçersiz.');
             }
             $hizmetId = (int) $hizmetId;
-            if (isset($gelen[$hizmetId])) {
-                throw new RuntimeException('Aynı hizmet için birden fazla fiyat satırı var.');
+            $anahtar = $bayiId . ':' . $hizmetId;
+            if (isset($gelen[$anahtar])) {
+                throw new RuntimeException('Aynı otopark ve hizmet için birden fazla fiyat satırı var.');
             }
             if (!Database::fetch('SELECT 1 FROM maliyet_tipleri WHERE id = :id AND aktif', ['id' => $hizmetId])) {
                 throw new RuntimeException('Seçilen hizmet bulunamadı veya pasif.');
             }
-            $gelen[$hizmetId] = true;
+            if (!Database::fetch('SELECT 1 FROM bayiler WHERE id = :id AND aktif', ['id' => $bayiId])) {
+                throw new RuntimeException('Seçilen otopark bulunamadı veya pasif.');
+            }
+            $gelen[$anahtar] = ['b' => $bayiId, 't' => $hizmetId, 'u' => $tutar];
             Database::query(
-                'INSERT INTO hizmet_fiyatlari (musteri_id, maliyet_tipi_id, tutar, updated_at)
-                 VALUES (:m, :t, :u, NOW())
-                 ON CONFLICT (musteri_id, maliyet_tipi_id) DO UPDATE SET tutar = EXCLUDED.tutar, updated_at = NOW()',
-                ['m' => $musteriId, 't' => $hizmetId, 'u' => $tutar]
+                'INSERT INTO hizmet_fiyatlari (musteri_id, bayi_id, maliyet_tipi_id, tutar, updated_at)
+                 VALUES (:m, :b, :t, :u, NOW())
+                 ON CONFLICT (musteri_id, bayi_id, maliyet_tipi_id)
+                 DO UPDATE SET tutar = EXCLUDED.tutar, updated_at = NOW()',
+                ['m' => $musteriId, 'b' => $bayiId, 't' => $hizmetId, 'u' => $tutar]
             );
         }
-        $ids = array_map('intval', array_keys($gelen));
-        if ($ids) {
+        if ($gelen) {
+            $keep = array_values($gelen);
+            $conds = [];
+            $params = ['m' => $musteriId];
+            foreach ($keep as $i => $row) {
+                $conds[] = "(bayi_id = :b{$i} AND maliyet_tipi_id = :t{$i})";
+                $params["b{$i}"] = $row['b'];
+                $params["t{$i}"] = $row['t'];
+            }
             Database::query(
-                'DELETE FROM hizmet_fiyatlari WHERE musteri_id = :m AND NOT (maliyet_tipi_id = ANY(:ids::int[]))',
-                ['m' => $musteriId, 'ids' => '{' . implode(',', $ids) . '}']
+                'DELETE FROM hizmet_fiyatlari WHERE musteri_id = :m AND NOT (' . implode(' OR ', $conds) . ')',
+                $params
             );
         } else {
             Database::query('DELETE FROM hizmet_fiyatlari WHERE musteri_id = :m', ['m' => $musteriId]);
