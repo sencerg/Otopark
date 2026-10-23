@@ -59,14 +59,11 @@ $hizToplam = array_sum(array_map(fn ($h) => (float) $h['tutar'], $hizmetler));
                         <td class="text-end"><?= (int) $k['gun'] ?></td>
                         <td class="text-end">
                             <?php if (!empty($k['fiyat_yok'])): ?>
-                                <span class="text-warning">Tanımsız</span>
+                                <span class="text-warning">Fiyat belirlenmedi</span>
                             <?php elseif (!empty($k['fiyat_degisti'])): ?>
                                 <span class="small"><?= e(\App\Services\DepolamaHesap::fiyatAciklama($k)) ?></span>
                             <?php else: ?>
                                 <?= $tl($k['gunluk_fiyat']) ?>
-                                <?php if ((float) ($k['carpan'] ?? 1) != 1.0): ?>
-                                    <div class="text-muted small"><?= number_format((float) $k['taban_fiyat'], 2, ',', '.') ?> × <?= number_format((float) $k['carpan'], 2, ',', '.') ?></div>
-                                <?php endif; ?>
                             <?php endif; ?>
                         </td>
                         <td class="text-end fw-semibold"><?= $tl($k['tutar']) ?></td>

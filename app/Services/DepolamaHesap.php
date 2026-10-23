@@ -7,14 +7,13 @@ namespace App\Services;
 use App\Core\Database;
 
 /**
- * Depolama süresi = seçilen aralıkla kesişen gün sayısı (giriş günü dahil, Referans ile aynı).
+ * Depolama süresi = seçilen aralıkla kesişen gün sayısı (giriş günü dahil).
  *
- * Günlük ücret önceliği (her gün için fiyat geçmişinden):
+ * Günlük ücret yalnızca müşteri (firma) + otopark tarifesinden gelir:
  * 1) Müşteri + otopark + araç tipi özel fiyat
  * 2) Müşteri + otopark özel fiyat (araç tipi boş)
- * 3) Otopark standart günlük × fiyat çarpanı
  *
- * Canlı tablolar geçmiş yoksa yedek olarak kullanılır.
+ * Genel / otopark standart varsayılan fiyat yoktur.
  * Firma özel fiyatı çarpanla tekrar çarpılmaz; girilen tutar günlük ücrettir.
  */
 final class DepolamaHesap
@@ -24,25 +23,22 @@ final class DepolamaHesap
         $bas = Database::connection()->quote($baslangic);
         $bit = Database::connection()->quote($bitis);
 
-        // tutar: her gün için fiyat geçmişinden (yoksa canlı tarifeden) toplanır
+        // tutar: her gün için yalnızca müşteri tarifesi geçmişinden (yoksa canlı firma fiyatı)
         $gunlukIfade = 'COALESCE(
             (SELECT g.gunluk_fiyat FROM depolama_fiyat_gecmisi g
              WHERE g.bayi_id = k.bayi_id AND g.musteri_id IS NOT DISTINCT FROM k.musteri_id
+               AND g.musteri_id IS NOT NULL
                AND g.arac_tipi_id IS NOT DISTINCT FROM a0.arac_tipi_id
                AND g.effective_from <= gs::date AND (g.effective_to IS NULL OR gs::date < g.effective_to)
              ORDER BY g.effective_from DESC LIMIT 1),
             (SELECT g.gunluk_fiyat FROM depolama_fiyat_gecmisi g
              WHERE g.bayi_id = k.bayi_id AND g.musteri_id IS NOT DISTINCT FROM k.musteri_id
+               AND g.musteri_id IS NOT NULL
                AND g.arac_tipi_id IS NULL
-               AND g.effective_from <= gs::date AND (g.effective_to IS NULL OR gs::date < g.effective_to)
-             ORDER BY g.effective_from DESC LIMIT 1),
-            (SELECT g.gunluk_fiyat FROM depolama_fiyat_gecmisi g
-             WHERE g.bayi_id = k.bayi_id AND g.musteri_id IS NULL AND g.arac_tipi_id IS NULL
                AND g.effective_from <= gs::date AND (g.effective_to IS NULL OR gs::date < g.effective_to)
              ORDER BY g.effective_from DESC LIMIT 1),
             f1.gunluk_fiyat,
             f2.gunluk_fiyat,
-            NULLIF(bx.gunluk_fiyat, 0) * COALESCE(bx.fiyat_carpani, 1),
             0
         )';
 
@@ -50,18 +46,10 @@ final class DepolamaHesap
                     GREATEST(k.giris_tarihi::date, {$bas}::date) AS dep_bas,
                     LEAST(COALESCE(k.cikis_tarihi::date, CURRENT_DATE), {$bit}::date) AS dep_bit,
                     LEAST(COALESCE(k.cikis_tarihi::date, CURRENT_DATE), {$bit}::date) - GREATEST(k.giris_tarihi::date, {$bas}::date) + 1 AS gun,
-                    ROUND(
-                        COALESCE(
-                            f1.gunluk_fiyat,
-                            f2.gunluk_fiyat,
-                            NULLIF(bx.gunluk_fiyat, 0) * COALESCE(bx.fiyat_carpani, 1),
-                            0
-                        ),
-                        2
-                    ) AS gunluk_fiyat,
-                    COALESCE(f1.gunluk_fiyat, f2.gunluk_fiyat, NULLIF(bx.gunluk_fiyat, 0), 0) AS taban_fiyat,
-                    COALESCE(bx.fiyat_carpani, 1) AS carpan,
-                    (f1.id IS NULL AND f2.id IS NULL AND COALESCE(bx.gunluk_fiyat, 0) = 0) AS fiyat_yok,
+                    ROUND(COALESCE(f1.gunluk_fiyat, f2.gunluk_fiyat, 0), 2) AS gunluk_fiyat,
+                    COALESCE(f1.gunluk_fiyat, f2.gunluk_fiyat, 0) AS taban_fiyat,
+                    1::numeric AS carpan,
+                    (f1.id IS NULL AND f2.id IS NULL) AS fiyat_yok,
                     ROUND((
                         SELECT COALESCE(SUM({$gunlukIfade}), 0)
                         FROM generate_series(
@@ -72,7 +60,6 @@ final class DepolamaHesap
                     ), 2) AS tutar
                  FROM arac_konaklamalari k
                  JOIN araclar a0 ON a0.id = k.arac_id
-                 LEFT JOIN bayiler bx ON bx.id = k.bayi_id
                  LEFT JOIN depolama_fiyatlari f1 ON f1.musteri_id = k.musteri_id AND f1.bayi_id = k.bayi_id AND f1.arac_tipi_id = a0.arac_tipi_id
                  LEFT JOIN depolama_fiyatlari f2 ON f2.musteri_id = k.musteri_id AND f2.bayi_id = k.bayi_id AND f2.arac_tipi_id IS NULL
                  WHERE k.giris_tarihi::date <= {$bit}::date
@@ -80,15 +67,13 @@ final class DepolamaHesap
     }
 
     /**
-     * Müşteri kartı için otopark listesi + varsayılan / firma özel günlük ücret.
-     * @return list<array{id:int,ad:string,sehir:?string,gunluk_fiyat:float,fiyat_carpani:float,varsayilan:float,firma_fiyat:?float}>
+     * Müşteri kartı: aktif otoparklar + bu firmaya özel günlük ücret (yoksa null).
+     * @return list<array{id:int,ad:string,sehir:?string,firma_fiyat:?float}>
      */
     public static function musteriOtoparkFiyatlari(int $musteriId): array
     {
         return Database::fetchAll(
-            'SELECT b.id, b.ad, b.sehir, b.gunluk_fiyat, b.fiyat_carpani,
-                    ROUND(COALESCE(NULLIF(b.gunluk_fiyat, 0), 0) * COALESCE(b.fiyat_carpani, 1), 2) AS varsayilan,
-                    f.gunluk_fiyat AS firma_fiyat
+            'SELECT b.id, b.ad, b.sehir, f.gunluk_fiyat AS firma_fiyat
              FROM bayiler b
              LEFT JOIN depolama_fiyatlari f
                ON f.bayi_id = b.id AND f.musteri_id = :m AND f.arac_tipi_id IS NULL
@@ -100,8 +85,6 @@ final class DepolamaHesap
 
     public static function arac(int $aracId): array
     {
-        // Bitiş = uzak gelecek: tamamlanmış konaklamada gerçek çıkış günü kullanılır.
-        // Açık konaklamada COALESCE(cikis, CURRENT_DATE) zaten bugüne düşer; "bugün" ile kesilmez.
         return self::zenginlestir(Database::fetchAll(
             'SELECT d.*, b.ad AS bayi, a.arac_tipi_id
              FROM ' . self::sorgu('2000-01-01', '9999-12-31') . '
@@ -113,7 +96,6 @@ final class DepolamaHesap
     }
 
     /**
-     * Konaklama satırlarına dönemsel fiyat kırılımı uygular (tutar / gün / özet).
      * @param list<array<string,mixed>> $rows
      * @return list<array<string,mixed>>
      */
@@ -129,7 +111,9 @@ final class DepolamaHesap
             }
             $row['gun'] = array_sum(array_column($segmentler, 'gun'));
             $row['tutar'] = round(array_sum(array_column($segmentler, 'tutar')), 2);
-            if ($row['tutar'] > 0) {
+            if (!empty($row['fiyat_yok']) && $row['tutar'] <= 0) {
+                // geçmişte de müşteri tarifesi yoksa fiyat belirlenmedi kalır
+            } elseif ($row['tutar'] > 0 || self::musteriTarifesiVar($row)) {
                 $row['fiyat_yok'] = false;
             }
             $row['fiyat_degisti'] = count($segmentler) > 1;
@@ -143,6 +127,24 @@ final class DepolamaHesap
         return $rows;
     }
 
+    /** @param array<string,mixed> $row */
+    private static function musteriTarifesiVar(array $row): bool
+    {
+        $musteriId = isset($row['musteri_id']) && $row['musteri_id'] !== null && $row['musteri_id'] !== ''
+            ? (int) $row['musteri_id'] : null;
+        $bayiId = (int) ($row['bayi_id'] ?? 0);
+        if (!$musteriId || $bayiId <= 0) {
+            return false;
+        }
+
+        return Database::fetch(
+            'SELECT 1 FROM depolama_fiyatlari
+             WHERE musteri_id = :m AND bayi_id = :b AND (arac_tipi_id IS NULL OR arac_tipi_id IS NOT DISTINCT FROM :t)
+             LIMIT 1',
+            ['m' => $musteriId, 'b' => $bayiId, 't' => $row['arac_tipi_id'] ?? null]
+        ) !== null;
+    }
+
     /**
      * @param list<array{gun:int,gunluk_fiyat:float,tutar:float}> $segmentler
      */
@@ -154,11 +156,10 @@ final class DepolamaHesap
         ));
     }
 
-    /** Görünümlerde depolama satırı açıklaması. */
     public static function fiyatAciklama(array $konaklama): string
     {
         if (!empty($konaklama['fiyat_yok'])) {
-            return 'Fiyat tanımlı değil';
+            return 'Fiyat belirlenmedi';
         }
         if (!empty($konaklama['fiyat_degisti']) && !empty($konaklama['fiyat_ozet'])) {
             return (string) $konaklama['fiyat_ozet'];
@@ -172,8 +173,7 @@ final class DepolamaHesap
     }
 
     /**
-     * Konaklama aralığını fiyat dönemlerine böler.
-     * @param array<string,mixed> $k dep_bas/dep_bit veya giris/cikis + bayi_id + musteri_id (+ arac_tipi_id|arac_id)
+     * @param array<string,mixed> $k
      * @return list<array{gun:int,gunluk_fiyat:float,tutar:float,bas:string,bit:string}>
      */
     public static function segmentler(array $k): array
@@ -193,7 +193,7 @@ final class DepolamaHesap
             $tip = Database::fetch('SELECT arac_tipi_id FROM araclar WHERE id = :id', ['id' => (int) $k['arac_id']]);
             $aracTipiId = $tip && $tip['arac_tipi_id'] !== null ? (int) $tip['arac_tipi_id'] : null;
         }
-        if ($bayiId <= 0) {
+        if ($bayiId <= 0 || $musteriId === null) {
             return [];
         }
 
@@ -202,7 +202,8 @@ final class DepolamaHesap
                     effective_to::text AS effective_to
              FROM depolama_fiyat_gecmisi
              WHERE bayi_id = :b
-               AND (musteri_id IS NULL OR musteri_id IS NOT DISTINCT FROM :m)
+               AND musteri_id IS NOT DISTINCT FROM :m
+               AND musteri_id IS NOT NULL
                AND (arac_tipi_id IS NULL OR arac_tipi_id IS NOT DISTINCT FROM :t)
                AND effective_from <= :bit
                AND (effective_to IS NULL OR effective_to > :bas)
@@ -264,6 +265,9 @@ final class DepolamaHesap
      */
     private static function fiyatCoz(array $gecmis, ?int $musteriId, ?int $aracTipiId, string $gun, float $yedek): float
     {
+        if ($musteriId === null) {
+            return 0.0;
+        }
         $aday = null;
         $oncelik = -1;
         foreach ($gecmis as $g) {
@@ -275,9 +279,8 @@ final class DepolamaHesap
             $gMusteri = $g['musteri_id'] !== null ? (int) $g['musteri_id'] : null;
             $gTip = $g['arac_tipi_id'] !== null ? (int) $g['arac_tipi_id'] : null;
             $p = match (true) {
-                $musteriId !== null && $gMusteri === $musteriId && $aracTipiId !== null && $gTip === $aracTipiId => 3,
-                $musteriId !== null && $gMusteri === $musteriId && $gTip === null => 2,
-                $gMusteri === null && $gTip === null => 1,
+                $gMusteri === $musteriId && $aracTipiId !== null && $gTip === $aracTipiId => 2,
+                $gMusteri === $musteriId && $gTip === null => 1,
                 default => 0,
             };
             if ($p > $oncelik) {

@@ -122,6 +122,12 @@ final class Auth
         return (self::user()['role'] ?? null) === 'musteri';
     }
 
+    /** Fiyat / tutar görme: yönetici ve müşteri portalı. Bayi kullanıcıları görmez. */
+    public static function fiyatGorebilir(): bool
+    {
+        return self::isAdmin() || self::isMusteri();
+    }
+
     /** Müşteri portal kullanıcısının firma id'si. */
     public static function musteriId(): ?int
     {

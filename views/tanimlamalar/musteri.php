@@ -7,7 +7,6 @@ $yaz = !empty($admin);
 $hizmetJson = array_map(static fn ($h) => [
     'id' => (int) $h['id'],
     'ad' => $h['ad'],
-    'varsayilan' => (float) $h['varsayilan_tutar'],
 ], $hizmetler);
 ?>
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -101,9 +100,8 @@ $hizmetJson = array_map(static fn ($h) => [
                 <div class="card-header"><h5>Bu firmaya özel otopark (depolama) ücretleri</h5></div>
                 <div class="card-body">
                     <div class="alert alert-info py-2 small"><i class="mdi mdi-information-outline me-1"></i>
-                        Tüm aktif otoparklar listelenir. <b>Varsayılan</b> = otopark standart günlük × çarpan.
-                        Sağdaki alana yazdığınız tutar <b>yalnızca bu firmaya</b> günlük depolama ücreti olur; boş bırakırsanız varsayılan kullanılır.
-                        Araç hangi firmaya aitse, kaldığı otoparkın ücreti buradan gelir.
+                        Tüm aktif otoparklar listelenir. Günlük depolama ücreti <b>yalnızca bu firmaya</b> özeldir; boş bırakılan otoparklarda
+                        <b>fiyat belirlenmedi</b> kabul edilir. Genel / standart otopark fiyatı yoktur.
                     </div>
                     <form method="post" action="/tanimlamalar/musteri/kaydet" data-ajax data-tip="musteri" id="form-otopark">
                         <?= Csrf::field() ?>
@@ -124,33 +122,26 @@ $hizmetJson = array_map(static fn ($h) => [
                                     <tr>
                                         <th>Otopark</th>
                                         <th>Şehir</th>
-                                        <th class="text-end" style="width:8rem">Standart</th>
-                                        <th class="text-end" style="width:6rem">Çarpan</th>
-                                        <th class="text-end" style="width:9rem">Varsayılan</th>
-                                        <th class="text-end" style="width:12rem">Firma günlük (₺)</th>
+                                        <th class="text-end" style="width:14rem">Firma günlük (₺)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (empty($otoparkFiyatlari)): ?>
-                                        <tr><td colspan="6" class="text-center text-muted py-4">Aktif otopark yok.</td></tr>
+                                        <tr><td colspan="3" class="text-center text-muted py-4">Aktif otopark yok.</td></tr>
                                     <?php else: ?>
                                         <?php foreach ($otoparkFiyatlari as $o):
                                             $bid = (int) $o['id'];
-                                            $varsayilan = (float) $o['varsayilan'];
                                             $firma = $o['firma_fiyat'];
                                             ?>
                                             <tr>
                                                 <td><b><?= e($o['ad']) ?></b></td>
                                                 <td class="text-muted"><?= e($o['sehir'] ?: '—') ?></td>
-                                                <td class="text-end text-muted"><?= number_format((float) $o['gunluk_fiyat'], 2, ',', '.') ?> ₺</td>
-                                                <td class="text-end text-muted">× <?= number_format((float) $o['fiyat_carpani'], 2, ',', '.') ?></td>
-                                                <td class="text-end"><?= number_format($varsayilan, 2, ',', '.') ?> ₺</td>
                                                 <td>
                                                     <input type="hidden" name="otopark_bayi_id[]" value="<?= $bid ?>">
                                                     <input type="number" step="0.01" min="0" name="otopark_tutar[]"
                                                            class="form-control text-end"
                                                            value="<?= $firma !== null && $firma !== '' ? e((string) $firma) : '' ?>"
-                                                           placeholder="<?= number_format($varsayilan, 2, ',', '.') ?>"
+                                                           placeholder="Fiyat belirlenmedi"
                                                            <?= $yaz ? '' : 'disabled' ?>>
                                                 </td>
                                             </tr>
@@ -181,8 +172,7 @@ $hizmetJson = array_map(static fn ($h) => [
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info py-2 small"><i class="mdi mdi-information-outline me-1"></i>
-                        Hizmet seçildiğinde <b>varsayılan ücret</b> görünür; sağdaki alana yalnızca bu firmaya özel tutarı yazın.
-                        Listede olmayan hizmetler genel varsayılan ücreti kullanır.
+                        Listede olmayan hizmetler için bu firmada <b>fiyat belirlenmedi</b> kabul edilir; genel varsayılan ücret yoktur.
                     </div>
                     <form method="post" action="/tanimlamalar/musteri/kaydet" data-ajax data-tip="musteri" id="form-fiyat">
                         <?= Csrf::field() ?>
@@ -202,24 +192,16 @@ $hizmetJson = array_map(static fn ($h) => [
                                 <thead>
                                     <tr>
                                         <th style="min-width:16rem">Hizmet</th>
-                                        <th class="text-end" style="width:10rem">Varsayılan ücret</th>
                                         <th class="text-end" style="width:12rem">Firma ücreti (₺)</th>
                                         <?php if ($yaz): ?><th style="width:3rem"></th><?php endif; ?>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (!$fiyatlar): ?>
-                                        <tr class="text-muted" data-bos-satir><td colspan="4" class="text-center py-4">Henüz özel fiyat yok. “Hizmet ekle” ile ekleyin.</td></tr>
+                                        <tr class="text-muted" data-bos-satir><td colspan="3" class="text-center py-4">Henüz fiyat yok. “Hizmet ekle” ile ekleyin.</td></tr>
                                     <?php endif; ?>
                                     <?php foreach ($fiyatlar as $f):
                                         $hid = (int) $f['maliyet_tipi_id'];
-                                        $varsayilan = null;
-                                        foreach ($hizmetler as $h) {
-                                            if ((int) $h['id'] === $hid) {
-                                                $varsayilan = (float) $h['varsayilan_tutar'];
-                                                break;
-                                            }
-                                        }
                                         ?>
                                         <tr data-fiyat-satir>
                                             <td>
@@ -227,15 +209,11 @@ $hizmetJson = array_map(static fn ($h) => [
                                                     <option value="">Hizmet seçiniz</option>
                                                     <?php foreach ($hizmetler as $h): ?>
                                                         <option value="<?= (int) $h['id'] ?>"
-                                                            data-tutar="<?= e((string) $h['varsayilan_tutar']) ?>"
                                                             <?= (int) $h['id'] === $hid ? 'selected' : '' ?>>
                                                             <?= e($h['ad']) ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
-                                            </td>
-                                            <td class="text-end text-muted" data-varsayilan-goster>
-                                                <?= $varsayilan !== null ? number_format($varsayilan, 2, ',', '.') . ' ₺' : '—' ?>
                                             </td>
                                             <td>
                                                 <input type="number" step="0.01" min="0" name="fiyat_tutar[]"
@@ -269,7 +247,6 @@ $hizmetJson = array_map(static fn ($h) => [
                 <option value="">Hizmet seçiniz</option>
             </select>
         </td>
-        <td class="text-end text-muted" data-varsayilan-goster>—</td>
         <td><input type="number" step="0.01" min="0" name="fiyat_tutar[]" class="form-control text-end" required placeholder="Firma ücreti"></td>
         <td class="text-end"><button type="button" class="btn btn-sm btn-link text-danger" data-fiyat-sil title="Kaldır"><i class="mdi mdi-close"></i></button></td>
     </tr>
@@ -283,7 +260,6 @@ $(function () {
     const yaz = <?= $yaz ? 'true' : 'false' ?>;
     if (!yaz || !HIZMETLER.length) return;
 
-    const money = (n) => App.money(n);
     const $tbody = $('#tablo-fiyat tbody');
     const tpl = document.getElementById('tpl-fiyat-satir');
 
@@ -304,23 +280,11 @@ $(function () {
         HIZMETLER.forEach((h) => {
             const id = String(h.id);
             if (kullanilan.has(id) && id !== String(mevcut)) return;
-            const $opt = $('<option></option>')
-                .val(id)
-                .attr('data-tutar', h.varsayilan)
-                .text(h.ad);
+            const $opt = $('<option></option>').val(id).text(h.ad);
             if (id === String(mevcut)) $opt.prop('selected', true);
             $sel.append($opt);
         });
         if (mevcut) $sel.val(mevcut);
-    }
-
-    function varsayilanGoster($tr) {
-        const $sel = $tr.find('select[name="fiyat_hizmet_id[]"]');
-        const $opt = $sel.find(':selected');
-        const v = $opt.data('tutar');
-        // Yalnızca hücre — option[data-*] metnini ezme
-        $tr.children('[data-varsayilan-goster]').text(v !== undefined && $opt.val() ? money(v) : '—');
-        return v;
     }
 
     function tumSelectleriYenile() {
@@ -338,20 +302,15 @@ $(function () {
         const $tr = $tbody.find('[data-fiyat-satir]').last();
         const select = $tr.find('select')[0];
         optionDoldur(select, seciliId || '');
-        if (seciliId) {
-            varsayilanGoster($tr);
-            if (tutar !== undefined && tutar !== null && tutar !== '') {
-                $tr.find('[name="fiyat_tutar[]"]').val(tutar);
-            }
+        if (seciliId && tutar !== undefined && tutar !== null && tutar !== '') {
+            $tr.find('[name="fiyat_tutar[]"]').val(tutar);
         }
         tumSelectleriYenile();
         return $tr;
     }
 
-    // Mevcut satırların select seçeneklerini (kullanılanları filtreleyerek) yenile
     $tbody.find('select[name="fiyat_hizmet_id[]"]').each(function () {
         optionDoldur(this, this.value);
-        varsayilanGoster($(this).closest('tr'));
     });
 
     $('#fiyat-satir-ekle').on('click', function () {
@@ -367,7 +326,7 @@ $(function () {
     $(document).on('click', '#tablo-fiyat [data-fiyat-sil]', function () {
         $(this).closest('tr').remove();
         if (!$tbody.find('[data-fiyat-satir]').length) {
-            $tbody.html('<tr class="text-muted" data-bos-satir><td colspan="4" class="text-center py-4">Henüz özel fiyat yok. “Hizmet ekle” ile ekleyin.</td></tr>');
+            $tbody.html('<tr class="text-muted" data-bos-satir><td colspan="3" class="text-center py-4">Henüz fiyat yok. “Hizmet ekle” ile ekleyin.</td></tr>');
             $('#fiyat-adet').text('0');
         } else {
             tumSelectleriYenile();
@@ -375,14 +334,6 @@ $(function () {
     });
 
     $(document).on('change', '#tablo-fiyat select[name="fiyat_hizmet_id[]"]', function () {
-        const $tr = $(this).closest('tr');
-        const v = varsayilanGoster($tr);
-        const $tutar = $tr.find('[name="fiyat_tutar[]"]');
-        // Firma ücreti boşsa varsayılanı öner (kullanıcı değiştirebilir)
-        if ($tutar.val() === '' && v !== undefined) {
-            $tutar.val(Number(v));
-        }
-        $tutar.attr('placeholder', v !== undefined ? ('Varsayılan: ' + money(v)) : 'Firma ücreti');
         tumSelectleriYenile();
     });
 });

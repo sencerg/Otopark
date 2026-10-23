@@ -10,8 +10,8 @@ $sekmeler = [
 ];
 $aciklama = [
     'musteri' => 'Araç girişinde seçilen firmalar. Firmaya özel otopark ve hizmet ücretleri müşteri kartındaki ilgili sekmelerden yönetilir. Pasif müşteri yeni girişlerde listelenmez.',
-    'lokasyon' => 'Otopark yalnızca standart günlük depolama fiyatı ve çarpanını tutar. Firmaya özel günlük ücret müşteri kartından girilir; girildiyse çarpan uygulanmadan o tutar kullanılır.',
-    'hizmet' => 'Genel hizmet tanımları. Varsayılan ücret zorunludur. “Bayi fiyatı değiştirebilir” kapalıysa otopark kullanıcıları hizmeti uygularken tutarı değiştiremez (firma özel / varsayılan fiyat kilitlenir). Açıkysa bayi kendi tutarını yazabilir. Firmaya özel fiyat müşteri kartından girilir.',
+    'lokasyon' => 'Otopark tanımı yalnızca lokasyon bilgisini tutar. Depolama ücreti her müşteri için müşteri kartındaki “Otopark ücretleri” sekmesinden tanımlanır; tanımlanmazsa fiyat belirlenmedi sayılır.',
+    'hizmet' => 'Hizmet adları burada tanımlanır; ücret müşteri kartından girilir. “Bayi fiyatı değiştirebilir” açıksa otopark kullanıcısı hizmeti eklerken tutarı değiştirebilir; kapalıysa müşteriye tanımlı tutar otomatik gelir ve kilitlenir.',
     'personel' => 'Her personel bir otoparka bağlıdır. Bayi kullanıcısı yalnızca kendi otoparkındaki personeli görür ve ekler. Pasif personel seçim listelerinde görünmez.',
 ];
 ?>
@@ -79,6 +79,7 @@ $aciklama = [
                     <div class="mb-3">
                         <?php if ($tur === 'bool'): ?>
                             <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="<?= $alan ?>" value="1" id="f-<?= $kod ?>-<?= $alan ?>" checked><label class="form-check-label" for="f-<?= $kod ?>-<?= $alan ?>"><?= e($etiket) ?></label></div>
+                            <?php if ($alan === 'bayi_fiyat_degistirebilir'): ?><div class="form-text">Açık = bayi hizmet seçince tutarı değiştirebilir. Kapalı = müşteri fiyatı otomatik gelir ve kilitlenir.</div><?php endif; ?>
                         <?php else: ?>
                             <label class="form-label <?= $zorunlu ? 'required' : '' ?>"><?= e($etiket) ?></label>
                             <?php if ($tur === 'textarea'): ?>
@@ -86,13 +87,9 @@ $aciklama = [
                             <?php else: ?>
                                 <input type="<?= $tur === 'decimal' ? 'number' : 'text' ?>" <?= $tur === 'decimal' ? 'step="0.001" min="0"' : '' ?> name="<?= $alan ?>" class="form-control" <?= $zorunlu ? 'required' : '' ?>>
                             <?php endif; ?>
-                            <?php if ($alan === 'fiyat_carpani'): ?><div class="form-text">Yalnızca depolama için. 1 = değişiklik yok, 1,25 = %25 fazla. Hizmet ücretlerine uygulanmaz.</div><?php endif; ?>
-                            <?php if ($alan === 'varsayilan_tutar'): ?><div class="form-text">Zorunlu genel ücret. Firmaya özel fiyat yoksa bu tutar kullanılır.</div><?php endif; ?>
-                            <?php if ($alan === 'bayi_fiyat_degistirebilir'): ?><div class="form-text">Kapalı = bayi hizmet seçince ücreti değiştiremez (kilitli). Açık = bayi kendi fiyatını girebilir.</div><?php endif; ?>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
-                <?php if ($kod === 'lokasyon'): ?><div class="alert alert-secondary py-2 small mb-0">Etkin günlük depolama: <b data-etkin-fiyat>-</b></div><?php endif; ?>
                 <?php if ($kod === 'personel' && $admin): ?>
                     <div class="mb-3">
                         <label class="form-label required">Otopark</label>
@@ -137,24 +134,20 @@ $(function () {
             ['Stoktaki Araç', (r) => r.stoktaki, 'text-end'],
             ['Depolama', (r) => Number(r.ozel_fiyat) > 0
                 ? `<a href="/tanimlamalar/musteri/${r.id}?sekme=otopark">${App.badge(r.ozel_fiyat + ' otopark', 'info')}</a>`
-                : App.badge('Standart', 'secondary')],
+                : App.badge('Fiyat belirlenmedi', 'warning')],
             ['Hizmet Fiyatı', (r) => Number(r.hizmet_fiyat) > 0
                 ? `<a href="/tanimlamalar/musteri/${r.id}?sekme=fiyat">${App.badge(r.hizmet_fiyat + ' hizmet', 'primary')}</a>`
-                : App.badge('Varsayılan', 'secondary')],
+                : App.badge('Fiyat belirlenmedi', 'warning')],
             ['Durum', (r) => durum(r.aktif)],
         ],
         lokasyon: [
             ['Otopark', (r) => `<b>${App.esc(r.ad)}</b>`], ['Şehir', (r) => App.esc(r.sehir || '-')],
-            ['Standart Günlük', (r) => Number(r.gunluk_fiyat) > 0 ? App.money(r.gunluk_fiyat) : App.badge('Tanımsız', 'warning'), 'text-end'],
-            ['Çarpan', (r) => '× ' + App.num(r.fiyat_carpani, 2), 'text-end'],
-            ['Etkin Günlük', (r) => `<b>${App.money(r.gunluk_fiyat * r.fiyat_carpani)}</b>`, 'text-end'],
             ['Stoktaki Araç', (r) => r.stoktaki, 'text-end'], ['Durum', (r) => durum(r.aktif)],
         ],
         hizmet: [
             ['Hizmet', (r) => `<b>${App.esc(r.ad)}</b>`],
-            ['Varsayılan Ücret', (r) => App.money(r.varsayilan_tutar), 'text-end'],
             ['Bayi fiyatı', (r) => r.bayi_fiyat_degistirebilir ? App.badge('Değiştirilebilir', 'success') : App.badge('Kilitli', 'warning')],
-            ['Firma Özel', (r) => Number(r.firma_fiyat) > 0 ? App.badge(r.firma_fiyat + ' firmada', 'secondary') : '—'],
+            ['Firma Fiyatı', (r) => Number(r.firma_fiyat) > 0 ? App.badge(r.firma_fiyat + ' firmada', 'secondary') : App.badge('Tanımlı değil', 'warning')],
             ['Kullanım', (r) => r.kullanim + ' kayıt', 'text-end'],
             ['Durum', (r) => durum(r.aktif)],
         ],
@@ -219,23 +212,16 @@ $(function () {
         $f[0].reset();
         $f.find('[name=id]').val(kayit?.id || '');
         $f.find(':checkbox').prop('checked', true);
-        if (tip === 'lokasyon' && !kayit) $f.find('[name=fiyat_carpani]').val('1');
         if (kayit) Object.entries(kayit).forEach(([k, v]) => {
             const $el = $f.find(`[name="${k}"]`);
             if ($el.is(':checkbox')) $el.prop('checked', !!v); else $el.val(v ?? '');
         });
-        $f.find('input').first().trigger('input');
         bootstrap.Modal.getOrCreateInstance($('#modal-' + tip)[0]).show();
     };
     $('[data-yeni]').on('click', function () { modalAc(this.dataset.yeni, null); });
     $(document).on('click', '[data-duzenle]', function (e) {
         e.preventDefault();
         modalAc(this.dataset.duzenle, veri[this.dataset.duzenle].find((r) => r.id == this.dataset.id));
-    });
-    $('#modal-lokasyon form').on('input', 'input', function () {
-        const $f = $(this).closest('form');
-        const f = Number($f.find('[name=gunluk_fiyat]').val() || 0), c = Number($f.find('[name=fiyat_carpani]').val() || 0);
-        $f.find('[data-etkin-fiyat]').text(App.money(f * c) + ` (${App.money(f)} × ${App.num(c, 2)})`);
     });
     $(document).on('ajax-form-saved', (_, form) => { if (form.dataset.tip) yukle(form.dataset.tip); });
 

@@ -114,18 +114,29 @@ final class HareketController extends Controller
         );
         $this->ortakFiltreler($dt, 'h.hareket_tarihi');
 
-        $map = fn (array $r) => $r + [
-            'sevkiyat_tipi_ad' => Tanim::SEVKIYAT_TIPI[$r['sevkiyat_tipi'] ?? 0] ?? '-',
-        ];
+        $fiyat = Auth::fiyatGorebilir();
         if (Request::input('export')) {
-            Excel::download('stoktan-cikanlar', [
+            $kolonlar = [
                 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
                 'hareket_nedeni' => 'Hareket Nedeni', 'hareket_tarihi' => 'Hareket Tarihi', 'depolama_suresi' => 'Depolama Süresi (Gün)',
-                'sevkiyat_tipi_ad' => 'Sevkiyat Tipi', 'teslim_alan' => 'Teslim Alan',
-                'hizmet_tutari' => 'Hizmet Ücreti', 'sonradan_tutar' => 'Çıkış Sonrası Eklenen',
-            ], array_map($map, $dt->all()));
+                'teslim_alan' => 'Teslim Alan',
+            ];
+            if ($fiyat) {
+                $kolonlar += ['hizmet_tutari' => 'Hizmet Ücreti', 'sonradan_tutar' => 'Çıkış Sonrası Eklenen'];
+            }
+            Excel::download('stoktan-cikanlar', $kolonlar, array_map(static function (array $r) use ($fiyat): array {
+                if (!$fiyat) {
+                    unset($r['hizmet_tutari'], $r['sonradan_tutar'], $r['sonradan_adet']);
+                }
+
+                return $r;
+            }, $dt->all()));
         }
-        $dt->response($map);
+        $dt->response($fiyat ? null : static function (array $r): array {
+            unset($r['hizmet_tutari'], $r['sonradan_tutar'], $r['sonradan_adet']);
+
+            return $r;
+        });
     }
 
     private function hareket(int $id): array
@@ -165,7 +176,7 @@ final class HareketController extends Controller
             'h' => $h,
             'readonly' => !$duzenle,
             'konaklama' => $konaklama,
-            'hizmetler' => $cikis ? Database::fetchAll('SELECT id, ad, varsayilan_tutar, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY ad') : [],
+            'hizmetler' => $cikis ? Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY ad') : [],
             'eklenenler' => $eklenenler,
             'envanter' => array_column(Database::fetchAll('SELECT envanter_id FROM arac_envanterleri WHERE arac_id = :a', ['a' => $h['arac_id']]), 'envanter_id'),
             'dosyalar' => Upload::list('hareket', $id),
@@ -180,7 +191,7 @@ final class HareketController extends Controller
             fn ($d) => $d['cikis_tarihi'] !== null && strtotime($d['cikis_tarihi']) === strtotime($h['hareket_tarihi'])
         ))[0] ?? null;
         $eklenenler = Database::fetchAll(
-            'SELECT e.id, mt.ad, mt.varsayilan_tutar, e.tutar, e.islem_tarihi, e.aciklama, e.cikis_sonrasi, e.created_at, u.name AS kullanici
+            'SELECT e.id, mt.ad, e.tutar, e.islem_tarihi, e.aciklama, e.cikis_sonrasi, e.created_at, u.name AS kullanici
              FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id LEFT JOIN users u ON u.id = e.kullanici_id
              WHERE e.arac_id = :a AND (e.hareket_id = :h OR (e.hareket_id IS NULL AND e.islem_tarihi BETWEEN :g::date AND :c::date))
              ORDER BY e.cikis_sonrasi, e.islem_tarihi, e.id',
@@ -235,7 +246,7 @@ final class HareketController extends Controller
                     'teslim_eden' => Request::str('teslim_eden'), 'teslim_eden_telefon' => Request::str('teslim_eden_telefon'), 'teslim_eden_eposta' => Request::str('teslim_eden_eposta'),
                     'teslim_alan' => Request::str('teslim_alan'), 'teslim_alan_telefon' => Request::str('teslim_alan_telefon'), 'teslim_alan_eposta' => Request::str('teslim_alan_eposta'),
                     'teslim_alan_personel_id' => Request::int('teslim_alan_personel'),
-                    'sevkiyat_tipi' => Request::int('sevkiyat_tipi'),
+                    'sevkiyat_tipi' => Tanim::sevkiyatTipi(Request::int('sevkiyat_tipi') ?? (isset($h['sevkiyat_tipi']) ? (int) $h['sevkiyat_tipi'] : null)),
                     'sevkiyat_durumu' => Request::int('sevkiyat_durumu'),
                     'sofor_adi_soyadi' => Request::str('sofor_adi_soyadi'), 'sofor_telefon' => Request::str('sofor_telefon'), 'cekici_plakasi' => Request::str('cekici_plakasi'),
                     'sevkiyat_kodu' => Request::str('sevkiyat_kodu'), 'irsaliye_kodu' => Request::str('irsaliye_kodu'), 'aciklama' => Request::str('aciklama'),
@@ -244,9 +255,6 @@ final class HareketController extends Controller
                 Auth::dogrulaPersonel($alanlar['teslim_alan_personel_id'], 'Personel');
                 if (!$alanlar['musteri_id']) {
                     throw new RuntimeException('Müşteri seçilmelidir.');
-                }
-                if (!$alanlar['sevkiyat_tipi'] || !isset(Tanim::SEVKIYAT_TIPI[$alanlar['sevkiyat_tipi']])) {
-                    throw new RuntimeException('Sevkiyat tipi seçilmelidir.');
                 }
                 AracService::guncelle((int) $h['id'], $alanlar, 'arac_hareketleri');
 
@@ -307,7 +315,7 @@ final class HareketController extends Controller
         $this->view('hareketler/stoktan_cikar', [
             'pageTitle' => 'Stoktan Çıkar',
             'breadcrumb' => ['Stoktaki Araçlar' => '/arac_hareketleri/giris', $arac['sase'] => null],
-            'hizmetler' => Database::fetchAll('SELECT id, ad, varsayilan_tutar, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY ad'),
+            'hizmetler' => Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY ad'),
             'konaklama' => $konaklama,
             'eklenenler' => $konaklama ? Database::fetchAll(
                 'SELECT mt.ad, e.tutar, e.islem_tarihi FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
@@ -342,10 +350,7 @@ final class HareketController extends Controller
             if ($cikisTs > $simdiTs) {
                 throw new RuntimeException('Çıkış tarihi ileri bir tarih/saat olamaz. En fazla şu anki zaman seçilebilir.');
             }
-            $sevkiyatTipi = Request::int('sevkiyat_tipi');
-            if (!$sevkiyatTipi || !isset(Tanim::SEVKIYAT_TIPI[$sevkiyatTipi])) {
-                throw new RuntimeException('Sevkiyat tipi seçilmelidir.');
-            }
+            $sevkiyatTipi = Tanim::sevkiyatTipi(Request::int('sevkiyat_tipi'));
             $personelId = Request::int('teslim_alan_personel');
             Auth::dogrulaPersonel($personelId, 'Personel');
             $hareketId = Database::transaction(function () use ($arac, $hizmetler, $cikisTarihi, $sevkiyatTipi, $personelId) {
@@ -391,7 +396,7 @@ final class HareketController extends Controller
                 continue;
             }
             $tip = Database::fetch(
-                'SELECT ad, varsayilan_tutar, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE id = :id AND aktif',
+                'SELECT ad FROM maliyet_tipleri WHERE id = :id AND aktif',
                 ['id' => (int) $tipId]
             );
             if (!$tip) {
@@ -399,9 +404,20 @@ final class HareketController extends Controller
             }
             $ham = $tutarlar[$i] ?? '';
             $gelen = (is_scalar($ham) && trim((string) $ham) !== '') ? Request::parseDecimal((string) $ham) : null;
-            $tutar = \App\Services\HizmetFiyat::tutarBayiIcin($musteriId, (int) $tipId, $gelen, Auth::isAdmin());
-            if ($tutar <= 0) {
-                throw new RuntimeException("{$tip['ad']} için 0'dan büyük bir ücret giriniz.");
+            $tipIdInt = (int) $tipId;
+            $tanimli = \App\Services\HizmetFiyat::tanimli($musteriId, $tipIdInt);
+            $deg = \App\Services\HizmetFiyat::bayiDegistirebilir($tipIdInt);
+            if (!$tanimli && !(Auth::isAdmin() && $gelen !== null && $gelen > 0)
+                && !($deg && $gelen !== null && $gelen > 0)) {
+                throw new RuntimeException("{$tip['ad']} için fiyat belirlenmedi.");
+            }
+            $tutar = \App\Services\HizmetFiyat::tutarBayiIcin($musteriId, $tipIdInt, $gelen, Auth::isAdmin());
+            if ($tutar < 0 || ($tutar <= 0 && !$tanimli)) {
+                throw new RuntimeException("{$tip['ad']} için geçerli bir ücret giriniz.");
+            }
+            if (!Auth::isAdmin() && !$deg && $gelen !== null && $tanimli
+                && abs((float) $gelen - $tutar) > 0.009) {
+                throw new RuntimeException("{$tip['ad']} fiyatı kilitlidir; tutar değiştirilemez.");
             }
             $not = is_scalar($notlar[$i] ?? null) ? trim((string) $notlar[$i]) : '';
             $sonuc[] = [(int) $tipId, $tutar, $not !== '' ? mb_substr($not, 0, 500) : null];

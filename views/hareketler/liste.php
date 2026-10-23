@@ -1,10 +1,16 @@
 <?php
 $giris = $tip === 'giris';
-$headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-success"><i class="mdi mdi-plus me-1"></i>Yeni Araç Ekle</a>'
-    . '<a href="/arac_yonetimi/toplu_stok_girisi" class="btn btn-primary"><i class="mdi mdi-upload me-1"></i>Toplu Stok Girişi</a>'
-    . '<a href="/arac_yonetimi/toplu_ek_maliyet_girisi" class="btn text-white" style="background:#7c3aed"><i class="mdi mdi-cash-multiple me-1"></i>Toplu Maliyet Ekle</a>'
-    . '<a href="/arac_yonetimi/toplu_kayit_guncelleme_lokasyon" class="btn btn-warning text-white"><i class="mdi mdi-map-marker-outline me-1"></i>Toplu Adres Güncelleme</a>'
+if ($giris) {
+    $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-success"><i class="mdi mdi-plus me-1"></i>Yeni Araç Ekle</a>'
+        . '<a href="/arac_yonetimi/toplu_stok_girisi" class="btn btn-primary"><i class="mdi mdi-upload me-1"></i>Toplu Stok Girişi</a>'
+        . '<a href="/arac_yonetimi/toplu_ek_maliyet_girisi" class="btn text-white" style="background:#7c3aed"><i class="mdi mdi-cash-multiple me-1"></i>Toplu Maliyet Ekle</a>'
+        . '<a href="/arac_yonetimi/toplu_kayit_guncelleme_lokasyon" class="btn btn-warning text-white"><i class="mdi mdi-map-marker-outline me-1"></i>Toplu Adres Güncelleme</a>'
         . '<a href="/sayim_kayitlari" class="btn text-white" style="background:#059669"><i class="mdi mdi-clipboard-check-outline me-1"></i>Sayım</a>';
+} else {
+    $headerActions = '<a href="/arac_yonetimi/toplu_stok_cikisi" class="btn btn-danger"><i class="mdi mdi-car-off me-1"></i>Toplu Stok Çıkışı</a>'
+        . '<a href="/arac_yonetimi/toplu_ek_maliyet_girisi" class="btn text-white" style="background:#7c3aed"><i class="mdi mdi-cash-multiple me-1"></i>Toplu Maliyet Ekle</a>'
+        . '<a href="/sayim_kayitlari" class="btn text-white" style="background:#059669"><i class="mdi mdi-clipboard-check-outline me-1"></i>Sayım</a>';
+}
 ?>
 <div class="card">
     <div class="card-header">
@@ -37,7 +43,7 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-success"><i class
                     <?php if ($giris): ?>
                         <th>Giriş Tarihi</th><th>Depolama Süresi</th>
                     <?php else: ?>
-                        <th>Hareket Tarihi</th><th>Depolama Süresi</th><th>Sevkiyat Tipi</th><th class="text-end">Hizmet Ücreti</th>
+                        <th>Hareket Tarihi</th><th>Depolama Süresi</th><?php if (\App\Core\Auth::fiyatGorebilir()): ?><th class="text-end">Hizmet Ücreti</th><?php endif; ?>
                     <?php endif; ?>
                     <th>İşlem</th>
                 </tr>
@@ -69,6 +75,7 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-success"><i class
 <script>
 $(function () {
     const giris = <?= $giris ? 'true' : 'false' ?>;
+    const fiyat = document.body.dataset.fiyat === '1';
     const saseLink = (r) => `<a href="/arac_yonetimi/duzenle/${r.<?= $giris ? 'id' : 'arac_id' ?>}" class="fw-semibold">${App.esc(r.sase)}</a>`;
     const gun = (v) => v === null ? '-' : App.num(v) + ' Gün';
 
@@ -98,9 +105,12 @@ $(function () {
         columns.push(
             { data: 'hareket_tarihi' },
             { data: 'depolama_suresi', render: gun },
-            { data: 'sevkiyat_tipi_ad', orderable: false },
-            { data: 'hizmet_tutari', className: 'text-end text-nowrap', render: (v, _, r) => (Number(v) ? App.money(v) : '<span class="text-muted">-</span>')
-                + (Number(r.sonradan_adet) ? `<div><span class="badge bg-warning text-dark" title="Çıkıştan sonra eklenen hizmet">+${App.money(r.sonradan_tutar)} çıkış sonrası (${App.num(r.sonradan_adet)})</span></div>` : '') },
+        );
+        if (fiyat) {
+            columns.push({ data: 'hizmet_tutari', className: 'text-end text-nowrap', render: (v, _, r) => (Number(v) ? App.money(v) : '<span class="text-muted">-</span>')
+                + (Number(r.sonradan_adet) ? `<div><span class="badge bg-warning text-dark" title="Çıkıştan sonra eklenen hizmet">+${App.money(r.sonradan_tutar)} çıkış sonrası (${App.num(r.sonradan_adet)})</span></div>` : '') });
+        }
+        columns.push(
             { data: 'id', orderable: false, render: (id, _, r) => App.actions([
                 { url: '/arac_yonetimi/tesellum_formu/' + r.arac_id, icon: 'mdi-file-document-outline', color: 'info', title: 'Tesellüm Formu', attrs: 'target="_blank"' },
                 { url: '/arac_hareketleri/hareket_view/' + id, icon: 'mdi-eye', color: 'success', title: 'Görüntüle' },

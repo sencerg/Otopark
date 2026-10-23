@@ -24,7 +24,7 @@ $brandParts = preg_split('/\s+/', trim($appName), 2) ?: ['Moex'];
     <link rel="stylesheet" href="/assets/css/app.css?v=<?= filemtime(BASE_PATH . '/public/assets/css/app.css') ?>">
     <link rel="stylesheet" href="/assets/css/themes.css?v=<?= filemtime(BASE_PATH . '/public/assets/css/themes.css') ?>">
 </head>
-<body<?= Auth::isAdmin() ? ' data-admin="1"' : '' ?>>
+<body<?= Auth::isAdmin() ? ' data-admin="1"' : '' ?><?= Auth::fiyatGorebilir() ? ' data-fiyat="1"' : ' data-fiyat="0"' ?>>
 <div class="layout" id="layout">
     <aside class="sidebar" id="sidebar">
         <a href="/" class="sidebar-brand" title="<?= e($appName) ?>">

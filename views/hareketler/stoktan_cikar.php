@@ -1,6 +1,9 @@
 <?php
+use App\Core\Auth;
 use App\Core\Csrf;
 use App\Core\Tanim;
+
+$fg = Auth::fiyatGorebilir();
 
 $dosyalar = [];
 $girisTs = strtotime((string) $arac['stoga_giris_tarihi']);
@@ -12,6 +15,8 @@ $simdiSaat = date('H:i');
 ?>
 <form method="post" action="/arac_hareketleri/stoktan_cikar/<?= $arac['id'] ?>" enctype="multipart/form-data" data-confirm="Araç stoktan çıkarılsın mı?">
     <?= Csrf::field() ?>
+    <input type="hidden" name="arac_id" value="<?= (int) $arac['id'] ?>">
+    <?php if (!empty($arac['musteri_id'])): ?><input type="hidden" name="musteri_id" value="<?= (int) $arac['musteri_id'] ?>"><?php endif; ?>
     <div class="row">
         <div class="col-xl-8">
             <div class="card">
@@ -40,12 +45,11 @@ $simdiSaat = date('H:i');
                     </div>
                     <div class="form-section">Sevkiyat Bilgileri</div>
                     <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label required">Sevkiyat Tipi</label><select name="sevkiyat_tipi" class="form-select" required><?= Tanim::options(Tanim::SEVKIYAT_TIPI, old('sevkiyat_tipi')) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Çekici Plakası</label><input type="text" name="cekici_plakasi" class="form-control text-uppercase" value="<?= old('cekici_plakasi') ?>"></div>
                         <div class="col-md-4"><label class="form-label">Şoför Adı Soyadı</label><input type="text" name="sofor_adi_soyadi" class="form-control" value="<?= old('sofor_adi_soyadi') ?>"></div>
                         <div class="col-md-4"><label class="form-label">Şoför Telefon</label><input type="text" name="sofor_telefon" class="form-control" value="<?= old('sofor_telefon') ?>"></div>
-                        <div class="col-md-2"><label class="form-label">Sevkiyat Kodu</label><input type="text" name="sevkiyat_kodu" class="form-control" value="<?= old('sevkiyat_kodu') ?>"></div>
-                        <div class="col-md-2"><label class="form-label">İrsaliye Kodu</label><input type="text" name="irsaliye_kodu" class="form-control" value="<?= old('irsaliye_kodu') ?>"></div>
+                        <div class="col-md-4"><label class="form-label">Sevkiyat Kodu</label><input type="text" name="sevkiyat_kodu" class="form-control" value="<?= old('sevkiyat_kodu') ?>"></div>
+                        <div class="col-md-4"><label class="form-label">İrsaliye Kodu</label><input type="text" name="irsaliye_kodu" class="form-control" value="<?= old('irsaliye_kodu') ?>"></div>
                     </div>
                 </div>
             </div>
@@ -54,22 +58,23 @@ $simdiSaat = date('H:i');
             $eklenenToplam = array_sum(array_map(fn ($x) => (float) $x['tutar'], $eklenenler));
             ?>
             <div class="card">
-                <div class="card-header"><h5>Hizmetler ve Ücret</h5><a href="/tanimlamalar" class="small" target="_blank"><i class="mdi mdi-cog-outline"></i> Hizmet tanımları</a></div>
+                <div class="card-header"><h5>Hizmetler ve Ücret</h5><?php if (Auth::isAdmin()): ?><a href="/tanimlamalar" class="small" target="_blank"><i class="mdi mdi-cog-outline"></i> Hizmet tanımları</a><?php endif; ?></div>
                 <div class="card-body">
                     <table class="table table-sm align-middle mb-3">
                         <tbody>
                         <tr>
                             <td><i class="mdi mdi-parking text-primary me-1"></i><b>Depolama</b>
-                                <?php if ($konaklama): ?>
+                                <?php if ($konaklama && $fg): ?>
                                     <span class="text-muted small">— <?php
-                                        if (!empty($konaklama['fiyat_yok'])): ?><span class="badge badge-soft-warning">Fiyat tanımlı değil</span><?php
+                                        if (!empty($konaklama['fiyat_yok'])): ?><span class="badge badge-soft-warning">Fiyat belirlenmedi</span><?php
                                         elseif (!empty($konaklama['fiyat_degisti'])): ?><?= e(\App\Services\DepolamaHesap::fiyatAciklama($konaklama)) ?><?php
-                                        else: ?><?= (int) $konaklama['gun'] ?> gün × <?= number_format((float) $konaklama['gunluk_fiyat'], 2, ',', '.') ?> ₺
-                                            <?php if ((float) $konaklama['carpan'] !== 1.0): ?>(<?= number_format((float) $konaklama['taban_fiyat'], 2, ',', '.') ?> ₺ × <?= number_format((float) $konaklama['carpan'], 2, ',', '.') ?> otopark çarpanı)<?php endif; ?>
-                                        <?php endif; ?></span>
+                                        else: ?><?= (int) $konaklama['gun'] ?> gün × <?= number_format((float) $konaklama['gunluk_fiyat'], 2, ',', '.') ?> ₺<?php endif; ?></span>
+                                <?php elseif ($konaklama): ?>
+                                    <span class="text-muted small">— <?= (int) $konaklama['gun'] ?> gün</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="text-end fw-semibold"><?= number_format($depTutar, 2, ',', '.') ?> ₺</td>
+                            <?php if ($fg): ?><td class="text-end fw-semibold"><?= !empty($konaklama['fiyat_yok']) ? '<span class="badge badge-soft-warning">Fiyat belirlenmedi</span>' : number_format($depTutar, 2, ',', '.') . ' ₺' ?></td>
+                            <?php else: ?><td></td><?php endif; ?>
                         </tr>
                         <?php foreach ($eklenenler as $x): ?>
                             <tr><td><i class="mdi mdi-check-circle-outline text-success me-1"></i><?= e($x['ad']) ?> <span class="text-muted small">— <?= date('d.m.Y', strtotime($x['islem_tarihi'])) ?></span></td>
@@ -86,8 +91,8 @@ $simdiSaat = date('H:i');
                     <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="#hizmet-satir" data-target="#cikis-hizmetleri"><i class="mdi mdi-plus me-1"></i>Hizmet Ekle</button>
 
                     <div class="d-flex justify-content-between align-items-center border-top mt-3 pt-3">
-                        <span class="text-muted">Toplam ücret (depolama + hizmetler)</span>
-                        <span class="fs-4 fw-bold text-primary" id="toplam-ucret" data-sabit="<?= $depTutar + $eklenenToplam ?>"><?= number_format($depTutar + $eklenenToplam, 2, ',', '.') ?> ₺</span>
+                        <span class="text-muted">Toplam ücret<?= $fg ? ' (depolama + hizmetler)' : ' (hizmetler)' ?></span>
+                        <span class="fs-4 fw-bold text-primary" id="toplam-ucret" data-sabit="<?= ($fg ? $depTutar : 0) + $eklenenToplam ?>"><?= number_format(($fg ? $depTutar : 0) + $eklenenToplam, 2, ',', '.') ?> ₺</span>
                     </div>
                 </div>
             </div>
@@ -95,9 +100,9 @@ $simdiSaat = date('H:i');
                 <tr>
                     <td><select name="hizmet_id[]" class="form-select form-select-sm select2" required>
                         <option value="">Seçiniz</option>
-                        <?php foreach ($hizmetler as $h): ?><option value="<?= $h['id'] ?>" data-tutar="<?= e($h['varsayilan_tutar']) ?>" data-bayi-degistirebilir="<?= !empty($h['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($h['ad']) ?><?= (float) $h['varsayilan_tutar'] > 0 ? ' — ' . number_format((float) $h['varsayilan_tutar'], 2, ',', '.') . ' ₺' : '' ?><?= empty($h['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?></option><?php endforeach; ?>
+                        <?php foreach ($hizmetler as $h): ?><option value="<?= $h['id'] ?>" data-bayi-degistirebilir="<?= !empty($h['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($h['ad']) ?><?= empty($h['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?></option><?php endforeach; ?>
                     </select></td>
-                    <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0.01" placeholder="Ücret girin" required></td>
+                    <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0" placeholder="Fiyat belirlenmedi" required></td>
                     <td><button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-close"></i></button></td>
                 </tr>
             </template>

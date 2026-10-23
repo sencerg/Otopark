@@ -58,7 +58,9 @@ final class MaliyetController extends Controller
 
     public function getir(string $id): void
     {
-        $this->ajax(fn () => View::json(['success' => true, 'data' => $this->bul((int) $id)]));
+        $this->ajax(function () use ($id) {
+            View::json(['success' => true, 'data' => $this->bul((int) $id)]);
+        });
     }
 
     public function guncelle(string $id): void
@@ -70,13 +72,23 @@ final class MaliyetController extends Controller
                 throw new RuntimeException('Maliyet tipi zorunludur.');
             }
             $musteriId = (int) ($row['musteri_id'] ?? 0) ?: null;
-            $tutar = HizmetFiyat::tutarBayiIcin($musteriId, $tipId, Request::decimal('tutar'), Auth::isAdmin());
-            if ($tutar <= 0) {
-                throw new RuntimeException("0'dan büyük bir tutar zorunludur.");
-            }
-            if (!Auth::isAdmin() && !HizmetFiyat::bayiDegistirebilir($tipId)) {
+            $gelen = Request::decimal('tutar');
+            if (!Auth::isAdmin()) {
                 $tipId = (int) $row['maliyet_tipi_id'];
-                $tutar = HizmetFiyat::tutar($musteriId, $tipId);
+            }
+            $tanimli = HizmetFiyat::tanimli($musteriId, $tipId);
+            $deg = HizmetFiyat::bayiDegistirebilir($tipId);
+            if (!$tanimli && !(Auth::isAdmin() && $gelen !== null && $gelen > 0)
+                && !($deg && $gelen !== null && $gelen > 0)) {
+                throw new RuntimeException('Bu hizmet için fiyat belirlenmedi.');
+            }
+            $tutar = HizmetFiyat::tutarBayiIcin($musteriId, $tipId, $gelen, Auth::isAdmin());
+            if ($tutar < 0 || ($tutar <= 0 && !$tanimli)) {
+                throw new RuntimeException('Geçerli bir tutar giriniz.');
+            }
+            if (!Auth::isAdmin() && !$deg && $tanimli && $gelen !== null
+                && abs((float) $gelen - $tutar) > 0.009) {
+                throw new RuntimeException('Bu hizmetin fiyatı kilitlidir; tutar değiştirilemez.');
             }
             AracService::guncelle((int) $row['id'], [
                 'maliyet_tipi_id' => $tipId, 'tutar' => $tutar,
@@ -151,12 +163,33 @@ final class MaliyetController extends Controller
     public function isTakibiListe(): void
     {
         $dt = self::ekstreTablosu();
+        $fiyat = Auth::fiyatGorebilir();
         if (Request::input('export')) {
-            Excel::download('is-takibi', [
+            $kolonlar = [
                 'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'lokasyon' => 'Lokasyon',
-                'maliyet_tipi' => 'Hizmet', 'tutar' => 'Tutar', 'aciklama' => 'Açıklama', 'kullanici' => 'İşlemi Yapan', 'kayit_zamani' => 'Kayıt Zamanı',
-            ], $dt->all());
+                'maliyet_tipi' => 'Hizmet', 'aciklama' => 'Açıklama', 'kullanici' => 'İşlemi Yapan', 'kayit_zamani' => 'Kayıt Zamanı',
+            ];
+            if ($fiyat) {
+                $kolonlar = [
+                    'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'lokasyon' => 'Lokasyon',
+                    'maliyet_tipi' => 'Hizmet', 'tutar' => 'Tutar', 'aciklama' => 'Açıklama', 'kullanici' => 'İşlemi Yapan', 'kayit_zamani' => 'Kayıt Zamanı',
+                ];
+            }
+            Excel::download('is-takibi', $kolonlar, array_map(static function (array $r) use ($fiyat): array {
+                if (!$fiyat) {
+                    unset($r['tutar']);
+                }
+
+                return $r;
+            }, $dt->all()));
         }
-        $dt->response(null, ['toplam' => $dt->sum('e.tutar')]);
+        $dt->response(
+            $fiyat ? null : static function (array $r): array {
+                unset($r['tutar']);
+
+                return $r;
+            },
+            ['toplam' => $fiyat ? $dt->sum('e.tutar') : 0]
+        );
     }
 }

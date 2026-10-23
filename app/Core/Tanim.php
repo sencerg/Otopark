@@ -10,7 +10,19 @@ final class Tanim
     public const ARAC_DURUMU = [1 => 'Sıfır', 2 => 'İkinci El'];
     public const LOKASYON_TURU = [1 => 'Açık', 2 => 'Kapalı', 3 => 'Her İkisi De'];
     public const SEVKIYAT_TIPI = [1 => 'Bireysel', 2 => 'Vale', 3 => 'Çekici'];
+    /** Formlarda gösterilmez; kayıtta boş gelirse kullanılır. */
+    public const SEVKIYAT_TIPI_VARSAYILAN = 1;
     public const SEVKIYAT_DURUMU = [1 => 'Bekliyor', 2 => 'Devam Ediyor', 3 => 'Tamamlandı'];
+
+    /** İstekten sevkiyat tipi okur; yoksa / geçersizse varsayılan. */
+    public static function sevkiyatTipi(?int $deger = null): int
+    {
+        if ($deger !== null && isset(self::SEVKIYAT_TIPI[$deger])) {
+            return $deger;
+        }
+
+        return self::SEVKIYAT_TIPI_VARSAYILAN;
+    }
     public const IS_EMRI_DURUM = [1 => 'Yapılacak', 2 => 'Onay Bekliyor', 3 => 'İşleme Alındı', 4 => 'Tamamlandı', 5 => 'Reddedildi', 6 => 'İptal Edildi'];
     public const IS_EMRI_DURUM_RENK = [1 => 'secondary', 2 => 'warning', 3 => 'info', 4 => 'success', 5 => 'danger', 6 => 'dark'];
     public const DESTEK_TUR = [1 => 'Teknik', 2 => 'Operasyon', 3 => 'Talep / Öneri'];

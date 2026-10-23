@@ -98,14 +98,12 @@ final class ApiController extends Controller
         } else {
             $tutar = HizmetFiyat::tutar($musteriId, $tipId);
         }
-        $ozel = $musteriId && Database::fetch(
-            'SELECT 1 FROM hizmet_fiyatlari WHERE musteri_id = :m AND maliyet_tipi_id = :t',
-            ['m' => $musteriId, 't' => $tipId]
-        );
+        $tanimli = HizmetFiyat::tanimli($musteriId, $tipId);
         View::json([
             'success' => true,
             'tutar' => $tutar,
-            'kaynak' => $ozel ? 'firma' : 'varsayilan',
+            'tanimli' => $tanimli,
+            'kaynak' => $tanimli ? 'firma' : null,
             'musteri_id' => $musteriId,
             'bayi_fiyat_degistirebilir' => HizmetFiyat::bayiDegistirebilir($tipId),
         ]);

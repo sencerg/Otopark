@@ -7,58 +7,80 @@ namespace App\Services;
 use App\Core\Database;
 
 /**
- * Firma bazlı hizmet ücreti çözümleyici.
- * Öncelik: hizmet_fiyatlari (müşteri + hizmet) → maliyet_tipleri.varsayilan_tutar
- * Otopark günlük fiyat / çarpan yalnızca depolama içindir; buraya karışmaz.
+ * Yalnızca müşteri (firma) bazlı hizmet ücreti.
+ * Genel / varsayılan fiyat yoktur; kayıt yoksa tutar 0 ve tanimli() false.
+ *
+ * maliyet_tipleri.bayi_fiyat_degistirebilir = true ise bayi müşteri fiyatını
+ * uygulama anında değiştirebilir; aksi halde katalog tutarı kilitlidir.
  */
 final class HizmetFiyat
 {
-    public static function tutar(?int $musteriId, int $maliyetTipiId): float
+    public static function tanimli(?int $musteriId, int $maliyetTipiId): bool
     {
-        if ($musteriId) {
-            $ozel = Database::fetch(
-                'SELECT tutar FROM hizmet_fiyatlari WHERE musteri_id = :m AND maliyet_tipi_id = :t',
-                ['m' => $musteriId, 't' => $maliyetTipiId]
-            );
-            if ($ozel) {
-                return round((float) $ozel['tutar'], 2);
-            }
+        if (!$musteriId) {
+            return false;
         }
 
-        $tip = Database::fetch('SELECT varsayilan_tutar FROM maliyet_tipleri WHERE id = :id', ['id' => $maliyetTipiId]);
-
-        return $tip ? round((float) $tip['varsayilan_tutar'], 2) : 0.0;
+        return Database::fetch(
+            'SELECT 1 FROM hizmet_fiyatlari WHERE musteri_id = :m AND maliyet_tipi_id = :t',
+            ['m' => $musteriId, 't' => $maliyetTipiId]
+        ) !== null;
     }
 
-    /** Bayi bu hizmetin tutarını formda/ekstrede değiştirebilir mi? Admin her zaman değiştirebilir. */
+    public static function tutar(?int $musteriId, int $maliyetTipiId): float
+    {
+        if (!$musteriId) {
+            return 0.0;
+        }
+        $ozel = Database::fetch(
+            'SELECT tutar FROM hizmet_fiyatlari WHERE musteri_id = :m AND maliyet_tipi_id = :t',
+            ['m' => $musteriId, 't' => $maliyetTipiId]
+        );
+
+        return $ozel ? round((float) $ozel['tutar'], 2) : 0.0;
+    }
+
     public static function bayiDegistirebilir(int $maliyetTipiId): bool
     {
-        $tip = Database::fetch(
+        $row = Database::fetch(
             'SELECT bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE id = :id',
             ['id' => $maliyetTipiId]
         );
 
-        return $tip ? (bool) $tip['bayi_fiyat_degistirebilir'] : false;
+        return $row ? (bool) $row['bayi_fiyat_degistirebilir'] : false;
     }
 
     /**
-     * Bayi + kilitli hizmet: katalog/firma fiyatını zorlar.
-     * Admin veya değiştirilebilir hizmet: gelen tutarı kullanır (boşsa katalog).
+     * Müşteri fiyatı zorunlu (admin elle tutar girebilir).
+     * Bayi: kilitli hizmette yalnızca katalog; değiştirilebilirde gelen tutar geçerli.
      */
     public static function tutarBayiIcin(?int $musteriId, int $maliyetTipiId, mixed $gelenTutar, bool $admin = false): float
     {
-        $katalog = self::tutar($musteriId, $maliyetTipiId);
-        if (!$admin && !self::bayiDegistirebilir($maliyetTipiId)) {
-            return $katalog;
-        }
-        if ($gelenTutar === null || $gelenTutar === '' || (is_numeric($gelenTutar) && (float) $gelenTutar <= 0)) {
-            return $katalog;
+        if (self::tanimli($musteriId, $maliyetTipiId)) {
+            $katalog = self::tutar($musteriId, $maliyetTipiId);
+            if (!$admin && !self::bayiDegistirebilir($maliyetTipiId)) {
+                return $katalog;
+            }
+            if ($gelenTutar === null || $gelenTutar === '' || (is_numeric($gelenTutar) && (float) $gelenTutar < 0)) {
+                return $katalog;
+            }
+
+            return round((float) $gelenTutar, 2);
         }
 
-        return round((float) $gelenTutar, 2);
+        if ($admin && $gelenTutar !== null && $gelenTutar !== '' && (float) $gelenTutar > 0) {
+            return round((float) $gelenTutar, 2);
+        }
+
+        // Bayi, fiyat tanımsızken ve değiştirilebilir hizmette elle tutar girebilir
+        if (!$admin && self::bayiDegistirebilir($maliyetTipiId)
+            && $gelenTutar !== null && $gelenTutar !== '' && (float) $gelenTutar > 0) {
+            return round((float) $gelenTutar, 2);
+        }
+
+        return 0.0;
     }
 
-    /** Araç bağlamında (müşteri aracın firmasıdır). */
     public static function aracIcin(int $aracId, int $maliyetTipiId): float
     {
         $arac = Database::fetch('SELECT musteri_id FROM araclar WHERE id = :id', ['id' => $aracId]);

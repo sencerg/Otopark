@@ -237,6 +237,7 @@ final class Excel
             'lokasyon detay' => 'lokasyon_detay',
             'sevkiyat kodu' => 'sevkiyat_kodu',
             'irsaliye kodu' => 'irsaliye_kodu',
+            'irsaliye' => 'irsaliye_kodu',
             'proje adi' => 'proje_adi',
             'hizmet kalemi' => 'maliyet_tipi',
             'maliyet tipi' => 'maliyet_tipi',
@@ -246,6 +247,11 @@ final class Excel
             'aciklama' => 'aciklama',
             'fatura no' => 'fatura_no',
             'park kodu' => 'park_kodu',
+            'teslim alan' => 'teslim_alan',
+            'teslim alan telefon' => 'teslim_alan_telefon',
+            'sofor adi soyadi' => 'sofor_adi_soyadi',
+            'sofor telefon' => 'sofor_telefon',
+            'cekici plakasi' => 'cekici_plakasi',
         ];
 
         return $map[$h] ?? preg_replace('/[^a-z0-9_]/', '_', $h) ?? $h;

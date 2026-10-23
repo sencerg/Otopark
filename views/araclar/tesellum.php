@@ -28,7 +28,7 @@ $cikis = $h && (int) $h['hareket_tipi'] === 2;
         <tr><th>KM</th><td><?= $h && $h['km'] !== null ? number_format((int) $h['km'], 0, ',', '.') : ($arac['km'] !== null ? number_format((int) $arac['km'], 0, ',', '.') : '-') ?></td><th>Yakıt Durumu</th><td><?= e(($h['yakit_durumu'] ?? $arac['yakit_durumu']) !== null ? '%' . ($h['yakit_durumu'] ?? $arac['yakit_durumu']) : '-') ?></td></tr>
         <tr><th>Müşteri</th><td><?= e($arac['musteri'] ?: '-') ?></td><th>Lokasyon</th><td><?= e($arac['bayi'] ?: '-') ?><?= $arac['lokasyon_detay'] ? ' / ' . e($arac['lokasyon_detay']) : '' ?></td></tr>
         <?php if ($h): ?>
-            <tr><th>Hareket Tipi</th><td><?= Tanim::HAREKET_TIPI[$h['hareket_tipi']] ?? '-' ?></td><th>Sevkiyat</th><td><?= e(Tanim::SEVKIYAT_TIPI[$h['sevkiyat_tipi'] ?? 0] ?? '-') ?><?= $h['cekici_plakasi'] ? ' / ' . e($h['cekici_plakasi']) : '' ?></td></tr>
+            <tr><th>Hareket Tipi</th><td><?= Tanim::HAREKET_TIPI[$h['hareket_tipi']] ?? '-' ?></td><th>Çekici Plakası</th><td><?= e($h['cekici_plakasi'] ?: '-') ?></td></tr>
         <?php endif; ?>
     </table>
 

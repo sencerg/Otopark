@@ -203,19 +203,26 @@ final class AracService
         }
         $musteriId = isset($data['musteri_id']) ? (int) $data['musteri_id'] : (int) ($arac['musteri_id'] ?? 0);
         $tipId = (int) $data['maliyet_tipi_id'];
+        $gelen = $data['tutar'] ?? null;
+        $tanimli = HizmetFiyat::tanimli($musteriId ?: null, $tipId);
+        $deg = HizmetFiyat::bayiDegistirebilir($tipId);
+        if (!$tanimli
+            && !(Auth::isAdmin() && $gelen !== null && $gelen !== '' && (float) $gelen > 0)
+            && !($deg && $gelen !== null && $gelen !== '' && (float) $gelen > 0)) {
+            throw new RuntimeException('Bu hizmet için müşteri fiyatı belirlenmedi.');
+        }
         $tutar = HizmetFiyat::tutarBayiIcin(
             $musteriId ?: null,
             $tipId,
-            $data['tutar'] ?? null,
+            $gelen,
             Auth::isAdmin()
         );
-        if ($tutar <= 0) {
-            throw new RuntimeException('Geçerli bir tutar giriniz (firma özel fiyatı veya hizmet varsayılan ücreti).');
+        if ($tutar < 0 || ($tutar <= 0 && !$tanimli)) {
+            throw new RuntimeException('Geçerli bir tutar giriniz.');
         }
-        if (!Auth::isAdmin() && !HizmetFiyat::bayiDegistirebilir($tipId)
-            && isset($data['tutar']) && $data['tutar'] !== null && $data['tutar'] !== ''
-            && abs((float) $data['tutar'] - $tutar) > 0.009) {
-            throw new RuntimeException('Bu hizmetin fiyatı admin tarafından kilitlenmiştir; tutar değiştirilemez.');
+        if (!Auth::isAdmin() && !$deg && $tanimli && $gelen !== null && $gelen !== ''
+            && abs((float) $gelen - $tutar) > 0.009) {
+            throw new RuntimeException('Bu hizmetin fiyatı kilitlidir; tutar değiştirilemez.');
         }
 
         $id = self::insert('arac_ekstreleri', [

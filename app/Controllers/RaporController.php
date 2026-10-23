@@ -86,21 +86,36 @@ final class RaporController extends Controller
             return $r;
         };
 
+        $fiyat = Auth::fiyatGorebilir();
         if (Request::input('export')) {
-            Excel::download("depolama-raporu-{$bas}-{$bit}", [
+            $kolonlar = [
                 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'arac_tipi' => 'Araç Tipi', 'lokasyon' => 'Lokasyon',
                 'giris_tarihi' => 'Giriş Tarihi', 'cikis_tarihi' => 'Çıkış Tarihi', 'donem_bas' => 'Dönem Başı', 'donem_bit' => 'Dönem Sonu',
-                'gun' => 'Gün', 'gunluk_fiyat' => 'Günlük Fiyat', 'tutar' => 'Tutar',
-            ], array_map(static function (array $r) use ($enrich) {
+                'gun' => 'Gün',
+            ];
+            if ($fiyat) {
+                $kolonlar += ['gunluk_fiyat' => 'Günlük Fiyat', 'tutar' => 'Tutar'];
+            }
+            Excel::download("depolama-raporu-{$bas}-{$bit}", $kolonlar, array_map(static function (array $r) use ($enrich, $fiyat) {
                 $r = $enrich($r);
                 if (!empty($r['fiyat_degisti']) && !empty($r['fiyat_ozet'])) {
                     $r['gunluk_fiyat'] = $r['fiyat_ozet'];
+                }
+                if (!$fiyat) {
+                    unset($r['gunluk_fiyat'], $r['tutar'], $r['fiyat_ozet']);
                 }
 
                 return $r;
             }, $dt->all()));
         }
-        $dt->response($enrich, ['toplam' => $dt->sum('d.tutar'), 'toplam_gun' => $dt->sum('d.gun')]);
+        $dt->response(static function (array $r) use ($enrich, $fiyat): array {
+            $r = $enrich($r);
+            if (!$fiyat) {
+                unset($r['gunluk_fiyat'], $r['tutar'], $r['fiyat_ozet'], $r['fiyat_yok'], $r['fiyat_degisti']);
+            }
+
+            return $r;
+        }, ['toplam' => $fiyat ? $dt->sum('d.tutar') : 0, 'toplam_gun' => $dt->sum('d.gun')]);
     }
 
     public function ekHizmet(): void
@@ -111,13 +126,36 @@ final class RaporController extends Controller
     public function ekHizmetListe(): void
     {
         $dt = MaliyetController::ekstreTablosu();
+        $fiyat = Auth::fiyatGorebilir();
         if (Request::input('export')) {
-            Excel::download('ek-hizmet-raporu', [
+            $kolonlar = [
                 'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri',
-                'lokasyon' => 'Lokasyon', 'maliyet_tipi' => 'Hizmet', 'aciklama' => 'Açıklama', 'fatura_no' => 'Fatura No', 'tutar' => 'Tutar',
+                'lokasyon' => 'Lokasyon', 'maliyet_tipi' => 'Hizmet', 'aciklama' => 'Açıklama', 'fatura_no' => 'Fatura No',
                 'cikis_sonrasi_ad' => 'Çıkış Sonrası Eklendi',
-            ], array_map(fn ($r) => $r + ['cikis_sonrasi_ad' => $r['cikis_sonrasi'] ? 'Evet' : ''], $dt->all()));
+            ];
+            if ($fiyat) {
+                $kolonlar = array_merge(
+                    array_slice($kolonlar, 0, 9, true),
+                    ['tutar' => 'Tutar'],
+                    array_slice($kolonlar, 9, null, true)
+                );
+            }
+            Excel::download('ek-hizmet-raporu', $kolonlar, array_map(static function ($r) use ($fiyat) {
+                $r['cikis_sonrasi_ad'] = $r['cikis_sonrasi'] ? 'Evet' : '';
+                if (!$fiyat) {
+                    unset($r['tutar']);
+                }
+
+                return $r;
+            }, $dt->all()));
         }
-        $dt->response(null, ['toplam' => $dt->sum('e.tutar'), 'ozet' => $dt->groupSum('mt.ad', 'e.tutar')]);
+        $dt->response(
+            $fiyat ? null : static function (array $r): array {
+                unset($r['tutar']);
+
+                return $r;
+            },
+            ['toplam' => $fiyat ? $dt->sum('e.tutar') : 0, 'ozet' => $fiyat ? $dt->groupSum('mt.ad', 'e.tutar') : []]
+        );
     }
 }

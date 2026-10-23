@@ -16,6 +16,7 @@ $envanter = $oldList('arac_envanterleri', $envanter);
 $donanim = $oldList('arac_donanimlari', $donanim);
 $markaId = $v('marka_id');
 $seriId = $v('seri_id');
+$fg = Auth::fiyatGorebilir();
 
 if (!$yeni) {
     $headerActions = '<a href="/arac_yonetimi/tesellum_formu/' . $arac['id'] . '" target="_blank" class="btn btn-outline-primary"><i class="mdi mdi-file-document-outline me-1"></i>Tesellüm Formu</a>'
@@ -172,8 +173,8 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                 <div class="col-md-3"><label class="form-label required">Maliyet Tipi</label>
                     <select name="maliyet_tipi_modal" class="form-select select2" data-tutar-target="#arac-maliyet-tutar" required>
                         <option value="">Seçiniz</option>
-                        <?php foreach (Database::fetchAll('SELECT id, ad, varsayilan_tutar, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY id') as $mt): ?>
-                            <option value="<?= $mt['id'] ?>" data-tutar="<?= e($mt['varsayilan_tutar']) ?>" data-bayi-degistirebilir="<?= !empty($mt['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($mt['ad']) ?></option>
+                        <?php foreach (Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY id') as $mt): ?>
+                            <option value="<?= $mt['id'] ?>" data-bayi-degistirebilir="<?= !empty($mt['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($mt['ad']) ?><?= empty($mt['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -235,7 +236,7 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
 
         <div class="tab-pane fade" id="tab-depolama">
             <table class="table align-middle">
-                <thead><tr><th>Lokasyon</th><th>Giriş</th><th>Çıkış</th><th class="text-end">Gün</th><th class="text-end">Günlük Fiyat</th><th class="text-end">Tutar</th></tr></thead>
+                <thead><tr><th>Lokasyon</th><th>Giriş</th><th>Çıkış</th><th class="text-end">Gün</th><?php if ($fg): ?><th class="text-end">Günlük Fiyat</th><th class="text-end">Tutar</th><?php endif; ?></tr></thead>
                 <tbody>
                 <?php $depToplam = 0; foreach ($depolama as $d): $depToplam += (float) $d['tutar']; ?>
                     <tr>
@@ -243,17 +244,19 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                         <td><?= date('d.m.Y', strtotime($d['giris_tarihi'])) ?></td>
                         <td><?= $d['cikis_tarihi'] ? date('d.m.Y', strtotime($d['cikis_tarihi'])) : '<span class="badge badge-soft-success">Stokta</span>' ?></td>
                         <td class="text-end"><?= (int) $d['gun'] ?></td>
+                        <?php if ($fg): ?>
                         <td class="text-end"><?php
-                            if ($d['fiyat_yok']): ?><span class="badge badge-soft-warning">Fiyat tanımlı değil</span><?php
+                            if ($d['fiyat_yok']): ?><span class="badge badge-soft-warning">Fiyat belirlenmedi</span><?php
                             elseif (!empty($d['fiyat_degisti'])): ?><span class="small"><?= e(\App\Services\DepolamaHesap::fiyatAciklama($d)) ?></span><?php
                             else: ?><?= number_format((float) $d['gunluk_fiyat'], 2, ',', '.') ?> ₺<?php
                             endif; ?></td>
-                        <td class="text-end fw-semibold"><?= number_format((float) $d['tutar'], 2, ',', '.') ?> ₺</td>
+                        <td class="text-end fw-semibold"><?= !empty($d['fiyat_yok']) ? '—' : number_format((float) $d['tutar'], 2, ',', '.') . ' ₺' ?></td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
-                <?php if (!$depolama): ?><tr><td colspan="6" class="text-center text-muted py-4">Depolama kaydı yok.</td></tr><?php endif; ?>
+                <?php if (!$depolama): ?><tr><td colspan="<?= $fg ? 6 : 4 ?>" class="text-center text-muted py-4">Depolama kaydı yok.</td></tr><?php endif; ?>
                 </tbody>
-                <?php if ($depolama): ?><tfoot><tr><th colspan="5" class="text-end">Toplam Depolama</th><th class="text-end"><?= number_format($depToplam, 2, ',', '.') ?> ₺</th></tr></tfoot><?php endif; ?>
+                <?php if ($depolama && $fg): ?><tfoot><tr><th colspan="5" class="text-end">Toplam Depolama</th><th class="text-end"><?= number_format($depToplam, 2, ',', '.') ?> ₺</th></tr></tfoot><?php endif; ?>
             </table>
         </div>
     </div>
@@ -266,7 +269,7 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
             <div class="modal-header"><h5 class="modal-title">Maliyet Düzenle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body row g-3">
                 <div class="col-12"><label class="form-label required">Maliyet Tipi</label><select name="maliyet_tipi_id" class="form-select" required><?= Tanim::options(Tanim::liste('maliyet_tipleri')) ?></select></div>
-                <div class="col-6"><label class="form-label required">Tutar (₺)</label><input type="number" step="0.01" min="0" name="tutar" class="form-control" required></div>
+                <div class="col-6"><label class="form-label required">Tutar (₺)</label><input type="number" step="0.01" min="0" name="tutar" class="form-control" required data-tutar-field></div>
                 <div class="col-6"><label class="form-label">İşlem Tarihi</label><input type="date" name="islem_tarihi" class="form-control"></div>
                 <div class="col-6"><label class="form-label">Fatura No</label><input type="text" name="fatura_no" class="form-control"></div>
                 <div class="col-6"><label class="form-label">Fatura Tarihi</label><input type="date" name="fatura_tarihi" class="form-control"></div>

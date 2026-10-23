@@ -336,6 +336,14 @@ final class AracController extends Controller
         $this->view('araclar/toplu_stok', ['pageTitle' => 'Toplu Stok Girişi', 'breadcrumb' => ['Araç Yönetimi' => '/arac_yonetimi', 'Toplu Stok Girişi' => null]]);
     }
 
+    public function topluStokCikisi(): void
+    {
+        $this->view('araclar/toplu_cikis', [
+            'pageTitle' => 'Toplu Stok Çıkışı',
+            'breadcrumb' => ['Stoktan Çıkanlar' => '/arac_hareketleri/cikis', 'Toplu Stok Çıkışı' => null],
+        ]);
+    }
+
     public function topluEkMaliyet(): void
     {
         $this->view('araclar/toplu_excel', [
@@ -361,6 +369,21 @@ final class AracController extends Controller
         }
         if ($tip === 'maliyet') {
             $this->maliyetSablonXlsx();
+        }
+        if ($tip === 'cikis') {
+            // Referans BIA şablonu: Plaka (opsiyonel) + Şase; plaka boş / şasi tek başına OK
+            Excel::downloadXlsx('Toplu_Stok_Cikisi_Sablonu', [
+                'Worksheet' => [
+                    'headers' => [
+                        'plaka' => 'Plaka *',
+                        'sase' => 'Şase Numarası *',
+                    ],
+                    'rows' => [
+                        ['plaka' => '', 'sase' => 'TMBAN8NZ7TC066835'],
+                        ['plaka' => '34ABC123', 'sase' => ''],
+                    ],
+                ],
+            ]);
         }
         if ($tip === 'lokasyon') {
             Excel::download('sablon-lokasyon', [
@@ -473,6 +496,40 @@ final class AracController extends Controller
         return [$file['tmp_name'], $file['name']];
     }
 
+    /**
+     * Toplu çıkış satırından araç bulur.
+     * Plaka boş olabilir; şasi yeter. Plaka sütununa şasi yapıştırılmışsa da kabul edilir.
+     */
+    private function stoktakiAracSatirdan(?array $satir): ?array
+    {
+        $adaylar = [];
+        foreach ([(string) ($satir['sase'] ?? ''), (string) ($satir['plaka'] ?? '')] as $ham) {
+            $n = AracService::normalizeSase($ham);
+            if ($n !== '' && !in_array($n, $adaylar, true)) {
+                $adaylar[] = $n;
+            }
+        }
+        foreach ($adaylar as $deger) {
+            $arac = Database::fetch(
+                'SELECT * FROM araclar WHERE sase = :s AND NOT COALESCE(arsiv, false) AND ' . Auth::bayiKosulu('bayi_id'),
+                ['s' => $deger]
+            );
+            if ($arac) {
+                return $arac;
+            }
+            $arac = Database::fetch(
+                "SELECT * FROM araclar WHERE upper(replace(coalesce(plaka,''), ' ', '')) = :p
+                 AND NOT COALESCE(arsiv, false) AND " . Auth::bayiKosulu('bayi_id'),
+                ['p' => $deger]
+            );
+            if ($arac) {
+                return $arac;
+            }
+        }
+
+        return null;
+    }
+
     public function excelTopluGiris(): void
     {
         $this->form(function () {
@@ -580,6 +637,117 @@ final class AracController extends Controller
             }
             View::redirect('/arac_hareketleri/giris');
         }, '/arac_yonetimi/toplu_stok_girisi');
+    }
+
+    public function excelTopluCikis(): void
+    {
+        $this->form(function () {
+            $cikisTarihi = Request::dateTime('hareket_tarihi', 'hareket_saati') ?? date('Y-m-d H:i:s');
+            $cikisTs = strtotime($cikisTarihi);
+            if ($cikisTs > time()) {
+                throw new RuntimeException('Çıkış tarihi ileri bir tarih/saat olamaz.');
+            }
+            $sevkiyatTipi = Tanim::sevkiyatTipi(Request::int('sevkiyat_tipi'));
+            $nedenId = Request::int('hareket_nedeni');
+            if (!$nedenId || !Database::fetch('SELECT 1 FROM hareket_nedenleri WHERE id = :id', ['id' => $nedenId])) {
+                throw new RuntimeException('Hareket nedeni seçilmelidir.');
+            }
+            $personelId = Request::int('teslim_alan_personel');
+            Auth::dogrulaPersonel($personelId, 'Personel');
+
+            $ortak = [
+                'hareket_nedeni_id' => $nedenId,
+                'sevkiyat_tipi' => $sevkiyatTipi,
+                'teslim_alan' => Request::str('teslim_alan'),
+                'teslim_alan_telefon' => Request::str('teslim_alan_telefon'),
+                'teslim_alan_personel_id' => $personelId,
+                'sevkiyat_kodu' => Request::str('sevkiyat_kodu'),
+                'irsaliye_kodu' => Request::str('irsaliye_kodu'),
+                'sofor_adi_soyadi' => Request::str('sofor_adi_soyadi'),
+                'sofor_telefon' => Request::str('sofor_telefon'),
+                'cekici_plakasi' => Request::str('cekici_plakasi'),
+                'aciklama' => Request::str('aciklama'),
+                'hareket_tarihi' => $cikisTarihi,
+            ];
+
+            $satirlar = [];
+            if (!empty($_FILES['import_file']['name'])) {
+                [$path, $name] = $this->yuklenenDosya();
+                $satirlar = Excel::read($path, $name);
+            } else {
+                $plakalar = (array) ($_POST['satir']['plaka'] ?? []);
+                $saseList = (array) ($_POST['satir']['sase'] ?? []);
+                $max = max(count($plakalar), count($saseList));
+                for ($i = 0; $i < $max; $i++) {
+                    $satirlar[] = [
+                        'plaka' => $plakalar[$i] ?? '',
+                        'sase' => $saseList[$i] ?? '',
+                    ];
+                }
+            }
+            $satirlar = array_values(array_filter(
+                $satirlar,
+                static fn ($s) => trim((string) ($s['sase'] ?? '')) !== '' || trim((string) ($s['plaka'] ?? '')) !== ''
+            ));
+            if (!$satirlar) {
+                throw new RuntimeException('Çıkış yapılacak satır bulunamadı. Excel yükleyin veya plaka / şasi girin.');
+            }
+
+            $basarili = 0;
+            $hatalar = [];
+            $islenen = [];
+            foreach ($satirlar as $i => $s) {
+                try {
+                    $arac = $this->stoktakiAracSatirdan($s);
+                    if (!$arac) {
+                        throw new RuntimeException('Şasi / plaka ile stokta araç bulunamadı (plaka boşsa şasi yeterli)');
+                    }
+                    if (!filter_var($arac['stokta'], FILTER_VALIDATE_BOOLEAN)) {
+                        throw new RuntimeException('Araç stokta değil');
+                    }
+                    $aracId = (int) $arac['id'];
+                    if (isset($islenen[$aracId])) {
+                        throw new RuntimeException('Aynı araç satırda tekrarlanmış, atlandı');
+                    }
+                    $girisTs = strtotime((string) ($arac['stoga_giris_tarihi'] ?? ''));
+                    if ($girisTs && $cikisTs < $girisTs) {
+                        throw new RuntimeException('Çıkış tarihi girişten önce olamaz (giriş: ' . date('d.m.Y H:i', $girisTs) . ')');
+                    }
+
+                    AracService::hareketEkle($aracId, [
+                        'hareket_tipi' => 2,
+                        'hareket_nedeni_id' => $ortak['hareket_nedeni_id'],
+                        'musteri_id' => $arac['musteri_id'],
+                        'bayi_id' => $arac['bayi_id'],
+                        'teslim_alan' => $ortak['teslim_alan'],
+                        'teslim_alan_telefon' => $ortak['teslim_alan_telefon'],
+                        'teslim_alan_personel_id' => $ortak['teslim_alan_personel_id'],
+                        'sevkiyat_tipi' => $ortak['sevkiyat_tipi'],
+                        'sofor_adi_soyadi' => $ortak['sofor_adi_soyadi'],
+                        'sofor_telefon' => $ortak['sofor_telefon'],
+                        'cekici_plakasi' => $ortak['cekici_plakasi'],
+                        'sevkiyat_kodu' => $ortak['sevkiyat_kodu'],
+                        'irsaliye_kodu' => $ortak['irsaliye_kodu'],
+                        'aciklama' => $ortak['aciklama'],
+                        'hareket_tarihi' => $ortak['hareket_tarihi'],
+                    ]);
+                    $islenen[$aracId] = true;
+                    $basarili++;
+                } catch (\PDOException $e) {
+                    error_log($e->getMessage());
+                    $hatalar[] = 'Satır ' . ($i + 1) . ' (' . ($s['sase'] ?? $s['plaka'] ?? '?') . '): kayıt hatası';
+                } catch (RuntimeException $e) {
+                    $hatalar[] = 'Satır ' . ($i + 1) . ' (' . ($s['sase'] ?? $s['plaka'] ?? '?') . '): ' . $e->getMessage();
+                }
+            }
+
+            Log::islem('hareket', "Toplu stok çıkışı: {$basarili} araç");
+            flash('success', "{$basarili} araç stoktan çıkarıldı.");
+            if ($hatalar) {
+                flash('error', count($hatalar) . ' satır işlenemedi: ' . implode(' | ', array_slice($hatalar, 0, 10)));
+            }
+            View::redirect($basarili > 0 ? '/arac_hareketleri/cikis' : '/arac_yonetimi/toplu_stok_cikisi');
+        }, '/arac_yonetimi/toplu_stok_cikisi');
     }
 
     public function excelTopluMaliyet(): void

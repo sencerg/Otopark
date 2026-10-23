@@ -250,13 +250,13 @@
             .always(() => $btn.prop('disabled', false));
     });
 
-    /* Maliyet tipi seçilince firma özel fiyatı (yoksa varsayılan) getir; kilitli hizmette tutarı kilitle */
+    /* Maliyet tipi → müşteri fiyatı; bayi_fiyat_degistirebilir kapalıysa tutar kilitli. */
     const isAdminUser = () => document.body.dataset.admin === '1';
     function hizmetTutarKilitle($tutar, degistirebilir) {
         if (!$tutar || !$tutar.length) return;
-        const kilitli = !isAdminUser() && degistirebilir === false;
+        const kilitli = !isAdminUser() && !degistirebilir;
         $tutar.prop('readonly', kilitli).toggleClass('bg-light', kilitli);
-        if (kilitli) $tutar.attr('title', 'Bu hizmetin fiyatı admin tarafından kilitlenmiştir');
+        if (kilitli) $tutar.attr('title', 'Bu hizmetin fiyatı kilitli; müşteriye tanımlı tutar kullanılır');
         else $tutar.removeAttr('title');
     }
     function hizmetTutarDoldur($select, zorla) {
@@ -271,22 +271,29 @@
         const aracId = $form.find('[name=arac_id]').val();
         const musteriId = $form.find('[name=musteri_id]').val();
         const $opt = $select.find(':selected');
-        const fallback = Number($opt.data('tutar') || 0);
         const optDeg = $opt.data('bayiDegistirebilir');
-        const uygula = (tutar, degistirebilir) => {
-            if (Number(tutar) > 0) $target.val(Number(tutar));
-            else if (fallback > 0) $target.val(fallback);
-            hizmetTutarKilitle($target, degistirebilir !== false && degistirebilir !== 0 && degistirebilir !== '0');
+        const uygula = (tutar, tanimli, degistirebilir) => {
+            if (tanimli) {
+                $target.val(Number(tutar));
+                $target.removeClass('is-invalid').attr('placeholder', '');
+            } else {
+                $target.val('');
+                $target.attr('placeholder', 'Fiyat belirlenmedi');
+            }
+            hizmetTutarKilitle($target, degistirebilir);
         };
         if (aracId || musteriId) {
             $.getJSON('/api/hizmet_fiyat', { maliyet_tipi_id: tipId, arac_id: aracId || '', musteri_id: musteriId || '' })
                 .done((r) => {
                     const deg = r.bayi_fiyat_degistirebilir;
-                    uygula(r.success && Number(r.tutar) > 0 ? r.tutar : fallback, deg === undefined ? optDeg : deg);
+                    const degOk = deg === undefined
+                        ? !(optDeg === false || optDeg === 0 || optDeg === '0')
+                        : !!(deg);
+                    uygula(r.success ? Number(r.tutar || 0) : 0, !!(r.success && r.tanimli), degOk);
                 })
-                .fail(() => uygula(fallback, optDeg));
+                .fail(() => uygula(0, false, !(optDeg === false || optDeg === 0 || optDeg === '0')));
         } else {
-            uygula(fallback, optDeg);
+            uygula(0, false, !(optDeg === false || optDeg === 0 || optDeg === '0'));
         }
     }
     $(document).on('change', 'select[data-tutar-target], select[name="hizmet_id[]"], select[name=maliyet_tipi_modal], select[name=maliyet_tipi_id]', function () {

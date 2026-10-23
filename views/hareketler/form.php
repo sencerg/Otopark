@@ -1,9 +1,11 @@
 <?php
+use App\Core\Auth;
 use App\Core\Csrf;
 use App\Core\Tanim;
 
 $t = strtotime($h['hareket_tarihi']);
 $cikis = (int) $h['hareket_tipi'] === 2;
+$fg = Auth::fiyatGorebilir();
 if ($readonly) {
     $headerActions = '<a href="/arac_hareketleri/hareket_duzenle/' . $h['id'] . '" class="btn btn-primary"><i class="mdi mdi-pencil me-1"></i>Düzenle</a>';
 }
@@ -12,6 +14,7 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
 ?>
 <form method="post" action="/arac_hareketleri/hareket_update/<?= $h['id'] ?>" enctype="multipart/form-data">
     <?= Csrf::field() ?>
+    <input type="hidden" name="arac_id" value="<?= (int) $h['arac_id'] ?>">
     <fieldset <?= $readonly ? 'disabled' : '' ?>>
     <div class="row">
         <div class="col-xl-8">
@@ -66,13 +69,12 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
 
                     <div class="form-section">Sevkiyat Bilgileri</div>
                     <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label required">Sevkiyat Tipi</label><select name="sevkiyat_tipi" class="form-select" required><?= Tanim::options(Tanim::SEVKIYAT_TIPI, $h['sevkiyat_tipi']) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Sevkiyat Durumu</label><select name="sevkiyat_durumu" class="form-select"><?= Tanim::options(Tanim::SEVKIYAT_DURUMU, $h['sevkiyat_durumu']) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Çekici Plakası</label><input type="text" name="cekici_plakasi" class="form-control text-uppercase" value="<?= e($h['cekici_plakasi']) ?>"></div>
                         <div class="col-md-4"><label class="form-label">Şoför Adı Soyadı</label><input type="text" name="sofor_adi_soyadi" class="form-control" value="<?= e($h['sofor_adi_soyadi']) ?>"></div>
                         <div class="col-md-4"><label class="form-label">Şoför Telefon</label><input type="text" name="sofor_telefon" class="form-control" value="<?= e($h['sofor_telefon']) ?>"></div>
-                        <div class="col-md-2"><label class="form-label">Sevkiyat Kodu</label><input type="text" name="sevkiyat_kodu" class="form-control" value="<?= e($h['sevkiyat_kodu']) ?>"></div>
-                        <div class="col-md-2"><label class="form-label">İrsaliye Kodu</label><input type="text" name="irsaliye_kodu" class="form-control" value="<?= e($h['irsaliye_kodu']) ?>"></div>
+                        <div class="col-md-4"><label class="form-label">Sevkiyat Kodu</label><input type="text" name="sevkiyat_kodu" class="form-control" value="<?= e($h['sevkiyat_kodu']) ?>"></div>
+                        <div class="col-md-4"><label class="form-label">İrsaliye Kodu</label><input type="text" name="irsaliye_kodu" class="form-control" value="<?= e($h['irsaliye_kodu']) ?>"></div>
                     </div>
                 </div>
             </div>
@@ -90,15 +92,18 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                         <tbody>
                         <tr>
                             <td><i class="mdi mdi-parking text-primary me-1"></i><b>Depolama</b>
-                                <?php if ($konaklama): ?>
+                                <?php if ($konaklama && $fg): ?>
                                     <span class="text-muted small">— <?php
-                                        if (!empty($konaklama['fiyat_yok'])): ?><span class="badge badge-soft-warning">Fiyat tanımlı değil</span><?php
+                                        if (!empty($konaklama['fiyat_yok'])): ?><span class="badge badge-soft-warning">Fiyat belirlenmedi</span><?php
                                         elseif (!empty($konaklama['fiyat_degisti'])): ?><?= e(\App\Services\DepolamaHesap::fiyatAciklama($konaklama)) ?><?php
                                         else: ?><?= (int) $konaklama['gun'] ?> gün × <?= number_format((float) $konaklama['gunluk_fiyat'], 2, ',', '.') ?> ₺<?php endif; ?></span>
+                                <?php elseif ($konaklama): ?>
+                                    <span class="text-muted small">— <?= (int) $konaklama['gun'] ?> gün</span>
                                 <?php endif; ?>
                             </td>
                             <td></td>
-                            <td class="text-end fw-semibold"><?= number_format($depTutar, 2, ',', '.') ?> ₺</td>
+                            <?php if ($fg): ?><td class="text-end fw-semibold"><?= !empty($konaklama['fiyat_yok']) ? '<span class="badge badge-soft-warning">Fiyat belirlenmedi</span>' : number_format($depTutar, 2, ',', '.') . ' ₺' ?></td>
+                            <?php else: ?><td></td><?php endif; ?>
                             <td style="width: 40px"></td>
                         </tr>
                         <?php foreach ($eklenenler as $x): ?>
@@ -114,14 +119,12 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                                 <?php if ($readonly): ?>
                                     <td class="text-end"><?= number_format((float) $x['tutar'], 2, ',', '.') ?> ₺</td>
                                 <?php else:
-                                    $tanimdan = (float) $x['tutar'] <= 0 && (float) $x['varsayilan_tutar'] > 0;
-                                    $deger = (float) $x['tutar'] > 0 ? $x['tutar'] : ($tanimdan ? $x['varsayilan_tutar'] : '');
+                                    $deger = (float) $x['tutar'] > 0 ? $x['tutar'] : '';
                                 ?>
                                     <td class="text-end" style="width: 150px">
-                                        <input type="number" name="mevcut_tutar[<?= $x['id'] ?>]" value="<?= e($deger) ?>" step="0.01" min="0.01"
-                                               class="form-control form-control-sm text-end <?= $deger === '' ? 'is-invalid' : '' ?>" placeholder="Ücret girin" title="Ücreti değiştirebilirsiniz">
-                                        <?php if ($tanimdan): ?><div class="small text-primary mt-1"><i class="mdi mdi-auto-fix"></i> Hizmet tanımındaki fiyat getirildi</div>
-                                        <?php elseif ($deger === ''): ?><div class="small text-danger mt-1">Ücret girilmemiş</div><?php endif; ?>
+                                        <input type="number" name="mevcut_tutar[<?= $x['id'] ?>]" value="<?= e($deger) ?>" step="0.01" min="0"
+                                               class="form-control form-control-sm text-end" placeholder="Fiyat belirlenmedi"
+                                               <?= Auth::isAdmin() ? '' : 'readonly' ?>>
                                     </td>
                                 <?php endif; ?>
                                 <td><?php if (!$readonly && $x['cikis_sonrasi']): ?><button type="button" class="btn btn-sm btn-light text-danger" data-hizmet-sil="<?= $x['id'] ?>" title="Sil"><i class="mdi mdi-delete-outline"></i></button><?php endif; ?></td>
@@ -141,8 +144,8 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                     <?php endif; ?>
 
                     <div class="d-flex justify-content-between align-items-center border-top mt-3 pt-3">
-                        <span class="text-muted">Toplam ücret (depolama + hizmetler)</span>
-                        <span class="fs-4 fw-bold text-primary" id="toplam-ucret" data-sabit="<?= $readonly ? $depTutar + $hizmetToplam : $depTutar ?>"><?= number_format($depTutar + $hizmetToplam, 2, ',', '.') ?> ₺</span>
+                        <span class="text-muted">Toplam ücret<?= $fg ? ' (depolama + hizmetler)' : ' (hizmetler)' ?></span>
+                        <span class="fs-4 fw-bold text-primary" id="toplam-ucret" data-sabit="<?= $readonly ? (($fg ? $depTutar : 0) + $hizmetToplam) : ($fg ? $depTutar : 0) ?>"><?= number_format(($fg ? $depTutar : 0) + $hizmetToplam, 2, ',', '.') ?> ₺</span>
                     </div>
                 </div>
             </div>
@@ -150,9 +153,9 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                 <tr class="table-warning">
                     <td><select name="hizmet_id[]" class="form-select form-select-sm select2" required>
                         <option value="">Seçiniz</option>
-                        <?php foreach ($hizmetler as $hz): ?><option value="<?= $hz['id'] ?>" data-tutar="<?= e($hz['varsayilan_tutar']) ?>" data-bayi-degistirebilir="<?= !empty($hz['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($hz['ad']) ?><?= (float) $hz['varsayilan_tutar'] > 0 ? ' — ' . number_format((float) $hz['varsayilan_tutar'], 2, ',', '.') . ' ₺' : '' ?><?= empty($hz['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?></option><?php endforeach; ?>
+                        <?php foreach ($hizmetler as $hz): ?><option value="<?= $hz['id'] ?>" data-bayi-degistirebilir="<?= !empty($hz['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($hz['ad']) ?><?= empty($hz['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?></option><?php endforeach; ?>
                     </select></td>
-                    <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0.01" placeholder="Ücret girin" required></td>
+                    <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0" placeholder="Fiyat belirlenmedi" required></td>
                     <td><input type="text" name="hizmet_not[]" class="form-control form-control-sm" maxlength="500" placeholder="Neden sonradan eklendi?"></td>
                     <td><button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-close"></i></button></td>
                 </tr>

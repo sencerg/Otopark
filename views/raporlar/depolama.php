@@ -7,13 +7,13 @@ use App\Core\Tanim;
         <h5>Depolama Raporu</h5>
         <div class="dt-toolbar">
             <div class="total-box">Toplam Gün: <b id="toplam-gun">0</b></div>
-            <div class="total-box">Toplam Tutar: <b id="toplam-tutar">0,00 ₺</b></div>
+            <?php if (Auth::fiyatGorebilir()): ?><div class="total-box">Toplam Tutar: <b id="toplam-tutar">0,00 ₺</b></div><?php endif; ?>
             <button id="dt-export" class="btn btn-sm btn-success"><i class="mdi mdi-microsoft-excel me-1"></i>Excel İndir</button>
         </div>
     </div>
     <div class="card-body">
         <div class="alert alert-light border small mb-3">
-            <i class="mdi mdi-information-outline me-1"></i>Seçilen tarih aralığında stokta kalınan günler, giriş günü dahil sayılır ve müşteri / lokasyon / araç tipi için tanımlı <a href="/arac_yonetimi/tanimlar/depolama_fiyatlari">günlük depolama fiyatı</a> ile çarpılır.
+            <i class="mdi mdi-information-outline me-1"></i>Seçilen tarih aralığında stokta kalınan günler, giriş günü dahil sayılır. Ücret yalnızca müşteri kartında o otopark için tanımlı günlük fiyattan hesaplanır; tanımlı değilse “Fiyat belirlenmedi” görünür.
         </div>
         <div class="filter-bar filter-scope">
             <div><label class="form-label">Başlangıç</label><input type="date" data-filter="baslangic" class="form-control" value="<?= date('Y-m-01') ?>"></div>
@@ -31,7 +31,7 @@ use App\Core\Tanim;
         </div>
         <div class="table-responsive">
             <table id="liste" class="table table-hover w-100">
-                <thead><tr><th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka / Seri</th><th>Araç Tipi</th><th>Lokasyon</th><th>Giriş</th><th>Çıkış</th><th class="text-end">Gün</th><th class="text-end">Günlük Fiyat</th><th class="text-end">Tutar</th></tr></thead>
+                <thead><tr><th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka / Seri</th><th>Araç Tipi</th><th>Lokasyon</th><th>Giriş</th><th>Çıkış</th><th class="text-end">Gün</th><?php if (Auth::fiyatGorebilir()): ?><th class="text-end">Günlük Fiyat</th><th class="text-end">Tutar</th><?php endif; ?></tr></thead>
             </table>
         </div>
     </div>
@@ -40,22 +40,28 @@ use App\Core\Tanim;
 <?php ob_start(); ?>
 <script>
 $(function () {
+    const fiyat = document.body.dataset.fiyat === '1';
+    const cols = [
+        { data: 'sase', render: (v, _, r) => `<a href="/arac_yonetimi/duzenle/${r.arac_id}" class="fw-semibold">${App.esc(v)}</a>` },
+        { data: 'plaka', render: (v) => App.esc(v || '-') },
+        { data: 'firma', render: (v) => App.esc(v || '-') },
+        { data: 'marka', render: (v, _, r) => App.esc([v, r.seri].filter(Boolean).join(' ') || '-') },
+        { data: 'arac_tipi', render: (v) => App.esc(v || '-') },
+        { data: 'lokasyon', render: (v) => App.esc(v || '-') },
+        { data: 'giris_tarihi' },
+        { data: 'cikis_tarihi', render: (v) => v || App.badge('Stokta', 'success') },
+        { data: 'gun', className: 'text-end' },
+    ];
+    if (fiyat) {
+        cols.push(
+            { data: 'gunluk_fiyat', className: 'text-end', render: (v, _, r) => r.fiyat_yok ? App.badge('Fiyat belirlenmedi', 'warning') : (r.fiyat_degisti && r.fiyat_ozet ? App.esc(r.fiyat_ozet) : App.money(v)) },
+            { data: 'tutar', className: 'text-end fw-semibold', render: (v) => App.money(v) },
+        );
+    }
     App.table('#liste', {
         url: '/depolama_raporu/liste', order: [[6, 'desc']],
-        onData: (json) => { $('#toplam-tutar').text(App.money(json.toplam)); $('#toplam-gun').text(App.num(json.toplam_gun)); },
-        columns: [
-            { data: 'sase', render: (v, _, r) => `<a href="/arac_yonetimi/duzenle/${r.arac_id}" class="fw-semibold">${App.esc(v)}</a>` },
-            { data: 'plaka', render: (v) => App.esc(v || '-') },
-            { data: 'firma', render: (v) => App.esc(v || '-') },
-            { data: 'marka', render: (v, _, r) => App.esc([v, r.seri].filter(Boolean).join(' ') || '-') },
-            { data: 'arac_tipi', render: (v) => App.esc(v || '-') },
-            { data: 'lokasyon', render: (v) => App.esc(v || '-') },
-            { data: 'giris_tarihi' },
-            { data: 'cikis_tarihi', render: (v) => v || App.badge('Stokta', 'success') },
-            { data: 'gun', className: 'text-end' },
-            { data: 'gunluk_fiyat', className: 'text-end', render: (v, _, r) => r.fiyat_yok ? App.badge('Fiyat tanımlı değil', 'warning') : (r.fiyat_degisti && r.fiyat_ozet ? App.esc(r.fiyat_ozet) : App.money(v)) },
-            { data: 'tutar', className: 'text-end fw-semibold', render: (v) => App.money(v) },
-        ],
+        onData: (json) => { if (fiyat) $('#toplam-tutar').text(App.money(json.toplam)); $('#toplam-gun').text(App.num(json.toplam_gun)); },
+        columns: cols,
     });
 });
 </script>

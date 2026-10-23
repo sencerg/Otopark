@@ -11,7 +11,7 @@ $kullanicilar = array_column(Database::fetchAll(
     <div class="card-header">
         <h5>İş Takibi <small class="text-muted fw-normal">— araçlara yazılan hizmetler ve işlemi yapan kullanıcılar</small></h5>
         <div class="dt-toolbar">
-            <div class="total-box">Toplam: <b id="toplam-tutar">0,00 ₺</b></div>
+            <?php if (Auth::fiyatGorebilir()): ?><div class="total-box">Toplam: <b id="toplam-tutar">0,00 ₺</b></div><?php endif; ?>
             <button id="dt-export" class="btn btn-sm btn-success"><i class="mdi mdi-microsoft-excel me-1"></i>Excel İndir</button>
         </div>
     </div>
@@ -32,7 +32,7 @@ $kullanicilar = array_column(Database::fetchAll(
         </div>
         <div class="table-responsive">
             <table id="liste" class="table table-hover w-100">
-                <thead><tr><th>İşlem Tarihi</th><th>Şase</th><th>Plaka</th><th>Firma</th><th>Lokasyon</th><th>Hizmet</th><th>Açıklama</th><th>İşlemi Yapan</th><th>Kayıt Zamanı</th><th class="text-end">Tutar</th></tr></thead>
+                <thead><tr><th>İşlem Tarihi</th><th>Şase</th><th>Plaka</th><th>Firma</th><th>Lokasyon</th><th>Hizmet</th><th>Açıklama</th><th>İşlemi Yapan</th><th>Kayıt Zamanı</th><?php if (Auth::fiyatGorebilir()): ?><th class="text-end">Tutar</th><?php endif; ?></tr></thead>
             </table>
         </div>
     </div>
@@ -41,21 +41,23 @@ $kullanicilar = array_column(Database::fetchAll(
 <?php ob_start(); ?>
 <script>
 $(function () {
+    const fiyat = document.body.dataset.fiyat === '1';
+    const cols = [
+        { data: 'islem_tarihi' },
+        { data: 'sase', render: (v, _, r) => `<a href="/arac_yonetimi/duzenle/${r.arac_id}" class="fw-semibold">${App.esc(v)}</a>` },
+        { data: 'plaka', render: (v) => App.esc(v || '-') },
+        { data: 'firma', render: (v) => App.esc(v || '-') },
+        { data: 'lokasyon', render: (v) => App.esc(v || '-') },
+        { data: 'maliyet_tipi', render: (v, _, r) => App.esc(v) + (r.cikis_sonrasi ? '<div><span class="badge bg-warning text-dark">Çıkış sonrası eklendi</span></div>' : '') },
+        { data: 'aciklama', render: (v) => App.esc(v || '-') },
+        { data: 'kullanici', render: (v) => v ? `<i class="mdi mdi-account-circle text-primary"></i> ${App.esc(v)}` : '-' },
+        { data: 'kayit_zamani' },
+    ];
+    if (fiyat) cols.push({ data: 'tutar', className: 'text-end fw-semibold', render: (v) => App.money(v) });
     App.table('#liste', {
         url: '/is_takibi/liste', order: [[0, 'desc']],
-        onData: (json) => $('#toplam-tutar').text(App.money(json.toplam)),
-        columns: [
-            { data: 'islem_tarihi' },
-            { data: 'sase', render: (v, _, r) => `<a href="/arac_yonetimi/duzenle/${r.arac_id}" class="fw-semibold">${App.esc(v)}</a>` },
-            { data: 'plaka', render: (v) => App.esc(v || '-') },
-            { data: 'firma', render: (v) => App.esc(v || '-') },
-            { data: 'lokasyon', render: (v) => App.esc(v || '-') },
-            { data: 'maliyet_tipi', render: (v, _, r) => App.esc(v) + (r.cikis_sonrasi ? '<div><span class="badge bg-warning text-dark">Çıkış sonrası eklendi</span></div>' : '') },
-            { data: 'aciklama', render: (v) => App.esc(v || '-') },
-            { data: 'kullanici', render: (v) => v ? `<i class="mdi mdi-account-circle text-primary"></i> ${App.esc(v)}` : '-' },
-            { data: 'kayit_zamani' },
-            { data: 'tutar', className: 'text-end fw-semibold', render: (v) => App.money(v) },
-        ],
+        onData: (json) => { if (fiyat) $('#toplam-tutar').text(App.money(json.toplam)); },
+        columns: cols,
         createdRow: (row, r) => { if (r.cikis_sonrasi) row.classList.add('table-warning'); },
     });
 });

@@ -180,7 +180,7 @@ $opt = static function (array $items, string $hepsi = 'Tümü'): string {
                         <td class="text-end"><span class="badge bg-secondary-subtle text-secondary"><?= (int) $r['gun'] ?></span></td>
                         <td class="text-end small">
                             <?php if (!empty($r['fiyat_yok'])): ?>
-                                <span class="text-warning">Tanımsız</span>
+                                <span class="text-warning">Fiyat belirlenmedi</span>
                             <?php elseif (!empty($r['fiyat_degisti'])): ?>
                                 <?= e(\App\Services\DepolamaHesap::fiyatAciklama($r)) ?>
                             <?php else: ?>

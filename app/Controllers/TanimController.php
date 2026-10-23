@@ -49,7 +49,6 @@ final class TanimController extends Controller
             'maliyet_tipleri' => ['baslik' => 'Maliyet Tipleri / İş Emri Türleri', 'tablo' => 'maliyet_tipleri', 'icon' => 'mdi-cash-register', 'grup' => 'Operasyon', 'admin' => true,
                 'alanlar' => [
                     'ad' => ['Maliyet Tipi', 'text', true],
-                    'varsayilan_tutar' => ['Varsayılan Tutar (₺)', 'decimal', true],
                     'bayi_fiyat_degistirebilir' => ['Bayi fiyatı değiştirebilir', 'bool', false],
                     'depolama_mi' => ['Depolama Kalemi', 'bool', false],
                     'aktif' => ['Aktif', 'bool', false],
@@ -243,6 +242,9 @@ final class TanimController extends Controller
                     throw new RuntimeException('Seçilen otopark bulunamadı veya erişim yetkiniz yok.');
                 }
                 $data['bayi_id'] = $bayiId;
+            }
+            if ($tip === 'maliyet_tipleri' && !$id) {
+                $data['varsayilan_tutar'] = 0;
             }
 
             $eskiDepolama = null;

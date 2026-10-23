@@ -12,6 +12,7 @@ return [
         ['title' => 'Araç Ekle', 'url' => '/arac_yonetimi/ekle', 'izin' => 'arac.ekle'],
         ['title' => 'Toplu İşlemler', 'izin' => 'menu.toplu', 'children' => [
             ['title' => 'Toplu Stok Girişi', 'url' => '/arac_yonetimi/toplu_stok_girisi', 'izin' => 'menu.toplu'],
+            ['title' => 'Toplu Stok Çıkışı', 'url' => '/arac_yonetimi/toplu_stok_cikisi', 'izin' => 'menu.toplu'],
             ['title' => 'Toplu Ek Maliyet Girişi', 'url' => '/arac_yonetimi/toplu_ek_maliyet_girisi', 'izin' => 'menu.toplu'],
             ['title' => 'Adres (Lokasyon) Düzenle', 'url' => '/arac_yonetimi/toplu_kayit_guncelleme_lokasyon', 'izin' => 'menu.toplu'],
         ]],

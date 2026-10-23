@@ -85,6 +85,8 @@ $router->post('/arac_yonetimi/multiple_arsiv', [AracController::class, 'topluArs
 $router->post('/arac_yonetimi/multiple_delete', [AracController::class, 'topluSil'], $staff);
 $router->get('/arac_yonetimi/toplu_stok_girisi', [AracController::class, 'topluStokGirisi'], $staff);
 $router->post('/arac_yonetimi/excel_toplu_giris', [AracController::class, 'excelTopluGiris'], $staff);
+$router->get('/arac_yonetimi/toplu_stok_cikisi', [AracController::class, 'topluStokCikisi'], $staff);
+$router->post('/arac_yonetimi/excel_toplu_cikis', [AracController::class, 'excelTopluCikis'], $staff);
 $router->get('/arac_yonetimi/toplu_ek_maliyet_girisi', [AracController::class, 'topluEkMaliyet'], $staff);
 $router->post('/arac_yonetimi/excel_toplu_ek_maliyet_giris', [AracController::class, 'excelTopluMaliyet'], $staff);
 $router->get('/arac_yonetimi/toplu_kayit_guncelleme_lokasyon', [AracController::class, 'topluLokasyon'], $staff);

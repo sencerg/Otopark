@@ -34,7 +34,7 @@ final class TanimlamaController extends Controller
             'tablo' => 'bayiler', 'baslik' => 'Otopark', 'admin' => true, 'sira' => 't.id', 'bayi' => 't.id',
             'alanlar' => [
                 'ad' => ['Otopark Adı', 'text', true], 'sehir' => ['Şehir', 'text', false], 'adres' => ['Adres', 'textarea', false],
-                'gunluk_fiyat' => ['Standart Günlük Depolama Fiyatı (₺)', 'decimal', true], 'fiyat_carpani' => ['Depolama Günlük Çarpanı', 'decimal', true], 'aktif' => ['Aktif', 'bool', false],
+                'aktif' => ['Aktif', 'bool', false],
             ],
             'ek' => '(SELECT COUNT(*) FROM araclar a WHERE a.bayi_id = t.id AND a.stokta AND NOT a.arsiv) AS stoktaki',
         ],
@@ -42,7 +42,6 @@ final class TanimlamaController extends Controller
             'tablo' => 'maliyet_tipleri', 'baslik' => 'Hizmet', 'admin' => true, 'sira' => 't.ad',
             'alanlar' => [
                 'ad' => ['Hizmet Adı', 'text', true],
-                'varsayilan_tutar' => ['Varsayılan Ücret (₺)', 'decimal', true],
                 'bayi_fiyat_degistirebilir' => ['Bayi fiyatı değiştirebilir', 'bool', false],
                 'aktif' => ['Aktif', 'bool', false],
             ],
@@ -131,7 +130,7 @@ final class TanimlamaController extends Controller
             $otoparkFiyatlari = DepolamaHesap::musteriOtoparkFiyatlari((int) $musteri['id']);
         }
         $hizmetler = Database::fetchAll(
-            'SELECT id, ad, varsayilan_tutar FROM maliyet_tipleri WHERE aktif ORDER BY ad'
+            'SELECT id, ad FROM maliyet_tipleri WHERE aktif ORDER BY ad'
         );
         $sekme = match (Request::str('sekme')) {
             'fiyat' => 'fiyat',
@@ -213,6 +212,14 @@ final class TanimlamaController extends Controller
                 }
                 $data['bayi_id'] = $bayiId;
             }
+            // DB kolonları kalır; genel varsayılan fiyat kullanılmaz
+            if ($tip === 'lokasyon' && !$id) {
+                $data['gunluk_fiyat'] = 0;
+                $data['fiyat_carpani'] = 1;
+            }
+            if ($tip === 'hizmet' && !$id) {
+                $data['varsayilan_tutar'] = 0;
+            }
 
             $adAlan = $t['ad_alan'] ?? 'ad';
             $ustKosul = isset($t['ust']) ? " AND {$t['ust'][0]} = :ust" : '';
@@ -238,10 +245,6 @@ final class TanimlamaController extends Controller
                     "INSERT INTO {$t['tablo']} (" . implode(', ', $cols) . ') VALUES (:' . implode(', :', $cols) . ') RETURNING id',
                     $data
                 )['id'];
-            }
-            if ($tip === 'lokasyon') {
-                $etkin = round((float) $data['gunluk_fiyat'] * (float) $data['fiyat_carpani'], 2);
-                DepolamaFiyatGecmisi::kaydet($id, null, null, $etkin);
             }
             if ($tip === 'musteri' && Request::bool('fiyat_senkron')) {
                 $this->musteriHizmetFiyatlariniKaydet($id);
@@ -318,7 +321,7 @@ final class TanimlamaController extends Controller
 
     /**
      * Müşteri kartından otopark (depolama) günlük ücretlerini senkronize eder.
-     * POST: otopark_bayi_id[] + otopark_tutar[] — boş tutar = o otoparkta standart fiyata dön.
+     * POST: otopark_bayi_id[] + otopark_tutar[] — boş tutar = bu firmada o otopark için fiyat kaldırılır.
      * Araç tipi boş (NULL) satırları yönetir; tip bazlı eski tarifelere dokunulmaz.
      */
     private function musteriOtoparkFiyatlariniKaydet(int $musteriId): void
@@ -367,9 +370,6 @@ final class TanimlamaController extends Controller
             if ($data['eposta'] && !filter_var($data['eposta'], FILTER_VALIDATE_EMAIL)) {
                 throw new RuntimeException('Geçerli bir e-posta giriniz.');
             }
-        }
-        if ($tip === 'lokasyon' && ($data['fiyat_carpani'] <= 0 || $data['fiyat_carpani'] > 10)) {
-            throw new RuntimeException('Günlük fiyat çarpanı 0\'dan büyük ve en fazla 10 olmalıdır.');
         }
     }
 
