@@ -33,3 +33,9 @@ foreach ($files as $file) {
 }
 
 echo $count === 0 ? "Yeni migration yok.\n" : "{$count} migration tamamlandı.\n";
+
+if (class_exists(\App\Services\Yetki::class)
+    && \App\Core\Database::fetch("SELECT 1 FROM information_schema.tables WHERE table_name = 'yetki_profilleri'")) {
+    \App\Services\Yetki::varsayilanlariDoldur();
+    echo "Yetki varsayılanları kontrol edildi.\n";
+}

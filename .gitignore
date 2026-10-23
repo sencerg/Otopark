@@ -1,4 +1,5 @@
-/vendor/
+# vendor commit edilir: canlıda SSH/composer olmadan XLSX (PhpSpreadsheet) çalışsın.
+# Yerelde güncellemek için: composer install
 .env
 /storage/logs/*
 !/storage/logs/.gitkeep

@@ -22,6 +22,9 @@ $filtreMenu = static function (array $items) use (&$filtreMenu): array {
         if (!empty($item['admin']) && !Auth::isAdmin()) {
             continue;
         }
+        if (!empty($item['izin']) && !Auth::can((string) $item['izin'])) {
+            continue;
+        }
         if (!empty($item['children'])) {
             $item['children'] = $filtreMenu($item['children']);
             if ($item['children'] === [] && empty($item['url'])) {

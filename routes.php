@@ -19,6 +19,7 @@ use App\Controllers\SayimController;
 use App\Controllers\TanimController;
 use App\Controllers\TanimlamaController;
 use App\Controllers\TemaController;
+use App\Controllers\YetkiController;
 use App\Core\Auth;
 
 /** @var \App\Core\Router $router */
@@ -154,6 +155,14 @@ $router->post('/destek_talepleri/save', [DestekController::class, 'save'], $staf
 $router->get('/destek_talepleri/getir/{id}', [DestekController::class, 'getir'], $staff);
 $router->post('/destek_talepleri/cevapla/{id}', [DestekController::class, 'cevapla'], $staff);
 $router->post('/destek_talepleri/multiple_arsiv', [DestekController::class, 'topluArsiv'], $staff);
+
+// Yetki yönetimi
+$router->get('/yetki_yonetimi', [YetkiController::class, 'index'], $staff);
+$router->get('/yetki_yonetimi/profil_izinleri', [YetkiController::class, 'profilIzinleri'], $staff);
+$router->post('/yetki_yonetimi/profil_kaydet', [YetkiController::class, 'profilKaydet'], $staff);
+$router->post('/yetki_yonetimi/izin_kaydet', [YetkiController::class, 'izinKaydet'], $staff);
+$router->post('/yetki_yonetimi/profil_sil', [YetkiController::class, 'profilSil'], $staff);
+$router->post('/yetki_yonetimi/kullanici_kaydet', [YetkiController::class, 'kullaniciKaydet'], $staff);
 
 // Hesabım
 $router->get('/kullanici/hesabim', [HesapController::class, 'index'], $auth);

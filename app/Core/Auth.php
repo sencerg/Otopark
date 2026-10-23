@@ -7,6 +7,8 @@ namespace App\Core;
 final class Auth
 {
     private static ?array $user = null;
+    /** @var list<string>|null */
+    private static ?array $izinler = null;
 
     public static function attempt(string $email, string $password): bool
     {
@@ -31,17 +33,78 @@ final class Auth
         if (self::$user === null && isset($_SESSION['user_id'])) {
             self::$user = Database::fetch(
                 'SELECT u.id, u.name, u.email, u.role, u.bayi_id, u.musteri_id, u.telefon, u.resim, u.kullanici_grubu_id,
-                        b.ad AS bayi_adi, g.ad AS grup_adi, m.ad AS musteri_adi
+                        u.yetki_profil_id, u.bayi_kapsam,
+                        b.ad AS bayi_adi, g.ad AS grup_adi, m.ad AS musteri_adi, yp.ad AS yetki_profil_adi
                  FROM users u
                  LEFT JOIN bayiler b ON b.id = u.bayi_id
                  LEFT JOIN kullanici_gruplari g ON g.id = u.kullanici_grubu_id
                  LEFT JOIN musteriler m ON m.id = u.musteri_id
+                 LEFT JOIN yetki_profilleri yp ON yp.id = u.yetki_profil_id
                  WHERE u.id = :id AND u.is_active = TRUE',
                 ['id' => $_SESSION['user_id']]
             );
+            self::$izinler = null;
         }
 
         return self::$user;
+    }
+
+    /** @return list<string> */
+    public static function izinler(): array
+    {
+        if (self::$izinler !== null) {
+            return self::$izinler;
+        }
+        $user = self::user();
+        if (!$user) {
+            return self::$izinler = [];
+        }
+        // Yönetici rolü her zaman tam yetki (profil boş olsa bile)
+        if (($user['role'] ?? null) === 'admin') {
+            return self::$izinler = \App\Services\Yetki::tumKodlar();
+        }
+        $profilId = !empty($user['yetki_profil_id']) ? (int) $user['yetki_profil_id'] : 0;
+        if (!$profilId) {
+            \App\Services\Yetki::varsayilanlariDoldur();
+            self::$user = null;
+            $user = self::user();
+            $profilId = !empty($user['yetki_profil_id']) ? (int) $user['yetki_profil_id'] : 0;
+            if (!$profilId) {
+                return self::$izinler = [];
+            }
+        }
+
+        $izinler = \App\Services\Yetki::profilIzinleri($profilId);
+        if ($izinler === []) {
+            \App\Services\Yetki::varsayilanlariDoldur();
+            $izinler = \App\Services\Yetki::profilIzinleri($profilId);
+        }
+
+        return self::$izinler = $izinler;
+    }
+
+    public static function can(string $izinKodu): bool
+    {
+        if (!self::check()) {
+            return false;
+        }
+        if (self::isAdmin()) {
+            return true;
+        }
+
+        return in_array($izinKodu, self::izinler(), true);
+    }
+
+    public static function requireIzin(string $izinKodu): void
+    {
+        self::requireLogin();
+        if (!self::can($izinKodu)) {
+            if (Request::isAjax()) {
+                View::json(['success' => false, 'message' => 'Bu işlem için yetkiniz yok.'], 403);
+            }
+            http_response_code(403);
+            exit('Bu işlem için yetkiniz yok.');
+        }
     }
 
     public static function id(): ?int
@@ -142,6 +205,7 @@ final class Auth
     {
         $_SESSION = [];
         self::$user = null;
+        self::$izinler = null;
         session_regenerate_id(true);
     }
 

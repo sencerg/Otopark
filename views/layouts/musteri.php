@@ -37,6 +37,9 @@ $menu = require BASE_PATH . '/app/menu_musteri.php';
         <nav class="sidebar-scroll">
             <ul class="sidebar-menu">
                 <?php foreach ($menu as $item):
+                    if (!empty($item['izin']) && !Auth::can((string) $item['izin'])) {
+                        continue;
+                    }
                     $active = match ($item['url']) {
                         '/musteri' => $currentPath === '/musteri',
                         '/musteri/stok' => $currentPath === '/musteri/stok',

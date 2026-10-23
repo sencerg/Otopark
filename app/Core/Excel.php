@@ -35,50 +35,86 @@ final class Excel
         exit;
     }
 
+    /** PhpSpreadsheet yüklü mü? (composer require phpoffice/phpspreadsheet) */
+    public static function xlsxHazir(): bool
+    {
+        return class_exists(Spreadsheet::class);
+    }
+
+    /**
+     * @throws RuntimeException paket yoksa
+     */
+    private static function xlsxGerekli(): void
+    {
+        if (self::xlsxHazir()) {
+            return;
+        }
+        throw new RuntimeException(
+            'Excel (XLSX) paketi eksik: vendor/phpoffice bulunamadı. '
+            . 'Deploy ile vendor klasörünü yükleyin veya sunucuda: composer install --no-dev'
+        );
+    }
+
+    /** İndirme uçlarında fatal yerine düz metin hata. */
+    private static function xlsxIndirmeHatasi(\Throwable $e): never
+    {
+        http_response_code(503);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo $e->getMessage();
+        exit;
+    }
+
     /** Çok sayfalı XLSX indirir. sheets: [sayfaAdı => ['headers'=>[key=>label], 'rows'=>list<array>, 'list'=>?list<list>]] */
     public static function downloadXlsx(string $fileName, array $sheets): never
     {
-        $ss = new Spreadsheet();
-        $ss->removeSheetByIndex(0);
-        $i = 0;
-        foreach ($sheets as $title => $sheet) {
-            $ws = $ss->createSheet($i++);
-            $ws->setTitle(mb_substr((string) $title, 0, 31));
-            if (isset($sheet['list'])) {
-                foreach ($sheet['list'] as $r => $row) {
-                    foreach (array_values($row) as $c => $val) {
-                        $ws->setCellValue([$c + 1, $r + 1], $val);
+        try {
+            self::xlsxGerekli();
+            $ss = new Spreadsheet();
+            $ss->removeSheetByIndex(0);
+            $i = 0;
+            foreach ($sheets as $title => $sheet) {
+                $ws = $ss->createSheet($i++);
+                $ws->setTitle(mb_substr((string) $title, 0, 31));
+                if (isset($sheet['list'])) {
+                    foreach ($sheet['list'] as $r => $row) {
+                        foreach (array_values($row) as $c => $val) {
+                            $ws->setCellValue([$c + 1, $r + 1], $val);
+                        }
                     }
-                }
-                self::styleHeader($ws, count($sheet['list'][0] ?? []));
-            } else {
-                $headers = $sheet['headers'] ?? [];
-                $keys = array_keys($headers);
-                $labels = array_values($headers);
-                foreach ($labels as $c => $label) {
-                    $ws->setCellValue([$c + 1, 1], $label);
-                }
-                $r = 2;
-                foreach ($sheet['rows'] ?? [] as $row) {
-                    foreach ($keys as $c => $key) {
-                        $ws->setCellValue([$c + 1, $r], $row[$key] ?? '');
+                    self::styleHeader($ws, count($sheet['list'][0] ?? []));
+                } else {
+                    $headers = $sheet['headers'] ?? [];
+                    $keys = array_keys($headers);
+                    $labels = array_values($headers);
+                    foreach ($labels as $c => $label) {
+                        $ws->setCellValue([$c + 1, 1], $label);
                     }
-                    $r++;
+                    $r = 2;
+                    foreach ($sheet['rows'] ?? [] as $row) {
+                        foreach ($keys as $c => $key) {
+                            $ws->setCellValue([$c + 1, $r], $row[$key] ?? '');
+                        }
+                        $r++;
+                    }
+                    self::styleHeader($ws, count($labels));
                 }
-                self::styleHeader($ws, count($labels));
+                $colCount = max(1, Coordinate::columnIndexFromString($ws->getHighestColumn()));
+                for ($col = 1; $col <= $colCount; $col++) {
+                    $ws->getColumnDimensionByColumn($col)->setAutoSize(true);
+                }
             }
-            $colCount = max(1, Coordinate::columnIndexFromString($ws->getHighestColumn()));
-            for ($col = 1; $col <= $colCount; $col++) {
-                $ws->getColumnDimensionByColumn($col)->setAutoSize(true);
-            }
-        }
-        $ss->setActiveSheetIndex(0);
+            $ss->setActiveSheetIndex(0);
 
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="' . $fileName . '-' . date('d-m-Y_H-i-s') . '.xlsx"');
-        header('Cache-Control: max-age=0');
-        (new Xlsx($ss))->save('php://output');
-        exit;
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . $fileName . '-' . date('d-m-Y_H-i-s') . '.xlsx"');
+            header('Cache-Control: max-age=0');
+            (new Xlsx($ss))->save('php://output');
+            exit;
+        } catch (\Throwable $e) {
+            self::xlsxIndirmeHatasi($e instanceof RuntimeException ? $e : new RuntimeException(
+                'Excel dosyası oluşturulamadı: ' . $e->getMessage()
+            ));
+        }
     }
 
     private static function styleHeader($ws, int $colCount): void
@@ -147,6 +183,7 @@ final class Excel
     /** @return list<array<string,string>> */
     private static function readXlsx(string $path): array
     {
+        self::xlsxGerekli();
         $ss = IOFactory::load($path);
         $ws = $ss->getSheet(0);
         $grid = $ws->toArray(null, true, true, false);

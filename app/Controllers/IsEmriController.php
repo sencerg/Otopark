@@ -228,7 +228,7 @@ final class IsEmriController extends Controller
 
         if (!empty($_FILES['import_file']['name']) && ($_FILES['import_file']['error'] ?? 1) === UPLOAD_ERR_OK) {
             $bulunamayan = [];
-            foreach (Excel::read($_FILES['import_file']['tmp_name']) as $row) {
+            foreach (Excel::read($_FILES['import_file']['tmp_name'], $_FILES['import_file']['name'] ?? null) as $row) {
                 $sase = AracService::normalizeSase((string) ($row['sase'] ?? reset($row)));
                 if ($sase === '') {
                     continue;

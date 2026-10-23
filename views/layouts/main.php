@@ -48,12 +48,16 @@ $brandParts = preg_split('/\s+/', trim($appName), 2) ?: ['Moex'];
                 <input type="search" name="q" placeholder="Arama Yap... (şasi, plaka)" autocomplete="off" value="<?= e($_GET['q'] ?? '') ?>">
             </form>
             <div class="topbar-actions">
+                <?php if (Auth::can('menu.hizli_arac')): ?>
                 <button type="button" class="btn btn-sm btn-primary d-none d-md-inline-flex" data-bs-toggle="modal" data-bs-target="#hizli-arac-ekle-modal">
                     <i class="mdi mdi-car-arrow-right me-1"></i> Hızlı Araç Ekle
                 </button>
+                <?php endif; ?>
+                <?php if (Auth::can('menu.hizli_maliyet')): ?>
                 <button type="button" class="btn btn-sm btn-outline-primary d-none d-md-inline-flex" data-bs-toggle="modal" data-bs-target="#hizli-maliyet-ekle-modal">
                     <i class="mdi mdi-cash-plus me-1"></i> Hızlı Maliyet Ekle
                 </button>
+                <?php endif; ?>
                 <div class="dropdown theme-switch">
                     <button class="topbar-btn fs-4" data-bs-toggle="dropdown" type="button" title="Tema ve görünüm" aria-label="Tema ve görünüm">
                         <i class="mdi mdi-weather-sunny" data-mod-ikon></i>
