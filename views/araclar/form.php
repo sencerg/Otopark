@@ -173,12 +173,12 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                 <div class="col-md-3"><label class="form-label required">Maliyet Tipi</label>
                     <select name="maliyet_tipi_modal" class="form-select select2" data-tutar-target="#arac-maliyet-tutar" required>
                         <option value="">Seçiniz</option>
-                        <?php foreach (Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY id') as $mt): ?>
-                            <option value="<?= $mt['id'] ?>" data-bayi-degistirebilir="<?= !empty($mt['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($mt['ad']) ?><?= empty($mt['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?></option>
+                        <?php foreach (Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir, tekrar_eklenebilir FROM maliyet_tipleri WHERE aktif ORDER BY id') as $mt): ?>
+                            <option value="<?= $mt['id'] ?>" data-bayi-degistirebilir="<?= !empty($mt['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>" data-tekrar-eklenebilir="<?= !empty($mt['tekrar_eklenebilir']) ? '1' : '0' ?>"><?= e($mt['ad']) ?><?= empty($mt['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?><?= empty($mt['tekrar_eklenebilir']) ? ' (tek sefer)' : '' ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-2"><label class="form-label required">Tutar (₺)</label><input type="number" step="0.01" min="0" name="tutar_ek" id="arac-maliyet-tutar" class="form-control" required></div>
+                <div class="col-md-2"><label class="form-label required">Tutar</label><input type="number" step="0.01" min="0" name="tutar_ek" id="arac-maliyet-tutar" class="form-control" required placeholder="Fiyat belirlenmedi"></div>
                 <div class="col-md-2"><label class="form-label">İşlem Tarihi</label><input type="date" name="islem_tarihi" class="form-control" data-default-today></div>
                 <div class="col-md-2"><label class="form-label">Fatura No</label><input type="text" name="fatura_no" class="form-control"></div>
                 <div class="col-md-3"><label class="form-label">Açıklama</label><input type="text" name="aciklama_ekstre" class="form-control"></div>
@@ -188,7 +188,13 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                 <table class="table table-hover align-middle">
                     <thead><tr><th>İşlem Tarihi</th><th>Maliyet Tipi</th><th>Açıklama</th><th>Fatura No</th><th>Lokasyon</th><th>Ekleyen</th><th class="text-end">Tutar</th><th></th></tr></thead>
                     <tbody>
-                    <?php $toplam = 0; foreach ($ekstre as $x): $toplam += (float) $x['tutar']; ?>
+                    <?php
+                    $maske = Auth::fiyatMaskeli();
+                    $toplam = 0;
+                    foreach ($ekstre as $x):
+                        $toplam += (float) $x['tutar'];
+                        $deg = !empty($x['bayi_fiyat_degistirebilir']);
+                        ?>
                         <tr class="<?= $x['cikis_sonrasi'] ? 'table-warning' : '' ?>">
                             <td><?= date('d.m.Y', strtotime($x['islem_tarihi'])) ?></td>
                             <td><?= e($x['maliyet_tipi']) ?><?php if ($x['cikis_sonrasi']): ?> <span class="badge bg-warning text-dark">Çıkış sonrası eklendi</span><?php endif; ?></td>
@@ -196,7 +202,9 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                             <td><?= e($x['fatura_no'] ?: '-') ?></td>
                             <td><?= e($x['bayi'] ?: '-') ?></td>
                             <td><?= e($x['kullanici'] ?: '-') ?></td>
-                            <td class="text-end fw-semibold"><?= number_format((float) $x['tutar'], 2, ',', '.') ?> ₺</td>
+                            <td class="text-end fw-semibold"><?= $maske
+                                ? \App\Services\HizmetFiyat::bayiTutarHtml($deg, $x['tutar'])
+                                : number_format((float) $x['tutar'], 2, ',', '.') . ' ₺' ?></td>
                             <td class="text-end text-nowrap">
                                 <button type="button" class="btn btn-sm btn-primary btn-icon" data-maliyet-duzenle="<?= $x['id'] ?>" title="Düzenle"><i class="mdi mdi-pencil"></i></button>
                                 <button type="button" class="btn btn-sm btn-danger btn-icon" data-maliyet-sil="<?= $x['id'] ?>" title="Sil"><i class="mdi mdi-delete"></i></button>
@@ -206,7 +214,9 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                     <?php if (!$ekstre): ?><tr><td colspan="8" class="text-center text-muted py-4">Bu araca yazılmış ek maliyet yok.</td></tr><?php endif; ?>
                     </tbody>
                     <?php if ($ekstre): ?>
-                        <tfoot><tr><th colspan="6" class="text-end">Toplam</th><th class="text-end"><?= number_format($toplam, 2, ',', '.') ?> ₺</th><th></th></tr></tfoot>
+                        <tfoot><tr><th colspan="6" class="text-end">Toplam</th><th class="text-end"><?= $maske
+                            ? e(\App\Services\HizmetFiyat::bayiToplamOzeti($ekstre))
+                            : number_format($toplam, 2, ',', '.') . ' ₺' ?></th><th></th></tr></tfoot>
                     <?php endif; ?>
                 </table>
             </div>
@@ -269,7 +279,7 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
             <div class="modal-header"><h5 class="modal-title">Maliyet Düzenle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body row g-3">
                 <div class="col-12"><label class="form-label required">Maliyet Tipi</label><select name="maliyet_tipi_id" class="form-select" required><?= Tanim::options(Tanim::liste('maliyet_tipleri')) ?></select></div>
-                <div class="col-6"><label class="form-label required">Tutar (₺)</label><input type="number" step="0.01" min="0" name="tutar" class="form-control" required data-tutar-field></div>
+                <div class="col-6"><label class="form-label required">Tutar</label><input type="number" step="0.01" min="0" name="tutar" class="form-control" required data-tutar-field></div>
                 <div class="col-6"><label class="form-label">İşlem Tarihi</label><input type="date" name="islem_tarihi" class="form-control"></div>
                 <div class="col-6"><label class="form-label">Fatura No</label><input type="text" name="fatura_no" class="form-control"></div>
                 <div class="col-6"><label class="form-label">Fatura Tarihi</label><input type="date" name="fatura_tarihi" class="form-control"></div>
@@ -291,7 +301,13 @@ $(function () {
         $.getJSON('/arac_ekstreleri/maliyet_getir/' + id, (r) => {
             const $m = $('#maliyetDuzenleModal');
             const $f = $m.find('form').attr('action', '/arac_ekstreleri/maliyet_guncelle/' + id);
-            ['maliyet_tipi_id', 'tutar', 'islem_tarihi', 'fatura_no', 'fatura_tarihi', 'irsaliye', 'aciklama'].forEach((k) => $f.find(`[name=${k}]`).val(r.data[k] ?? ''));
+            const d = r.data || {};
+            ['maliyet_tipi_id', 'tutar', 'islem_tarihi', 'fatura_no', 'fatura_tarihi', 'irsaliye', 'aciklama'].forEach((k) => $f.find(`[name=${k}]`).val(d[k] ?? ''));
+            App.hizmetTutarUygula($f.find('[name=tutar]'), {
+                tutar: d.tutar,
+                tanimli: d.tutar != null || d.tutar_etiket === 'Anlaşmalı Fiyat',
+                degistirebilir: d.bayi_fiyat_degistirebilir,
+            });
             bootstrap.Modal.getOrCreateInstance($m[0]).show();
         }).fail((x) => App.error(x.responseJSON?.message));
     });

@@ -16,9 +16,11 @@ use App\Controllers\MaliyetController;
 use App\Controllers\MusteriPortalController;
 use App\Controllers\RaporController;
 use App\Controllers\SayimController;
+use App\Controllers\SurumController;
 use App\Controllers\TanimController;
 use App\Controllers\TanimlamaController;
 use App\Controllers\TemaController;
+use App\Controllers\VisController;
 use App\Controllers\YetkiController;
 use App\Core\Auth;
 
@@ -132,12 +134,20 @@ $router->post('/arac_ekstreleri/maliyet_sil/{id}', [MaliyetController::class, 's
 $router->get('/is_takibi', [MaliyetController::class, 'isTakibi'], $staff);
 $router->get('/is_takibi/liste', [MaliyetController::class, 'isTakibiListe'], $staff);
 
+// Araç Ekspertiz (VIS) — bağımsız; stok/hareket/maliyet akışına bağlanmaz
+$router->get('/vis', [VisController::class, 'index'], $staff);
+$router->get('/vis/yeni', [VisController::class, 'yeni'], $staff);
+$router->get('/vis/kayit/{id}', [VisController::class, 'kayit'], $staff);
+$router->post('/vis/kayit/{id}/kaydet', [VisController::class, 'kaydet'], $staff);
+
 // Raporlar
+$router->get('/raporlar', [RaporController::class, 'index'], $staff);
+$router->get('/raporlar/stok_ozet', [RaporController::class, 'stokOzet'], $staff);
+$router->get('/raporlar/giris_cikis', [RaporController::class, 'girisCikis'], $staff);
 $router->get('/depolama_raporu', [RaporController::class, 'depolama'], $staff);
 $router->get('/depolama_raporu/liste', [RaporController::class, 'depolamaListe'], $staff);
 $router->get('/ek_hizmet_raporu', [RaporController::class, 'ekHizmet'], $staff);
 $router->get('/ek_hizmet_raporu/liste', [RaporController::class, 'ekHizmetListe'], $staff);
-$router->get('/ek_hizmet_raporu/ozet', [RaporController::class, 'ekHizmetOzet'], $staff);
 
 // İş emri yönetimi
 $router->get('/gorev_yonetimi', [IsEmriController::class, 'index'], $staff);
@@ -172,7 +182,11 @@ $router->post('/kullanici/hesabim', [HesapController::class, 'update'], $auth);
 
 $router->get('/tema_onizleme', [TemaController::class, 'index'], $staff);
 
-// Proje notları
+// Proje Notları = sürüm geçmişi
+$router->get('/surumler', [SurumController::class, 'index'], $staff);
+$router->get('/proje_notlari', [SurumController::class, 'index'], $staff);
+
+// Eski karşılaştırma rotaları (menüde yok; doğrudan URL ile erişim)
 $router->get('/referans_md_karsilastirma', [KarsilastirmaController::class, 'index'], $staff);
 $router->get('/referans_md_karsilastirma/indir', [KarsilastirmaController::class, 'indir'], $staff);
 $router->post('/referans_md_karsilastirma/kaydet', [KarsilastirmaController::class, 'kaydet'], $staff);

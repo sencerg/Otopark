@@ -1,32 +1,129 @@
 <?php
 use App\Core\Csrf;
 
-$tipEtiket = ['admin' => 'Yönetici', 'bayi' => 'Bayi / Otopark', 'musteri' => 'Müşteri'];
-$kapsamEtiket = ['genel' => 'Genel', 'kisisel' => 'Kişisel'];
+$tipEtiket = ['admin' => 'Admin', 'bayi' => 'Otopark', 'musteri' => 'Müşteri'];
+$kapsamEtiket = ['genel' => 'Otopark', 'kisisel' => 'Otopark personel'];
+
+$yetkiEtiket = static function (array $u) use ($kapsamEtiket): string {
+    if (($u['role'] ?? '') === 'admin') {
+        return 'Admin';
+    }
+    if (($u['role'] ?? '') === 'musteri') {
+        return 'Müşteri';
+    }
+    if (($u['role'] ?? '') === 'bayi') {
+        return $kapsamEtiket[$u['bayi_kapsam'] ?? 'genel'] ?? 'Otopark';
+    }
+
+    return (string) ($u['role'] ?? '—');
+};
+
+$yetkiTipiKod = static function (array $u): string {
+    if (($u['role'] ?? '') === 'admin') {
+        return 'admin';
+    }
+    if (($u['role'] ?? '') === 'musteri') {
+        return 'musteri';
+    }
+    if (($u['bayi_kapsam'] ?? 'genel') === 'kisisel') {
+        return 'otopark_personel';
+    }
+
+    return 'otopark';
+};
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
     <div>
         <h4 class="page-title mb-1">Yetki Yönetimi</h4>
-        <p class="text-muted mb-0 small">Profiller, sayfa / işlem izinleri ve kullanıcı erişimleri tek yerden tanımlanır.</p>
+        <p class="text-muted mb-0 small">Kullanıcı ekleyin, Admin / Otopark / Otopark personel yetkisi verin; e-posta, telefon, kullanıcı adı ve şifreyi yönetin.</p>
     </div>
 </div>
 
 <ul class="nav nav-tabs mb-3" role="tablist">
     <li class="nav-item">
-        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#sekme-izin" type="button">
-            <i class="mdi mdi-shield-key-outline me-1"></i>Profiller ve izinler
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#sekme-kullanici" type="button">
+            <i class="mdi mdi-account-cog-outline me-1"></i>Kullanıcılar
+            <span class="badge badge-soft-secondary ms-1"><?= count($kullanicilar) ?></span>
         </button>
     </li>
     <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#sekme-kullanici" type="button">
-            <i class="mdi mdi-account-cog-outline me-1"></i>Kullanıcılar
-            <span class="badge badge-soft-secondary ms-1"><?= count($kullanicilar) ?></span>
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#sekme-izin" type="button">
+            <i class="mdi mdi-shield-key-outline me-1"></i>Profiller ve izinler
         </button>
     </li>
 </ul>
 
 <div class="tab-content">
-    <div class="tab-pane fade show active" id="sekme-izin">
+    <div class="tab-pane fade show active" id="sekme-kullanici">
+        <div class="card mb-3">
+            <div class="card-body py-3">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="small text-muted me-1">Hızlı ekle:</span>
+                    <button type="button" class="btn btn-sm btn-primary kullanici-hizli" data-tip="admin"><i class="mdi mdi-shield-account me-1"></i>Admin</button>
+                    <button type="button" class="btn btn-sm btn-success kullanici-hizli" data-tip="otopark"><i class="mdi mdi-parking me-1"></i>Otopark</button>
+                    <button type="button" class="btn btn-sm btn-outline-success kullanici-hizli" data-tip="otopark_personel"><i class="mdi mdi-account-hard-hat me-1"></i>Otopark personel</button>
+                    <button type="button" class="btn btn-sm btn-outline-warning kullanici-hizli" data-tip="musteri"><i class="mdi mdi-domain me-1"></i>Müşteri</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary ms-auto" id="kullanici-yeni"><i class="mdi mdi-account-plus-outline me-1"></i>Yeni kullanıcı</button>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Tüm kullanıcılar</h5></div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" id="kullanici-tablo">
+                    <thead>
+                    <tr>
+                        <th>Ad</th>
+                        <th>Kullanıcı adı</th>
+                        <th>E-posta</th>
+                        <th>Telefon</th>
+                        <th>Yetki</th>
+                        <th>Otopark / Firma</th>
+                        <th>Durum</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($kullanicilar as $u): ?>
+                        <tr data-user="<?= e(json_encode([
+                            'id' => (int) $u['id'],
+                            'name' => $u['name'],
+                            'email' => $u['email'],
+                            'kullanici_adi' => $u['kullanici_adi'] ?? '',
+                            'telefon' => $u['telefon'] ?? '',
+                            'role' => $u['role'],
+                            'yetki_tipi' => $yetkiTipiKod($u),
+                            'bayi_id' => $u['bayi_id'] ? (int) $u['bayi_id'] : null,
+                            'musteri_id' => $u['musteri_id'] ? (int) $u['musteri_id'] : null,
+                            'bayi_kapsam' => $u['bayi_kapsam'] ?? 'genel',
+                            'yetki_profil_id' => $u['yetki_profil_id'] ? (int) $u['yetki_profil_id'] : null,
+                            'kullanici_grubu_id' => $u['kullanici_grubu_id'] ? (int) $u['kullanici_grubu_id'] : null,
+                            'is_active' => filter_var($u['is_active'], FILTER_VALIDATE_BOOLEAN),
+                        ], JSON_UNESCAPED_UNICODE)) ?>">
+                            <td class="fw-semibold"><?= e($u['name']) ?></td>
+                            <td class="small"><code><?= e($u['kullanici_adi'] ?: '—') ?></code></td>
+                            <td class="small"><?= e($u['email']) ?></td>
+                            <td class="small"><?= e($u['telefon'] ?: '—') ?></td>
+                            <td>
+                                <?php
+                                $yt = $yetkiEtiket($u);
+                                $badge = $yt === 'Admin' ? 'primary' : ($yt === 'Müşteri' ? 'warning' : ($yt === 'Otopark personel' ? 'info' : 'success'));
+                                ?>
+                                <span class="badge badge-soft-<?= $badge ?>"><?= e($yt) ?></span>
+                                <div class="text-muted" style="font-size:11px"><?= e($u['profil_adi'] ?? '') ?></div>
+                            </td>
+                            <td class="small"><?= e($u['bayi_adi'] ?? $u['musteri_adi'] ?? '—') ?></td>
+                            <td><?= !empty($u['is_active']) ? '<span class="badge badge-soft-success">Aktif</span>' : '<span class="badge badge-soft-secondary">Pasif</span>' ?></td>
+                            <td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary kullanici-duzenle">Düzenle</button></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="sekme-izin">
         <div class="row g-3">
             <div class="col-lg-3">
                 <div class="card h-100">
@@ -72,8 +169,9 @@ $kapsamEtiket = ['genel' => 'Genel', 'kisisel' => 'Kişisel'];
                     <div class="card-body">
                         <div class="alert alert-light border small mb-3">
                             <i class="mdi mdi-information-outline me-1"></i>
-                            <b>Bayi Genel</b> otopark operasyon hesabı; <b>Bayi Kişisel</b> aynı otoparka bağlı ama dar yetkili kullanıcıdır.
-                            <b>Müşteri Portal</b> yalnızca kendi firmasının araçlarını görür. Yönetici her zaman tam yetkilidir.
+                            <b>Admin</b> tam yetki. <b>Otopark</b> lokasyon operasyon hesabı.
+                            <b>Otopark personel</b> aynı otoparka bağlı dar yetkili kullanıcı.
+                            Detaylı sayfa izinlerini burada profil bazında açıp kapatabilirsiniz.
                         </div>
                         <form id="izin-form">
                             <?= Csrf::field() ?>
@@ -108,56 +206,6 @@ $kapsamEtiket = ['genel' => 'Genel', 'kisisel' => 'Kişisel'];
             </div>
         </div>
     </div>
-
-    <div class="tab-pane fade" id="sekme-kullanici">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Kullanıcılar ve erişim</h5>
-                <button type="button" class="btn btn-sm btn-primary" id="kullanici-yeni"><i class="mdi mdi-account-plus-outline me-1"></i>Yeni kullanıcı</button>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0" id="kullanici-tablo">
-                    <thead>
-                    <tr>
-                        <th>Ad</th>
-                        <th>E-posta</th>
-                        <th>Rol</th>
-                        <th>Kapsam</th>
-                        <th>Otopark / Firma</th>
-                        <th>Yetki profili</th>
-                        <th>Durum</th>
-                        <th></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($kullanicilar as $u): ?>
-                        <tr data-user="<?= e(json_encode([
-                            'id' => (int) $u['id'],
-                            'name' => $u['name'],
-                            'email' => $u['email'],
-                            'role' => $u['role'],
-                            'bayi_id' => $u['bayi_id'] ? (int) $u['bayi_id'] : null,
-                            'musteri_id' => $u['musteri_id'] ? (int) $u['musteri_id'] : null,
-                            'bayi_kapsam' => $u['bayi_kapsam'] ?? 'genel',
-                            'yetki_profil_id' => $u['yetki_profil_id'] ? (int) $u['yetki_profil_id'] : null,
-                            'kullanici_grubu_id' => $u['kullanici_grubu_id'] ? (int) $u['kullanici_grubu_id'] : null,
-                            'is_active' => filter_var($u['is_active'], FILTER_VALIDATE_BOOLEAN),
-                        ], JSON_UNESCAPED_UNICODE)) ?>">
-                            <td class="fw-semibold"><?= e($u['name']) ?></td>
-                            <td class="small"><?= e($u['email']) ?></td>
-                            <td><span class="badge badge-soft-<?= $u['role'] === 'admin' ? 'primary' : ($u['role'] === 'musteri' ? 'warning' : 'success') ?>"><?= e($tipEtiket[$u['role']] ?? $u['role']) ?></span></td>
-                            <td class="small"><?= $u['role'] === 'bayi' ? e($kapsamEtiket[$u['bayi_kapsam'] ?? 'genel'] ?? '-') : '—' ?></td>
-                            <td class="small"><?= e($u['bayi_adi'] ?? $u['musteri_adi'] ?? '—') ?></td>
-                            <td class="small"><?= e($u['profil_adi'] ?? '—') ?></td>
-                            <td><?= !empty($u['is_active']) ? '<span class="badge badge-soft-success">Aktif</span>' : '<span class="badge badge-soft-secondary">Pasif</span>' ?></td>
-                            <td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary kullanici-duzenle">Düzenle</button></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>
 
 <div class="modal fade" id="profilModal" tabindex="-1">
@@ -174,9 +222,9 @@ $kapsamEtiket = ['genel' => 'Genel', 'kisisel' => 'Kişisel'];
                 <div class="col-12">
                     <label class="form-label required">Tip</label>
                     <select name="tip" id="pf-tip" class="form-select" required>
-                        <option value="bayi">Bayi / Otopark</option>
+                        <option value="bayi">Otopark</option>
                         <option value="musteri">Müşteri</option>
-                        <option value="admin">Yönetici</option>
+                        <option value="admin">Admin</option>
                     </select>
                     <div class="form-text">Sistem profillerinde tip değiştirilemez.</div>
                 </div>
@@ -198,29 +246,41 @@ $kapsamEtiket = ['genel' => 'Genel', 'kisisel' => 'Kişisel'];
         <form class="modal-content" id="kullanici-form">
             <?= Csrf::field() ?>
             <input type="hidden" name="id" id="ku-id">
+            <input type="hidden" name="role" id="ku-role">
+            <input type="hidden" name="bayi_kapsam" id="ku-kapsam">
             <div class="modal-header"><h5 class="modal-title" id="ku-baslik">Kullanıcı</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body row g-3">
+                <div class="col-12">
+                    <label class="form-label required">Yetki</label>
+                    <select name="yetki_tipi" id="ku-yetki-tipi" class="form-select" required>
+                        <option value="admin">Admin — tam yetki</option>
+                        <option value="otopark">Otopark — lokasyon operasyon hesabı</option>
+                        <option value="otopark_personel">Otopark personel — kısıtlı bireysel hesap</option>
+                        <option value="musteri">Müşteri — firma portalı</option>
+                    </select>
+                </div>
                 <div class="col-md-6">
                     <label class="form-label required">Ad soyad</label>
                     <input type="text" name="name" id="ku-name" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label required">Kullanıcı adı</label>
+                    <input type="text" name="kullanici_adi" id="ku-kullanici-adi" class="form-control" required pattern="[a-zA-Z0-9._\-]{3,80}" autocomplete="off">
+                    <div class="form-text">Girişte e-posta yerine kullanılabilir.</div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label required">E-posta</label>
                     <input type="email" name="email" id="ku-email" class="form-control" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label required">Rol</label>
-                    <select name="role" id="ku-role" class="form-select" required>
-                        <option value="bayi">Bayi / Otopark kullanıcısı</option>
-                        <option value="musteri">Müşteri portal kullanıcısı</option>
-                        <option value="admin">Yönetici</option>
-                    </select>
+                    <label class="form-label">Telefon</label>
+                    <input type="text" name="telefon" id="ku-telefon" class="form-control" maxlength="30">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label required">Yetki profili</label>
                     <select name="yetki_profil_id" id="ku-profil" class="form-select" required>
                         <?php foreach ($profiller as $p): ?>
-                            <option value="<?= (int) $p['id'] ?>" data-tip="<?= e($p['tip']) ?>"><?= e($p['ad']) ?> (<?= e($tipEtiket[$p['tip']] ?? $p['tip']) ?>)</option>
+                            <option value="<?= (int) $p['id'] ?>" data-tip="<?= e($p['tip']) ?>" data-ad="<?= e(mb_strtolower($p['ad'])) ?>"><?= e($p['ad']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -231,13 +291,6 @@ $kapsamEtiket = ['genel' => 'Genel', 'kisisel' => 'Kişisel'];
                         <?php foreach ($bayiler as $b): ?>
                             <option value="<?= (int) $b['id'] ?>"><?= e($b['ad']) ?></option>
                         <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-6 ku-bayi-alan">
-                    <label class="form-label required">Bayi kullanıcı tipi</label>
-                    <select name="bayi_kapsam" id="ku-kapsam" class="form-select">
-                        <option value="genel">Genel — otopark operasyon hesabı</option>
-                        <option value="kisisel">Kişisel — kısıtlı bireysel hesap</option>
                     </select>
                 </div>
                 <div class="col-md-6 ku-musteri-alan d-none">
@@ -261,6 +314,10 @@ $kapsamEtiket = ['genel' => 'Genel', 'kisisel' => 'Kişisel'];
                 <div class="col-md-6">
                     <label class="form-label" id="ku-sifre-label">Şifre</label>
                     <input type="password" name="password" id="ku-password" class="form-control" autocomplete="new-password">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" id="ku-sifre-tekrar-label">Şifre tekrarı</label>
+                    <input type="password" name="password_tekrar" id="ku-password-tekrar" class="form-control" autocomplete="new-password">
                     <div class="form-text">Düzenlemede boş bırakırsanız şifre değişmez.</div>
                 </div>
                 <div class="col-md-6 d-flex align-items-end">
@@ -288,10 +345,11 @@ $kapsamEtiket = ['genel' => 'Genel', 'kisisel' => 'Kişisel'];
 <?php ob_start(); ?>
 <script>
 $(function () {
-    const profiller = <?= json_encode($profiller, JSON_UNESCAPED_UNICODE) ?>;
     let secili = <?= (int) $seciliProfil ?>;
     const profilModal = new bootstrap.Modal('#profilModal');
     const kullaniciModal = new bootstrap.Modal('#kullaniciModal');
+    const tipRole = { admin: 'admin', otopark: 'bayi', otopark_personel: 'bayi', musteri: 'musteri' };
+    const tipKapsam = { admin: '', otopark: 'genel', otopark_personel: 'kisisel', musteri: '' };
 
     function profilBul(id) {
         return $('#profil-liste .profil-sec').filter(function () { return Number($(this).data('id')) === Number(id); }).first();
@@ -376,49 +434,82 @@ $(function () {
     });
 
     function rolAlanlari() {
-        const role = $('#ku-role').val();
-        $('.ku-bayi-alan').toggleClass('d-none', role !== 'bayi');
-        $('.ku-musteri-alan').toggleClass('d-none', role !== 'musteri');
+        const tip = $('#ku-yetki-tipi').val();
+        const role = tipRole[tip] || 'bayi';
+        const kapsam = tipKapsam[tip] || '';
+        $('#ku-role').val(role);
+        $('#ku-kapsam').val(kapsam);
+        $('.ku-bayi-alan').toggleClass('d-none', tip !== 'otopark' && tip !== 'otopark_personel');
+        $('.ku-musteri-alan').toggleClass('d-none', tip !== 'musteri');
+
         $('#ku-profil option').each(function () {
-            const ok = $(this).data('tip') === role;
-            $(this).toggle(ok);
-            if (!ok && $(this).is(':selected')) $(this).prop('selected', false);
+            const $o = $(this);
+            const pTip = String($o.data('tip') || '');
+            const ad = String($o.data('ad') || '');
+            let ok = pTip === role;
+            if (ok && tip === 'otopark') {
+                ok = !(ad.includes('personel') || ad.includes('kişisel') || ad.includes('kisisel'));
+            }
+            if (ok && tip === 'otopark_personel') {
+                ok = ad.includes('personel') || ad.includes('kişisel') || ad.includes('kisisel');
+            }
+            $o.toggle(ok).prop('disabled', !ok);
+            if (!ok && $o.is(':selected')) $o.prop('selected', false);
         });
-        const first = $('#ku-profil option').filter(function () { return $(this).css('display') !== 'none'; }).first();
-        if (first.length && !$('#ku-profil option:selected').is(':visible')) first.prop('selected', true);
+        const first = $('#ku-profil option').filter(function () { return !$(this).prop('disabled'); }).first();
+        if (first.length && ($('#ku-profil option:selected').prop('disabled') || !$('#ku-profil').val())) {
+            first.prop('selected', true);
+        }
     }
-    $('#ku-role').on('change', rolAlanlari);
+    $('#ku-yetki-tipi').on('change', rolAlanlari);
 
     function kullaniciFormAc(u) {
         $('#ku-id').val(u.id || '');
         $('#ku-baslik').text(u.id ? 'Kullanıcı düzenle' : 'Yeni kullanıcı');
         $('#ku-name').val(u.name || '');
         $('#ku-email').val(u.email || '');
-        $('#ku-role').val(u.role || 'bayi');
+        $('#ku-kullanici-adi').val(u.kullanici_adi || '');
+        $('#ku-telefon').val(u.telefon || '');
+        $('#ku-yetki-tipi').val(u.yetki_tipi || 'otopark');
         $('#ku-bayi').val(u.bayi_id || '');
         $('#ku-musteri').val(u.musteri_id || '');
-        $('#ku-kapsam').val(u.bayi_kapsam || 'genel');
         $('#ku-grup').val(u.kullanici_grubu_id || '');
         $('#ku-password').val('');
+        $('#ku-password-tekrar').val('');
         $('#ku-sifre-label').text(u.id ? 'Şifre (değiştirmek için)' : 'Şifre');
+        $('#ku-sifre-tekrar-label').text(u.id ? 'Şifre tekrarı (değiştirmek için)' : 'Şifre tekrarı');
         $('#ku-aktif').prop('checked', u.is_active !== false);
         rolAlanlari();
         if (u.yetki_profil_id) $('#ku-profil').val(String(u.yetki_profil_id));
         kullaniciModal.show();
     }
-    $('#kullanici-yeni').on('click', function () { kullaniciFormAc({ role: 'bayi', bayi_kapsam: 'genel', is_active: true }); });
+    $('#kullanici-yeni').on('click', function () {
+        kullaniciFormAc({ yetki_tipi: 'otopark', is_active: true });
+    });
+    $('.kullanici-hizli').on('click', function () {
+        kullaniciFormAc({ yetki_tipi: $(this).data('tip'), is_active: true });
+    });
     $('#kullanici-tablo').on('click', '.kullanici-duzenle', function () {
         kullaniciFormAc($(this).closest('tr').data('user'));
     });
+    $('#ku-email').on('blur', function () {
+        if ($('#ku-kullanici-adi').val()) return;
+        const local = String($(this).val() || '').split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g, '');
+        if (local.length >= 3) $('#ku-kullanici-adi').val(local);
+    });
     $('#kullanici-form').on('submit', function (e) {
         e.preventDefault();
+        rolAlanlari();
         $.post('/yetki_yonetimi/kullanici_kaydet', $(this).serialize()).done(function (r) {
             App.toast(r.message, r.success ? 'success' : 'error');
             if (r.success) location.reload();
         }).fail(function (x) { App.error(x.responseJSON?.message || 'Kaydedilemedi'); });
     });
 
-    if (secili) profilYukle(secili);
+    if (secili && $('#sekme-izin').hasClass('active')) profilYukle(secili);
+    $('button[data-bs-target="#sekme-izin"]').on('shown.bs.tab', function () {
+        if (secili) profilYukle(secili);
+    });
 });
 </script>
 <?php $scripts = ob_get_clean(); ?>

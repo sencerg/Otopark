@@ -28,11 +28,13 @@ final class DestekController extends Controller
 
     public function index(): void
     {
+        Auth::requireIzin('menu.destek');
         $this->view('destek/liste', ['pageTitle' => 'Destek Talepleri', 'breadcrumb' => ['İK' => null, 'Destek Talepleri' => null]]);
     }
 
     public function liste(): void
     {
+        Auth::requireIzin('menu.destek');
         $dt = new DataTable(
             'destek_talepleri d LEFT JOIN users u ON u.id = d.talep_eden_id',
             [
@@ -53,6 +55,7 @@ final class DestekController extends Controller
     public function save(): void
     {
         $this->ajax(function () {
+            Auth::requireIzin('menu.destek');
             $konu = Request::str('konu');
             if (!$konu) {
                 throw new RuntimeException('Talep konusu zorunludur.');
@@ -88,6 +91,7 @@ final class DestekController extends Controller
     public function getir(string $id): void
     {
         $this->ajax(function () use ($id) {
+            Auth::requireIzin('menu.destek');
             $row = $this->bul((int) $id);
             $row['dosyalar'] = Upload::list('destek', (int) $id);
             $row['tur_ad'] = Tanim::DESTEK_TUR[$row['tur']] ?? '-';
@@ -99,6 +103,7 @@ final class DestekController extends Controller
     public function cevapla(string $id): void
     {
         $this->ajax(function () use ($id) {
+            Auth::requireIzin('menu.destek');
             if (!Auth::isAdmin()) {
                 throw new RuntimeException('Talepleri yalnızca yönetici yanıtlayabilir.');
             }
@@ -116,6 +121,7 @@ final class DestekController extends Controller
     public function topluArsiv(): void
     {
         $this->ajax(function () {
+            Auth::requireIzin('menu.destek');
             $ids = Request::ids('ids');
             if (!$ids) {
                 throw new RuntimeException('Kayıt seçilmedi.');

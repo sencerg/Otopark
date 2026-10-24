@@ -11,7 +11,7 @@ $sekmeler = [
 $aciklama = [
     'musteri' => 'Araç girişinde seçilen firmalar. Firmaya özel otopark ve hizmet ücretleri müşteri kartındaki ilgili sekmelerden yönetilir. Pasif müşteri yeni girişlerde listelenmez.',
     'lokasyon' => 'Otopark tanımı yalnızca lokasyon bilgisini tutar. Depolama ücreti her müşteri için müşteri kartındaki “Otopark ücretleri” sekmesinden tanımlanır; tanımlanmazsa fiyat belirlenmedi sayılır.',
-    'hizmet' => 'Hizmet adları burada tanımlanır; ücret müşteri kartında otopark × hizmet olarak girilir. “Bayi fiyatı değiştirebilir” açıksa otopark kullanıcısı tutarı değiştirebilir; kapalıysa o otopark için müşteri tutarı otomatik gelir ve kilitlenir.',
+    'hizmet' => 'Hizmet adları burada tanımlanır; ücret müşteri kartında otopark × hizmet olarak girilir. “Bayi birden fazla ekleyebilir” kapalıysa bayi yalnızca bir kayıt açar; yönetici 2+ eklemeyi özel fiyatla sınırsız yapabilir.',
     'personel' => 'Her personel bir otoparka bağlıdır. Bayi kullanıcısı yalnızca kendi otoparkındaki personeli görür ve ekler. Pasif personel seçim listelerinde görünmez.',
 ];
 ?>
@@ -79,7 +79,8 @@ $aciklama = [
                     <div class="mb-3">
                         <?php if ($tur === 'bool'): ?>
                             <div class="form-check form-switch"><input type="checkbox" class="form-check-input" name="<?= $alan ?>" value="1" id="f-<?= $kod ?>-<?= $alan ?>" checked><label class="form-check-label" for="f-<?= $kod ?>-<?= $alan ?>"><?= e($etiket) ?></label></div>
-                            <?php if ($alan === 'bayi_fiyat_degistirebilir'): ?><div class="form-text">Açık = bayi hizmet seçince tutarı değiştirebilir. Kapalı = müşteri fiyatı otomatik gelir ve kilitlenir.</div><?php endif; ?>
+                            <?php if ($alan === 'bayi_fiyat_degistirebilir'): ?><div class="form-text">Açık = bayi katalog fiyatını görmeden özel fiyat girer. Kapalı = bayi tarafında «Anlaşmalı Fiyat» görünür; tutar gizli kalır.</div><?php endif; ?>
+                            <?php if ($alan === 'tekrar_eklenebilir'): ?><div class="form-text">Kapalı = bayi aynı araca bu hizmeti yalnızca bir kez ekler; fazlası için yöneticiye başvurur. Yönetici 2., 3. ve sonraki eklemeleri sınırsız, her seferinde özel fiyatla yapabilir.</div><?php endif; ?>
                         <?php else: ?>
                             <label class="form-label <?= $zorunlu ? 'required' : '' ?>"><?= e($etiket) ?></label>
                             <?php if ($tur === 'textarea'): ?>
@@ -146,7 +147,8 @@ $(function () {
         ],
         hizmet: [
             ['Hizmet', (r) => `<b>${App.esc(r.ad)}</b>`],
-            ['Bayi fiyatı', (r) => r.bayi_fiyat_degistirebilir ? App.badge('Değiştirilebilir', 'success') : App.badge('Kilitli', 'warning')],
+            ['Bayi fiyatı', (r) => r.bayi_fiyat_degistirebilir ? App.badge('Özel fiyat', 'success') : App.badge('Anlaşmalı', 'secondary')],
+            ['Tekrar', (r) => r.tekrar_eklenebilir ? App.badge('Çoklu', 'success') : App.badge('Tek sefer', 'warning')],
             ['Firma Fiyatı', (r) => Number(r.firma_fiyat) > 0 ? App.badge(r.firma_fiyat + ' firmada', 'secondary') : App.badge('Tanımlı değil', 'warning')],
             ['Kullanım', (r) => r.kullanim + ' kayıt', 'text-end'],
             ['Durum', (r) => durum(r.aktif)],

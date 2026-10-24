@@ -26,10 +26,31 @@ final class HesapController extends Controller
             $ad = Request::str('ad');
             $soyad = Request::str('soyad');
             $mail = mb_strtolower((string) Request::str('mail'));
+            $kullaniciAdi = mb_strtolower(trim((string) (Request::str('kullanici_adi') ?? '')));
             if (!$ad || !$soyad || !filter_var($mail, FILTER_VALIDATE_EMAIL)) {
                 throw new RuntimeException('Ad, soyad ve geçerli bir e-posta zorunludur.');
             }
-            $data = ['name' => $ad . ' ' . $soyad, 'email' => $mail, 'telefon' => Request::str('telefon')];
+            if ($kullaniciAdi === '' || !preg_match('/^[a-z0-9._-]{3,80}$/', $kullaniciAdi)) {
+                throw new RuntimeException('Kullanıcı adı 3–80 karakter; harf, rakam, . _ - olabilir.');
+            }
+            if (Database::fetch(
+                'SELECT id FROM users WHERE lower(email) = lower(:e) AND id <> :id',
+                ['e' => $mail, 'id' => Auth::id()]
+            )) {
+                throw new RuntimeException('Bu e-posta başka bir hesapta kullanılıyor.');
+            }
+            if (Database::fetch(
+                'SELECT id FROM users WHERE kullanici_adi IS NOT NULL AND lower(kullanici_adi) = lower(:a) AND id <> :id',
+                ['a' => $kullaniciAdi, 'id' => Auth::id()]
+            )) {
+                throw new RuntimeException('Bu kullanıcı adı başka bir hesapta kullanılıyor.');
+            }
+            $data = [
+                'name' => $ad . ' ' . $soyad,
+                'email' => $mail,
+                'kullanici_adi' => $kullaniciAdi,
+                'telefon' => Request::str('telefon'),
+            ];
 
             $sifre = is_string($_POST['sifre'] ?? null) ? $_POST['sifre'] : '';
             if ($sifre !== '') {

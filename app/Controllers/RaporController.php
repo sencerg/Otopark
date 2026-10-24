@@ -10,12 +10,30 @@ use App\Core\DataTable;
 use App\Core\Excel;
 use App\Core\Request;
 use App\Services\DepolamaHesap;
+use App\Services\RaporKatalog;
 
 final class RaporController extends Controller
 {
+    public function index(): void
+    {
+        Auth::requireIzin('menu.raporlar');
+        $raporlar = RaporKatalog::erisilebilir();
+        $this->view('raporlar/index', [
+            'pageTitle' => 'Raporlar',
+            'breadcrumb' => ['Raporlar' => null],
+            'raporlar' => $raporlar,
+            'interaktif' => array_values(array_filter($raporlar, static fn ($r) => $r['tip'] === 'interaktif')),
+            'hazirla' => array_values(array_filter($raporlar, static fn ($r) => $r['tip'] === 'hazirla')),
+        ]);
+    }
+
     public function depolama(): void
     {
-        $this->view('raporlar/depolama', ['pageTitle' => 'Depolama Raporu', 'breadcrumb' => ['Raporlar' => null, 'Depolama Raporu' => null]]);
+        Auth::requireIzin('menu.depolama_raporu');
+        $this->view('raporlar/depolama', [
+            'pageTitle' => 'Depolama Raporu',
+            'breadcrumb' => ['Raporlar' => '/raporlar', 'Depolama Raporu' => null],
+        ]);
     }
 
     private function aralik(): array
@@ -28,6 +46,7 @@ final class RaporController extends Controller
 
     public function depolamaListe(): void
     {
+        Auth::requireIzin('menu.depolama_raporu');
         [$bas, $bit] = $this->aralik();
         $dt = new DataTable(
             DepolamaHesap::sorgu($bas, $bit) . '
@@ -120,42 +139,186 @@ final class RaporController extends Controller
 
     public function ekHizmet(): void
     {
-        $this->view('raporlar/ek_hizmet', ['pageTitle' => 'Ek Hizmet Raporu', 'breadcrumb' => ['Raporlar' => null, 'Ek Hizmet Raporu' => null]]);
+        Auth::requireIzin('menu.ek_hizmet_raporu');
+        $this->view('raporlar/ek_hizmet', [
+            'pageTitle' => 'Ek Hizmet Raporu',
+            'breadcrumb' => ['Raporlar' => '/raporlar', 'Ek Hizmet Raporu' => null],
+        ]);
     }
 
     public function ekHizmetListe(): void
     {
+        Auth::requireIzin('menu.ek_hizmet_raporu');
         $dt = MaliyetController::ekstreTablosu();
-        $fiyat = Auth::fiyatGorebilir();
-        if (Request::input('export')) {
-            $kolonlar = [
-                'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri',
-                'lokasyon' => 'Lokasyon', 'maliyet_tipi' => 'Hizmet', 'aciklama' => 'Açıklama', 'fatura_no' => 'Fatura No',
-                'cikis_sonrasi_ad' => 'Çıkış Sonrası Eklendi',
-            ];
-            if ($fiyat) {
-                $kolonlar = array_merge(
-                    array_slice($kolonlar, 0, 9, true),
-                    ['tutar' => 'Tutar'],
-                    array_slice($kolonlar, 9, null, true)
-                );
-            }
-            Excel::download('ek-hizmet-raporu', $kolonlar, array_map(static function ($r) use ($fiyat) {
-                $r['cikis_sonrasi_ad'] = $r['cikis_sonrasi'] ? 'Evet' : '';
-                if (!$fiyat) {
+        $maske = Auth::fiyatMaskeli();
+        $map = static function (array $r) use ($maske): array {
+            if ($maske) {
+                $deg = !empty($r['bayi_fiyat_degistirebilir']);
+                $r['tutar_etiket'] = \App\Services\HizmetFiyat::bayiTutarMetni($deg, $r['tutar'] ?? null);
+                if (!$deg) {
                     unset($r['tutar']);
+                }
+            }
+
+            return $r;
+        };
+        if (Request::input('export')) {
+            Excel::download('ek-hizmet-raporu', [
+                'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri',
+                'lokasyon' => 'Lokasyon', 'maliyet_tipi' => 'Hizmet', 'aciklama' => 'Açıklama', 'fatura_no' => 'Fatura No', 'tutar' => 'Tutar',
+                'cikis_sonrasi_ad' => 'Çıkış Sonrası Eklendi',
+            ], array_map(static function ($r) use ($maske) {
+                $r['cikis_sonrasi_ad'] = $r['cikis_sonrasi'] ? 'Evet' : '';
+                if ($maske) {
+                    $r['tutar'] = \App\Services\HizmetFiyat::bayiTutarMetni(!empty($r['bayi_fiyat_degistirebilir']), $r['tutar'] ?? null);
                 }
 
                 return $r;
             }, $dt->all()));
         }
-        $dt->response(
-            $fiyat ? null : static function (array $r): array {
-                unset($r['tutar']);
+        $extra = ['toplam_maskeli' => $maske];
+        if ($maske) {
+            $anlasmali = (int) round($dt->sum('CASE WHEN NOT COALESCE(mt.bayi_fiyat_degistirebilir, FALSE) THEN 1 ELSE 0 END'));
+            $ozel = $dt->sum('CASE WHEN COALESCE(mt.bayi_fiyat_degistirebilir, FALSE) THEN e.tutar ELSE 0 END');
+            $extra['toplam'] = null;
+            $extra['toplam_etiket'] = \App\Services\HizmetFiyat::bayiToplamMetni($anlasmali, $ozel);
+            $extra['ozet'] = [];
+        } else {
+            $extra['toplam'] = $dt->sum('e.tutar');
+            $extra['ozet'] = $dt->groupSum('mt.ad', 'e.tutar');
+        }
+        $dt->response($map, $extra);
+    }
 
-                return $r;
-            },
-            ['toplam' => $fiyat ? $dt->sum('e.tutar') : 0, 'ozet' => $fiyat ? $dt->groupSum('mt.ad', 'e.tutar') : []]
-        );
+    /** Seçerek hazırla: anlık stok özeti */
+    public function stokOzet(): void
+    {
+        Auth::requireIzin('menu.stok_ozet_raporu');
+        $musteriId = Request::int('musteri_id');
+        $bayiId = Auth::isAdmin() ? Request::int('bayi_id') : Auth::bayiId();
+        $hazir = Request::input('hazirla') || Request::input('export');
+        $satirlar = [];
+        $ozet = ['adet' => 0, 'firma' => 0, 'lokasyon' => 0];
+
+        if ($hazir) {
+            $p = [];
+            $kosul = ['a.stokta', 'NOT a.arsiv', Auth::bayiKosulu('a.bayi_id')];
+            if ($musteriId) {
+                $kosul[] = 'a.musteri_id = :m';
+                $p['m'] = $musteriId;
+            }
+            if ($bayiId) {
+                $kosul[] = 'a.bayi_id = :b';
+                $p['b'] = $bayiId;
+            }
+            $satirlar = Database::fetchAll(
+                'SELECT a.sase, a.plaka, mu.ad AS firma, m.ad AS marka, s.ad AS seri, b.ad AS lokasyon,
+                        a.lokasyon_detay, to_char(a.stoga_giris_tarihi, \'DD.MM.YYYY\') AS giris,
+                        CASE WHEN a.stoga_giris_tarihi IS NULL THEN NULL
+                             ELSE (CURRENT_DATE - a.stoga_giris_tarihi::date + 1) END AS gun
+                 FROM araclar a
+                 LEFT JOIN musteriler mu ON mu.id = a.musteri_id
+                 LEFT JOIN markalar m ON m.id = a.marka_id
+                 LEFT JOIN seriler s ON s.id = a.seri_id
+                 LEFT JOIN bayiler b ON b.id = a.bayi_id
+                 WHERE ' . implode(' AND ', $kosul) . '
+                 ORDER BY b.ad, mu.ad, a.sase',
+                $p
+            );
+            $ozet['adet'] = count($satirlar);
+            $ozet['firma'] = count(array_unique(array_filter(array_column($satirlar, 'firma'))));
+            $ozet['lokasyon'] = count(array_unique(array_filter(array_column($satirlar, 'lokasyon'))));
+
+            if (Request::input('export')) {
+                Excel::download('stok-ozet-' . date('Y-m-d'), [
+                    'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri',
+                    'lokasyon' => 'Lokasyon', 'lokasyon_detay' => 'Lokasyon Detay', 'giris' => 'Giriş', 'gun' => 'Stok Günü',
+                ], $satirlar);
+            }
+        }
+
+        $this->view('raporlar/hazirla', [
+            'pageTitle' => 'Stok Özet Raporu',
+            'breadcrumb' => ['Raporlar' => '/raporlar', 'Stok Özet' => null],
+            'rapor' => RaporKatalog::bul('stok_ozet'),
+            'formAction' => '/raporlar/stok_ozet',
+            'hazir' => (bool) $hazir,
+            'satirlar' => $satirlar,
+            'ozet' => $ozet,
+            'filtreler' => [
+                'musteri_id' => $musteriId,
+                'bayi_id' => $bayiId,
+            ],
+            'alanlar' => ['musteri', 'lokasyon'],
+            'kolonlar' => [
+                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri',
+                'lokasyon' => 'Lokasyon', 'lokasyon_detay' => 'Detay', 'giris' => 'Giriş', 'gun' => 'Gün',
+            ],
+        ]);
+    }
+
+    /** Seçerek hazırla: dönem giriş–çıkış özeti */
+    public function girisCikis(): void
+    {
+        Auth::requireIzin('menu.giris_cikis_raporu');
+        [$bas, $bit] = $this->aralik();
+        $musteriId = Request::int('musteri_id');
+        $bayiId = Auth::isAdmin() ? Request::int('bayi_id') : Auth::bayiId();
+        $hazir = Request::input('hazirla') || Request::input('export');
+        $satirlar = [];
+        $ozet = ['giren' => 0, 'cikan' => 0];
+
+        if ($hazir) {
+            $p = ['bas' => $bas . ' 00:00:00', 'bit' => $bit . ' 23:59:59'];
+            $kosul = ['NOT h.arsiv', 'h.hareket_tarihi BETWEEN :bas AND :bit', Auth::bayiKosulu('h.bayi_id')];
+            if ($musteriId) {
+                $kosul[] = 'h.musteri_id = :m';
+                $p['m'] = $musteriId;
+            }
+            if ($bayiId) {
+                $kosul[] = 'h.bayi_id = :b';
+                $p['b'] = $bayiId;
+            }
+            $satirlar = Database::fetchAll(
+                'SELECT COALESCE(b.ad, \'—\') AS lokasyon, COALESCE(mu.ad, \'—\') AS firma,
+                        COUNT(*) FILTER (WHERE h.hareket_tipi = 1)::int AS giren,
+                        COUNT(*) FILTER (WHERE h.hareket_tipi = 2)::int AS cikan
+                 FROM arac_hareketleri h
+                 LEFT JOIN bayiler b ON b.id = h.bayi_id
+                 LEFT JOIN musteriler mu ON mu.id = h.musteri_id
+                 WHERE ' . implode(' AND ', $kosul) . '
+                 GROUP BY b.ad, mu.ad
+                 ORDER BY b.ad, mu.ad',
+                $p
+            );
+            $ozet['giren'] = (int) array_sum(array_column($satirlar, 'giren'));
+            $ozet['cikan'] = (int) array_sum(array_column($satirlar, 'cikan'));
+
+            if (Request::input('export')) {
+                Excel::download("giris-cikis-{$bas}-{$bit}", [
+                    'lokasyon' => 'Lokasyon', 'firma' => 'Firma', 'giren' => 'Giren', 'cikan' => 'Çıkan',
+                ], $satirlar);
+            }
+        }
+
+        $this->view('raporlar/hazirla', [
+            'pageTitle' => 'Giriş–Çıkış Özeti',
+            'breadcrumb' => ['Raporlar' => '/raporlar', 'Giriş–Çıkış Özeti' => null],
+            'rapor' => RaporKatalog::bul('giris_cikis'),
+            'formAction' => '/raporlar/giris_cikis',
+            'hazir' => (bool) $hazir,
+            'satirlar' => $satirlar,
+            'ozet' => $ozet,
+            'filtreler' => [
+                'baslangic' => $bas,
+                'bitis' => $bit,
+                'musteri_id' => $musteriId,
+                'bayi_id' => $bayiId,
+            ],
+            'alanlar' => ['tarih', 'musteri', 'lokasyon'],
+            'kolonlar' => [
+                'lokasyon' => 'Lokasyon', 'firma' => 'Firma', 'giren' => 'Giren', 'cikan' => 'Çıkan',
+            ],
+        ]);
     }
 }

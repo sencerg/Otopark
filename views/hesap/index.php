@@ -21,8 +21,8 @@ $ad = implode(' ', $parca);
                         <div><label class="form-label">Görsel Seç</label><input type="file" name="resim" class="form-control" accept="image/*"></div>
                     </div>
                     <div class="row g-3">
-                        <div class="col-md-6"><label class="form-label">Kullanıcı Adı</label><input type="text" class="form-control" value="<?= e($user['email']) ?>" disabled></div>
-                        <div class="col-md-6"><label class="form-label">Kullanıcı Grubu</label><input type="text" class="form-control" value="<?= e($user['grup_adi'] ?? ($user['role'] === 'admin' ? 'Yönetici' : '-')) ?>" disabled></div>
+                        <div class="col-md-6"><label class="form-label required">Kullanıcı adı</label><input type="text" name="kullanici_adi" class="form-control" value="<?= old('kullanici_adi', (string) ($user['kullanici_adi'] ?? '')) ?>" required pattern="[a-zA-Z0-9._\-]{3,80}" autocomplete="username"></div>
+                        <div class="col-md-6"><label class="form-label">Yetki</label><input type="text" class="form-control" value="<?= e($user['yetki_profil_adi'] ?? ($user['role'] === 'admin' ? 'Admin' : '-')) ?>" disabled></div>
                         <div class="col-md-6"><label class="form-label required">Adı</label><input type="text" name="ad" class="form-control" value="<?= old('ad', $ad) ?>" required></div>
                         <div class="col-md-6"><label class="form-label required">Soyadı</label><input type="text" name="soyad" class="form-control" value="<?= old('soyad', $soyad) ?>" required></div>
                         <div class="col-md-6"><label class="form-label">Telefon</label><input type="text" name="telefon" class="form-control" value="<?= old('telefon', (string) $user['telefon']) ?>"></div>

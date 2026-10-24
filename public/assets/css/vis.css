@@ -1,0 +1,98 @@
+/* Bağımsız VIS / Araç Ekspertiz — mevcut app.css'e bağlı değil */
+:root {
+  --vis-bg: #0b1220;
+  --vis-panel: #111827;
+  --vis-side: #f3f4f6;
+  --vis-line: #d1d5db;
+  --vis-blue: #1d4ed8;
+  --vis-blue-dark: #1e3a8a;
+  --vis-text: #111827;
+  --vis-muted: #6b7280;
+  --vis-accent: #d97706;
+  --vis-top: #2563eb;
+}
+* { box-sizing: border-box; }
+html, body.vis-body { margin: 0; min-height: 100%; font-family: "Segoe UI", system-ui, sans-serif; background: #e5e7eb; color: var(--vis-text); }
+a { color: inherit; text-decoration: none; }
+.vis-top {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 52px; padding: 0 10px; background: var(--vis-top); color: #fff; position: sticky; top: 0; z-index: 20;
+}
+.vis-top h1 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+.vis-icon-btn {
+  width: 40px; height: 40px; border: 0; background: transparent; color: #fff;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 1.35rem; cursor: pointer;
+}
+.vis-search-bar { background: #fff; padding: 10px 12px; border-bottom: 1px solid var(--vis-line); }
+.vis-search-form {
+  display: flex; align-items: center; gap: 8px; background: #f3f4f6; border-radius: 8px; padding: 8px 12px;
+}
+.vis-search-form input { border: 0; background: transparent; width: 100%; outline: none; font-size: 0.95rem; }
+.vis-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 12px; background: #fff; }
+.vis-chip {
+  border: 1px solid var(--vis-line); background: #fff; border-radius: 8px; padding: 10px; font-size: 0.9rem; cursor: pointer;
+}
+.vis-main { min-height: calc(100vh - 180px); }
+.vis-home { display: flex; align-items: center; justify-content: center; background: #fff; }
+.vis-empty { text-align: center; color: var(--vis-blue); padding: 40px 16px; }
+.vis-empty i { font-size: 4rem; display: block; margin-bottom: 8px; }
+.vis-empty .small, .vis-hint { color: var(--vis-muted); font-size: 0.85rem; }
+.vis-list { list-style: none; margin: 0; padding: 0; width: 100%; align-self: flex-start; }
+.vis-list a {
+  display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-bottom: 1px solid var(--vis-line); background: #fff;
+}
+.vis-list .muted { color: var(--vis-muted); font-size: 0.8rem; }
+.vis-bottom {
+  position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  padding: 12px; background: #fff; border-top: 1px solid var(--vis-line);
+}
+.vis-btn {
+  display: inline-flex; align-items: center; justify-content: center; border-radius: 6px;
+  border: 0; padding: 12px 14px; font-weight: 600; cursor: pointer; text-align: center;
+}
+.vis-btn.primary { background: linear-gradient(180deg, #f59e0b, #d97706); color: #fff; }
+.vis-btn.ghost { background: #e5e7eb; color: #111827; }
+.vis-btn.block { width: 100%; margin-top: 12px; }
+.vis-shell { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 52px); }
+.vis-side {
+  background: var(--vis-side); border-right: 1px solid var(--vis-line); overflow: auto; max-height: calc(100vh - 52px);
+}
+.vis-side-group {
+  padding: 10px 12px 4px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--vis-muted); font-weight: 700;
+}
+.vis-side-item {
+  display: block; padding: 11px 14px; border-bottom: 1px solid var(--vis-line); font-size: 0.92rem; background: #fff;
+}
+.vis-side-item.active { background: var(--vis-blue-dark); color: #fff; }
+.vis-side-foot {
+  display: flex; gap: 16px; padding: 14px; position: sticky; bottom: 0; background: var(--vis-side); border-top: 1px solid var(--vis-line);
+}
+.vis-side-foot a { font-size: 1.4rem; color: var(--vis-muted); }
+.vis-panel {
+  position: relative; background: var(--vis-bg); color: #e5e7eb; padding: 18px 16px 80px; min-height: calc(100vh - 52px);
+}
+.vis-form { max-width: 560px; }
+.vis-input {
+  width: 100%; border: 0; border-radius: 4px; padding: 14px 12px; font-size: 1rem; margin-bottom: 10px; background: #fff; color: #111;
+}
+.vis-label { display: block; margin: 8px 0 4px; font-size: 0.85rem; color: #cbd5e1; }
+.vis-check { display: flex; align-items: center; gap: 8px; margin: 8px 0; color: #e5e7eb; font-size: 0.92rem; }
+.vis-cam {
+  position: absolute; right: 18px; bottom: 18px; width: 48px; height: 48px; border-radius: 50%;
+  border: 0; background: #1f2937; color: #fff; font-size: 1.4rem; cursor: pointer;
+}
+.vis-mini-list { list-style: none; padding: 0; margin: 16px 0; }
+.vis-mini-list li { padding: 8px 0; border-bottom: 1px solid #1f2937; font-size: 0.9rem; }
+.vis-summary { background: #111827; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+.vis-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  background: #111827; color: #fff; padding: 10px 16px; border-radius: 8px; z-index: 50; font-size: 0.9rem;
+}
+@media (max-width: 860px) {
+  .vis-shell { grid-template-columns: 1fr; }
+  .vis-side {
+    position: fixed; inset: 52px auto 0 0; width: min(280px, 86vw); z-index: 30;
+    transform: translateX(-105%); transition: transform .2s ease; box-shadow: 8px 0 24px rgba(0,0,0,.25);
+  }
+  .vis-side.open { transform: translateX(0); }
+}

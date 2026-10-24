@@ -43,6 +43,7 @@ final class TanimlamaController extends Controller
             'alanlar' => [
                 'ad' => ['Hizmet Adı', 'text', true],
                 'bayi_fiyat_degistirebilir' => ['Bayi fiyatı değiştirebilir', 'bool', false],
+                'tekrar_eklenebilir' => ['Bayi birden fazla ekleyebilir', 'bool', false],
                 'aktif' => ['Aktif', 'bool', false],
             ],
             'ek' => '(SELECT COUNT(*) FROM arac_ekstreleri e WHERE e.maliyet_tipi_id = t.id) AS kullanim,

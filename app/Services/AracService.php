@@ -205,26 +205,54 @@ final class AracService
         $bayiId = isset($data['bayi_id']) ? (int) $data['bayi_id'] : (int) ($arac['bayi_id'] ?? 0);
         $tipId = (int) $data['maliyet_tipi_id'];
         $gelen = $data['tutar'] ?? null;
+        $tip = Database::fetch('SELECT ad, tekrar_eklenebilir FROM maliyet_tipleri WHERE id = :id AND aktif', ['id' => $tipId]);
+        if (!$tip) {
+            throw new RuntimeException('Seçilen hizmet bulunamadı veya pasif.');
+        }
+        $mevcutAdet = HizmetFiyat::aracHizmetAdedi($aracId, $tipId);
+        $tekrarOzel = false;
+        if ($mevcutAdet > 0 && empty($tip['tekrar_eklenebilir'])) {
+            if (!Auth::isAdmin()) {
+                throw new RuntimeException(
+                    '"' . $tip['ad'] . '" bu araca zaten eklenmiş. Tekrar eklemek için yöneticiye başvurun.'
+                );
+            }
+            // Admin: 2., 3., … N. ekleme serbest; her seferinde özel fiyat zorunlu
+            if ($gelen === null || $gelen === '' || (float) $gelen <= 0) {
+                throw new RuntimeException(
+                    '"' . $tip['ad'] . '" araca zaten ' . $mevcutAdet . ' kez eklenmiş; ek kayıt için özel fiyat giriniz.'
+                );
+            }
+            $tekrarOzel = true;
+        }
         $tanimli = HizmetFiyat::tanimli($musteriId ?: null, $tipId, $bayiId ?: null);
         $deg = HizmetFiyat::bayiDegistirebilir($tipId);
-        if (!$tanimli
+        if (!$tekrarOzel && !$tanimli
             && !(Auth::isAdmin() && $gelen !== null && $gelen !== '' && (float) $gelen > 0)
             && !($deg && $gelen !== null && $gelen !== '' && (float) $gelen > 0)) {
             throw new RuntimeException('Bu hizmet için müşteri / otopark fiyatı belirlenmedi.');
         }
-        $tutar = HizmetFiyat::tutarBayiIcin(
-            $musteriId ?: null,
-            $tipId,
-            $gelen,
-            Auth::isAdmin(),
-            $bayiId ?: null
-        );
-        if ($tutar < 0 || ($tutar <= 0 && !$tanimli)) {
+        $tutar = $tekrarOzel
+            ? round((float) $gelen, 2)
+            : HizmetFiyat::tutarBayiIcin(
+                $musteriId ?: null,
+                $tipId,
+                $gelen,
+                Auth::isAdmin(),
+                $bayiId ?: null
+            );
+        if ($tutar < 0 || ($tutar <= 0 && !$tanimli && !$tekrarOzel)) {
             throw new RuntimeException('Geçerli bir tutar giriniz.');
         }
         if (!Auth::isAdmin() && !$deg && $tanimli && $gelen !== null && $gelen !== ''
             && abs((float) $gelen - $tutar) > 0.009) {
             throw new RuntimeException('Bu hizmetin fiyatı kilitlidir; tutar değiştirilemez.');
+        }
+
+        $aciklama = $data['aciklama'] ?? null;
+        if ($tekrarOzel) {
+            $ek = 'Ek kayıt #' . ($mevcutAdet + 1) . ' (özel fiyat)';
+            $aciklama = $aciklama ? ($aciklama . ' — ' . $ek) : $ek;
         }
 
         $id = self::insert('arac_ekstreleri', [
@@ -233,7 +261,7 @@ final class AracService
             'musteri_id' => $data['musteri_id'] ?? $arac['musteri_id'],
             'bayi_id' => $data['bayi_id'] ?? $arac['bayi_id'],
             'tutar' => $tutar,
-            'aciklama' => $data['aciklama'] ?? null,
+            'aciklama' => $aciklama,
             'irsaliye' => $data['irsaliye'] ?? null,
             'fatura_no' => $data['fatura_no'] ?? null,
             'fatura_tarihi' => $data['fatura_tarihi'] ?? null,

@@ -3,6 +3,8 @@
 .env
 /storage/logs/*
 !/storage/logs/.gitkeep
+/storage/vis/*
+!/storage/vis/.gitkeep
 /docs/referans/*.json
 /docs/referans/summary.txt
 /public/uploads/*

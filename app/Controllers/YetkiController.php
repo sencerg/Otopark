@@ -124,6 +124,9 @@ final class YetkiController extends Controller
             $id = Request::int('id');
             $name = trim(Request::str('name') ?? '');
             $email = mb_strtolower(trim(Request::str('email') ?? ''));
+            $kullaniciAdi = mb_strtolower(trim(Request::str('kullanici_adi') ?? ''));
+            $telefon = trim(Request::str('telefon') ?? '');
+            $yetkiTipi = Request::str('yetki_tipi') ?: null;
             $role = Request::str('role') ?? 'bayi';
             $profilId = Request::int('yetki_profil_id');
             $bayiId = Request::int('bayi_id');
@@ -132,12 +135,33 @@ final class YetkiController extends Controller
             $grupId = Request::int('kullanici_grubu_id');
             $aktif = Request::bool('is_active');
             $sifre = is_string($_POST['password'] ?? null) ? (string) $_POST['password'] : '';
+            $sifreTekrar = is_string($_POST['password_tekrar'] ?? null) ? (string) $_POST['password_tekrar'] : '';
+
+            // yetki_tipi: admin | otopark | otopark_personel | musteri → role + kapsam + varsayılan profil
+            if ($yetkiTipi !== null) {
+                [$role, $kapsam, $autoProfil] = match ($yetkiTipi) {
+                    'admin' => ['admin', null, $this->sistemProfilId('admin')],
+                    'otopark' => ['bayi', 'genel', $this->sistemProfilId('bayi', 'otopark')],
+                    'otopark_personel' => ['bayi', 'kisisel', $this->sistemProfilId('bayi', 'personel')],
+                    'musteri' => ['musteri', null, $this->sistemProfilId('musteri')],
+                    default => throw new RuntimeException('Geçersiz yetki tipi.'),
+                };
+                if (!$profilId) {
+                    $profilId = $autoProfil;
+                }
+            }
 
             if ($name === '' || $email === '') {
                 throw new RuntimeException('Ad ve e-posta zorunludur.');
             }
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 throw new RuntimeException('Geçerli bir e-posta giriniz.');
+            }
+            if ($kullaniciAdi === '') {
+                $kullaniciAdi = preg_replace('/[^a-z0-9._-]/', '', explode('@', $email)[0] ?? '') ?: '';
+            }
+            if ($kullaniciAdi === '' || !preg_match('/^[a-z0-9._-]{3,80}$/', $kullaniciAdi)) {
+                throw new RuntimeException('Kullanıcı adı 3–80 karakter; harf, rakam, . _ - olabilir.');
             }
             if (!in_array($role, ['admin', 'bayi', 'musteri'], true)) {
                 throw new RuntimeException('Geçersiz rol.');
@@ -150,7 +174,7 @@ final class YetkiController extends Controller
             }
             if ($role === 'bayi') {
                 if (!$bayiId) {
-                    throw new RuntimeException('Bayi kullanıcısı için otopark seçilmelidir.');
+                    throw new RuntimeException('Otopark / personel için otopark seçilmelidir.');
                 }
                 if (!in_array($kapsam, ['genel', 'kisisel'], true)) {
                     $kapsam = 'genel';
@@ -172,9 +196,27 @@ final class YetkiController extends Controller
                 throw new RuntimeException('Kendi hesabınızı pasifleştiremez veya yetkisini düşüremezsiniz.');
             }
 
+            $emailVar = Database::fetch(
+                'SELECT id FROM users WHERE lower(email) = lower(:e)' . ($id ? ' AND id <> :id' : ''),
+                $id ? ['e' => $email, 'id' => $id] : ['e' => $email]
+            );
+            if ($emailVar) {
+                throw new RuntimeException('Bu e-posta zaten kayıtlı.');
+            }
+            $adiVar = Database::fetch(
+                'SELECT id FROM users WHERE kullanici_adi IS NOT NULL AND lower(kullanici_adi) = lower(:a)'
+                . ($id ? ' AND id <> :id' : ''),
+                $id ? ['a' => $kullaniciAdi, 'id' => $id] : ['a' => $kullaniciAdi]
+            );
+            if ($adiVar) {
+                throw new RuntimeException('Bu kullanıcı adı zaten kullanılıyor.');
+            }
+
             $data = [
                 'name' => $name,
                 'email' => $email,
+                'kullanici_adi' => $kullaniciAdi,
+                'telefon' => $telefon !== '' ? $telefon : null,
                 'role' => $role,
                 'yetki_profil_id' => $profilId,
                 'bayi_id' => $bayiId,
@@ -187,6 +229,9 @@ final class YetkiController extends Controller
             if ($sifre !== '') {
                 if (mb_strlen($sifre) < 6) {
                     throw new RuntimeException('Şifre en az 6 karakter olmalıdır.');
+                }
+                if ($sifreTekrar !== '' && $sifre !== $sifreTekrar) {
+                    throw new RuntimeException('Şifre ve şifre tekrarı aynı değil.');
                 }
                 $data['password_hash'] = password_hash($sifre, PASSWORD_DEFAULT);
             } elseif (!$id) {
@@ -202,9 +247,6 @@ final class YetkiController extends Controller
                     throw new RuntimeException('Kullanıcı bulunamadı.');
                 }
             } else {
-                if (Database::fetch('SELECT 1 FROM users WHERE email = :e', ['e' => $email])) {
-                    throw new RuntimeException('Bu e-posta zaten kayıtlı.');
-                }
                 $cols = array_keys($data);
                 $id = (int) Database::fetch(
                     'INSERT INTO users (' . implode(', ', $cols) . ') VALUES (:' . implode(', :', $cols) . ') RETURNING id',
@@ -216,11 +258,37 @@ final class YetkiController extends Controller
         });
     }
 
+    /** Sistem profili id: tip + opsiyonel otopark|personel. */
+    private function sistemProfilId(string $tip, ?string $alt = null): ?int
+    {
+        $rows = Database::fetchAll(
+            'SELECT id, ad FROM yetki_profilleri WHERE sistem_mi AND aktif AND tip = :t ORDER BY id',
+            ['t' => $tip]
+        );
+        if ($rows === []) {
+            return null;
+        }
+        if ($tip !== 'bayi' || $alt === null) {
+            return (int) $rows[0]['id'];
+        }
+        foreach ($rows as $r) {
+            $personel = Yetki::otoparkPersonelMi((string) $r['ad']);
+            if ($alt === 'personel' && $personel) {
+                return (int) $r['id'];
+            }
+            if ($alt === 'otopark' && !$personel) {
+                return (int) $r['id'];
+            }
+        }
+
+        return (int) $rows[0]['id'];
+    }
+
     /** @return list<array<string,mixed>> */
     private function kullaniciListesi(): array
     {
         return Database::fetchAll(
-            "SELECT u.id, u.name, u.email, u.role, u.bayi_id, u.musteri_id, u.bayi_kapsam, u.yetki_profil_id,
+            "SELECT u.id, u.name, u.email, u.kullanici_adi, u.telefon, u.role, u.bayi_id, u.musteri_id, u.bayi_kapsam, u.yetki_profil_id,
                     u.kullanici_grubu_id, u.is_active, u.last_login_at,
                     b.ad AS bayi_adi, m.ad AS musteri_adi, yp.ad AS profil_adi
              FROM users u

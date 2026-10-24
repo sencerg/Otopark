@@ -59,7 +59,16 @@ final class MaliyetController extends Controller
     public function getir(string $id): void
     {
         $this->ajax(function () use ($id) {
-            View::json(['success' => true, 'data' => $this->bul((int) $id)]);
+            $row = $this->bul((int) $id);
+            $deg = HizmetFiyat::bayiDegistirebilir((int) $row['maliyet_tipi_id']);
+            $row['bayi_fiyat_degistirebilir'] = $deg;
+            if (Auth::fiyatMaskeli() && !$deg) {
+                $row['tutar'] = null;
+                $row['tutar_etiket'] = 'Anlaşmalı Fiyat';
+            } elseif (Auth::fiyatMaskeli()) {
+                $row['tutar_etiket'] = HizmetFiyat::bayiTutarMetni(true, $row['tutar'] ?? null);
+            }
+            View::json(['success' => true, 'data' => $row]);
         });
     }
 
@@ -133,6 +142,7 @@ final class MaliyetController extends Controller
             [
                 'id' => 'e.id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad',
                 'lokasyon' => 'b.ad', 'maliyet_tipi' => 'mt.ad', 'tutar' => 'e.tutar', 'aciklama' => 'e.aciklama', 'fatura_no' => 'e.fatura_no',
+                'bayi_fiyat_degistirebilir' => 'mt.bayi_fiyat_degistirebilir',
                 'islem_tarihi' => "to_char(e.islem_tarihi, 'DD.MM.YYYY')", 'islem_tarihi_sort' => 'e.islem_tarihi',
                 'cikis_sonrasi' => 'e.cikis_sonrasi', 'hareket_id' => 'e.hareket_id',
                 'kullanici' => 'u.name', 'kayit_zamani' => "to_char(e.created_at AT TIME ZONE 'Europe/Istanbul', 'DD.MM.YYYY HH24:MI')", 'kayit_zamani_sort' => 'e.created_at',
@@ -164,33 +174,39 @@ final class MaliyetController extends Controller
     public function isTakibiListe(): void
     {
         $dt = self::ekstreTablosu();
-        $fiyat = Auth::fiyatGorebilir();
-        if (Request::input('export')) {
-            $kolonlar = [
-                'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'lokasyon' => 'Lokasyon',
-                'maliyet_tipi' => 'Hizmet', 'aciklama' => 'Açıklama', 'kullanici' => 'İşlemi Yapan', 'kayit_zamani' => 'Kayıt Zamanı',
-            ];
-            if ($fiyat) {
-                $kolonlar = [
-                    'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'lokasyon' => 'Lokasyon',
-                    'maliyet_tipi' => 'Hizmet', 'tutar' => 'Tutar', 'aciklama' => 'Açıklama', 'kullanici' => 'İşlemi Yapan', 'kayit_zamani' => 'Kayıt Zamanı',
-                ];
-            }
-            Excel::download('is-takibi', $kolonlar, array_map(static function (array $r) use ($fiyat): array {
-                if (!$fiyat) {
+        $maske = Auth::fiyatMaskeli();
+        $map = static function (array $r) use ($maske): array {
+            if ($maske) {
+                $deg = !empty($r['bayi_fiyat_degistirebilir']);
+                $r['tutar_etiket'] = HizmetFiyat::bayiTutarMetni($deg, $r['tutar'] ?? null);
+                if (!$deg) {
                     unset($r['tutar']);
+                }
+            }
+
+            return $r;
+        };
+        if (Request::input('export')) {
+            Excel::download('is-takibi', [
+                'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'lokasyon' => 'Lokasyon',
+                'maliyet_tipi' => 'Hizmet', 'tutar' => 'Tutar', 'aciklama' => 'Açıklama', 'kullanici' => 'İşlemi Yapan', 'kayit_zamani' => 'Kayıt Zamanı',
+            ], array_map(static function (array $r) use ($maske): array {
+                if ($maske) {
+                    $r['tutar'] = HizmetFiyat::bayiTutarMetni(!empty($r['bayi_fiyat_degistirebilir']), $r['tutar'] ?? null);
                 }
 
                 return $r;
             }, $dt->all()));
         }
-        $dt->response(
-            $fiyat ? null : static function (array $r): array {
-                unset($r['tutar']);
-
-                return $r;
-            },
-            ['toplam' => $fiyat ? $dt->sum('e.tutar') : 0]
-        );
+        $extra = ['toplam_maskeli' => $maske];
+        if ($maske) {
+            $anlasmali = (int) round($dt->sum('CASE WHEN NOT COALESCE(mt.bayi_fiyat_degistirebilir, FALSE) THEN 1 ELSE 0 END'));
+            $ozel = $dt->sum('CASE WHEN COALESCE(mt.bayi_fiyat_degistirebilir, FALSE) THEN e.tutar ELSE 0 END');
+            $extra['toplam'] = null;
+            $extra['toplam_etiket'] = HizmetFiyat::bayiToplamMetni($anlasmali, $ozel);
+        } else {
+            $extra['toplam'] = $dt->sum('e.tutar');
+        }
+        $dt->response($map, $extra);
     }
 }

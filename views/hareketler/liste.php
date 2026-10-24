@@ -43,7 +43,7 @@ if ($giris) {
                     <?php if ($giris): ?>
                         <th>Giriş Tarihi</th><th>Depolama Süresi</th>
                     <?php else: ?>
-                        <th>Hareket Tarihi</th><th>Depolama Süresi</th><?php if (\App\Core\Auth::fiyatGorebilir()): ?><th class="text-end">Hizmet Ücreti</th><?php endif; ?>
+                        <th>Hareket Tarihi</th><th>Depolama Süresi</th><?php if (\App\Core\Auth::fiyatGorebilir() || \App\Core\Auth::fiyatMaskeli()): ?><th class="text-end">Hizmet Ücreti</th><?php endif; ?>
                     <?php endif; ?>
                     <th>İşlem</th>
                 </tr>
@@ -76,6 +76,7 @@ if ($giris) {
 $(function () {
     const giris = <?= $giris ? 'true' : 'false' ?>;
     const fiyat = document.body.dataset.fiyat === '1';
+    const maske = document.body.dataset.fiyatMaske === '1';
     const saseLink = (r) => `<a href="/arac_yonetimi/duzenle/${r.<?= $giris ? 'id' : 'arac_id' ?>}" class="fw-semibold">${App.esc(r.sase)}</a>`;
     const gun = (v) => v === null ? '-' : App.num(v) + ' Gün';
 
@@ -106,9 +107,16 @@ $(function () {
             { data: 'hareket_tarihi' },
             { data: 'depolama_suresi', render: gun },
         );
-        if (fiyat) {
-            columns.push({ data: 'hizmet_tutari', className: 'text-end text-nowrap', render: (v, _, r) => (Number(v) ? App.money(v) : '<span class="text-muted">-</span>')
-                + (Number(r.sonradan_adet) ? `<div><span class="badge bg-warning text-dark" title="Çıkıştan sonra eklenen hizmet">+${App.money(r.sonradan_tutar)} çıkış sonrası (${App.num(r.sonradan_adet)})</span></div>` : '') });
+        if (fiyat || maske) {
+            columns.push({
+                data: maske ? 'hizmet_etiket' : 'hizmet_tutari',
+                className: 'text-end text-nowrap',
+                render: (v, _, r) => {
+                    if (maske) return App.esc(v || '—');
+                    return (Number(v) ? App.money(v) : '<span class="text-muted">-</span>')
+                        + (Number(r.sonradan_adet) ? `<div><span class="badge bg-warning text-dark" title="Çıkıştan sonra eklenen hizmet">+${App.money(r.sonradan_tutar)} çıkış sonrası (${App.num(r.sonradan_adet)})</span></div>` : '');
+                },
+            });
         }
         columns.push(
             { data: 'id', orderable: false, render: (id, _, r) => App.actions([

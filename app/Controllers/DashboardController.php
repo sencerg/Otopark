@@ -171,6 +171,7 @@ final class DashboardController extends Controller
 
     public function ik(): void
     {
+        Auth::requireIzin('menu.ik_dashboard');
         $this->view('dashboard/ik', [
             'pageTitle' => 'İK ve Satın Alma Yönetimi — Dashboard', 'breadcrumb' => ['İK' => null, 'Dashboard' => null],
             'personelSayisi' => Database::fetchAll(

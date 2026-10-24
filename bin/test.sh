@@ -351,11 +351,16 @@ eq "Bayi iş emrine başka bayinin aracını ekleyemiyor" 0 "$(q "SELECT count(*
 page "$S" GET "/gorev_yonetimi/duzenle/$IE"; eq "Seyrantepe, Ankara'nın iş emrini açamıyor" 404 "$CODE"
 
 bolum "8. Destek ve hesap"
+page "$K" GET /destek_talepleri; eq "Bayi destek talepleri sayfasını açamıyor" 403 "$CODE"
+page "$K" GET /ik_dashboard; eq "Bayi İK dashboard açamıyor" 403 "$CODE"
 req "$K" POST /destek_talepleri/save -F "_csrf=$TK" -F konu="Test $RUN" -F tur=2 -F aciklama="deneme"
-eq "Destek talebi oluşuyor" true "$(js .success)"
+eq "Bayi destek talebi oluşturamıyor" false "$(js .success)"
+TA=$(csrf "$A")
+req "$A" POST /destek_talepleri/save -F "_csrf=$TA" -F konu="Test $RUN" -F tur=2 -F aciklama="deneme"
+eq "Yönetici destek talebi oluşturuyor" true "$(js .success)"
 DKOD=$(q "SELECT kod FROM destek_talepleri WHERE konu='Test $RUN'"); DID=$(q "SELECT id FROM destek_talepleri WHERE konu='Test $RUN'")
 [[ "$DKOD" =~ ^DT-[0-9]{5}$ ]] && ok "Destek kodu DT-NNNNN biçiminde ($DKOD)" || no "Destek kodu biçimi yanlış" "$DKOD"
-req "$S" GET "/destek_talepleri/getir/$DID"; eq "Seyrantepe, Ankara'nın destek talebini göremiyor" false "$(js .success)"
+req "$S" GET "/destek_talepleri/getir/$DID"; eq "Bayi yönetici destek talebini göremiyor" false "$(js .success)"
 page "$K" POST /kullanici/hesabim -F "_csrf=$TK" -F ad=Ankara -F soyad=Bayi -F mail=ankara@otopark.local -F sifre=abc12345 -F sifre_tekrari=farkli
 login "$G" ankara@otopark.local ankara123; eq "Şifre tekrarı uyuşmayınca şifre değişmiyor" "$BASE/" "$LOC"
 

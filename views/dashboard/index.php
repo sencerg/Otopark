@@ -27,8 +27,9 @@ $grafik = function (array $rows, string $alan, int $limit = 7) {
 
     return [$labels, $values];
 };
+$maske = Auth::fiyatMaskeli();
 [$firmaLabels, $firmaValues] = $grafik($firmaDagilimi, 'adet');
-[$hizmetLabels, $hizmetValues] = $grafik($hizmetDagilimi, 'tutar');
+[$hizmetLabels, $hizmetValues] = $grafik($hizmetDagilimi, $maske ? 'adet' : 'tutar');
 $hizmetToplam = array_sum($hizmetValues);
 ?>
 <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
@@ -76,13 +77,18 @@ $hizmetToplam = array_sum($hizmetValues);
             </a>
         </div>
     <?php endforeach; ?>
-    <?php [$sinif, $ok, $yuzde] = $trend((float) $kpi['maliyet'][0]['tutar'], (float) $kpi['maliyet'][1]['tutar']); ?>
+    <?php
+    [$sinif, $ok, $yuzde] = $trend(
+        $maske ? (float) $kpi['maliyet'][0]['adet'] : (float) $kpi['maliyet'][0]['tutar'],
+        $maske ? (float) $kpi['maliyet'][1]['adet'] : (float) $kpi['maliyet'][1]['tutar']
+    );
+    ?>
     <div class="col-md-6 col-xl-3">
         <a href="/ek_hizmet_raporu" class="kpi-card">
-            <div class="kpi-head"><span class="kpi-icon" style="background:#f59e0b"><i class="mdi mdi-cash-multiple"></i></span>Ek Hizmet Tutarı</div>
+            <div class="kpi-head"><span class="kpi-icon" style="background:#f59e0b"><i class="mdi mdi-cash-multiple"></i></span><?= $maske ? 'Ek Hizmet İşlemi' : 'Ek Hizmet Tutarı' ?></div>
             <i class="mdi mdi-chevron-right kpi-arrow"></i>
-            <div class="kpi-value">₺<?= $tl($kpi['maliyet'][0]['tutar']) ?></div>
-            <div class="kpi-unit"><?= $tl($kpi['maliyet'][0]['adet']) ?> işlem</div>
+            <div class="kpi-value"><?= $maske ? $tl($kpi['maliyet'][0]['adet']) : ('₺' . $tl($kpi['maliyet'][0]['tutar'])) ?></div>
+            <div class="kpi-unit"><?= $maske ? 'işlem' : ($tl($kpi['maliyet'][0]['adet']) . ' işlem') ?></div>
             <div class="kpi-trend <?= $sinif ?>"><i class="mdi <?= $ok ?>"></i> <?= $yuzde ?> <span class="kpi-sub fw-normal">önceki döneme göre</span></div>
         </a>
     </div>
@@ -112,7 +118,7 @@ $hizmetToplam = array_sum($hizmetValues);
             <div class="card-body">
                 <?php if ($hizmetValues): ?>
                     <div class="chart-wrap">
-                        <div class="chart-box"><canvas id="hizmetChart"></canvas><div class="chart-center"><strong>₺<?= $tl($hizmetToplam) ?></strong><span>TOPLAM</span></div></div>
+                        <div class="chart-box"><canvas id="hizmetChart"></canvas><div class="chart-center"><strong><?= $maske ? $tl($hizmetToplam) : ('₺' . $tl($hizmetToplam)) ?></strong><span><?= $maske ? 'İŞLEM' : 'TOPLAM' ?></span></div></div>
                         <ul class="chart-legend">
                             <?php foreach ($hizmetLabels as $i => $l): ?>
                                 <li><span class="dot" style="background:<?= $renkler[$i % 10] ?>"></span><?= e($l) ?><span class="pct">%<?= number_format($hizmetValues[$i] / max(1, $hizmetToplam) * 100, 1, ',', '.') ?></span></li>
@@ -139,7 +145,7 @@ $hizmetToplam = array_sum($hizmetValues);
                         ['Firma', $tl($ozet['firma']), null],
                         ['Marka', $tl($ozet['marka']), null],
                         ['Ek Hizmet İşlemi', $tl($ozet['maliyet_adet']), '/is_takibi'],
-                        ['Ek Hizmet Tutarı', '₺' . $tl($ozet['maliyet_tutar']), '/ek_hizmet_raporu'],
+                        ...($maske ? [] : [['Ek Hizmet Tutarı', '₺' . $tl($ozet['maliyet_tutar']), '/ek_hizmet_raporu']]),
                     ] as [$ad, $deger, $url]): ?>
                         <div class="col-6">
                             <<?= $url ? 'a href="' . $url . '"' : 'div' ?> class="mini-stat" style="background:var(--hover);box-shadow:none"><span><?= $ad ?></span><strong><?= $deger ?></strong></<?= $url ? 'a' : 'div' ?>>
@@ -154,12 +160,12 @@ $hizmetToplam = array_sum($hizmetValues);
             <div class="card-header"><h5>EK MALİYET KALEMLERİ <small class="text-muted fw-normal">(<?= e($donem) ?>)</small></h5><a href="/ek_hizmet_raporu" class="btn btn-sm btn-light">Rapor</a></div>
             <div class="card-body p-0">
                 <table class="table table-hover mb-0">
-                    <thead><tr><th>Kalem</th><th class="text-end">Adet</th><th class="text-end">Tutar (₺)</th></tr></thead>
+                    <thead><tr><th>Kalem</th><th class="text-end">Adet</th><?php if (!$maske): ?><th class="text-end">Tutar (₺)</th><?php endif; ?></tr></thead>
                     <tbody>
                     <?php foreach (array_slice($hizmetDagilimi, 0, 8) as $h): ?>
-                        <tr><td><?= e($h['ad']) ?></td><td class="text-end"><?= $tl($h['adet']) ?></td><td class="text-end fw-semibold"><?= $tl($h['tutar']) ?></td></tr>
+                        <tr><td><?= e($h['ad']) ?></td><td class="text-end"><?= $tl($h['adet']) ?></td><?php if (!$maske): ?><td class="text-end fw-semibold"><?= $tl($h['tutar']) ?></td><?php endif; ?></tr>
                     <?php endforeach; ?>
-                    <?php if (!$hizmetDagilimi): ?><tr><td colspan="3" class="text-center text-muted py-4">Kayıt bulunamadı.</td></tr><?php endif; ?>
+                    <?php if (!$hizmetDagilimi): ?><tr><td colspan="<?= $maske ? 2 : 3 ?>" class="text-center text-muted py-4">Kayıt bulunamadı.</td></tr><?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -178,7 +184,9 @@ $hizmetToplam = array_sum($hizmetValues);
                     <a href="/arac_yonetimi/toplu_stok_girisi" class="quick-action"><i class="mdi mdi-table-arrow-down"></i>Toplu Stok Girişi</a>
                     <a href="/gorev_yonetimi/ekle" class="quick-action"><i class="mdi mdi-clipboard-plus-outline"></i>İş Emri Ekle</a>
                     <a href="/depolama_raporu" class="quick-action"><i class="mdi mdi-file-chart-outline"></i>Depolama Raporu</a>
-                    <a href="/destek_talepleri" class="quick-action"><i class="mdi mdi-lifebuoy"></i>Destek Talebi</a>
+                    <?php if (Auth::can('menu.destek')): ?>
+                        <a href="/destek_talepleri" class="quick-action"><i class="mdi mdi-lifebuoy"></i>Destek Talebi</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -227,7 +235,7 @@ $hizmetToplam = array_sum($hizmetValues);
         });
     };
     doughnut('firmaChart', <?= json_encode($firmaLabels, JSON_UNESCAPED_UNICODE) ?>, <?= json_encode($firmaValues) ?>, false);
-    doughnut('hizmetChart', <?= json_encode($hizmetLabels, JSON_UNESCAPED_UNICODE) ?>, <?= json_encode($hizmetValues) ?>, true);
+    doughnut('hizmetChart', <?= json_encode($hizmetLabels, JSON_UNESCAPED_UNICODE) ?>, <?= json_encode($hizmetValues) ?>, <?= $maske ? 'false' : 'true' ?>);
 })();
 </script>
 <?php $scripts = ob_get_clean(); ?>

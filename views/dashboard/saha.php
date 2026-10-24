@@ -3,6 +3,7 @@ use App\Core\Auth;
 use App\Core\Tanim;
 
 $tl = fn ($v) => number_format((float) $v, 0, ',', '.');
+$maske = Auth::fiyatMaskeli();
 $maliyetToplam = array_sum(array_column($maliyetler, 'tutar'));
 $stokToplam = array_sum(array_column($firmalar, 'adet'));
 ?>
@@ -51,18 +52,24 @@ $stokToplam = array_sum(array_column($firmalar, 'adet'));
             <div class="card-header"><h5>Maliyet Kalemleri (<?= date('Y') ?>)</h5></div>
             <div class="card-body p-0">
                 <table class="table table-hover mb-0">
-                    <thead><tr><th>Maliyet Kalemi</th><th class="text-end">Tutar (₺)</th><th style="width:35%">Toplam Maliyete Oranı</th></tr></thead>
+                    <thead><tr><th>Maliyet Kalemi</th><?php if ($maske): ?><th class="text-end">Adet</th><?php else: ?><th class="text-end">Tutar (₺)</th><th style="width:35%">Toplam Maliyete Oranı</th><?php endif; ?></tr></thead>
                     <tbody>
-                    <?php foreach ($maliyetler as $m): $oran = $maliyetToplam > 0 ? $m['tutar'] / $maliyetToplam * 100 : 0; ?>
+                    <?php foreach ($maliyetler as $m):
+                        $oran = $maliyetToplam > 0 ? $m['tutar'] / $maliyetToplam * 100 : 0;
+                        ?>
                         <tr>
                             <td><?= e($m['ad']) ?></td>
-                            <td class="text-end fw-semibold">₺<?= $tl($m['tutar']) ?></td>
-                            <td><div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:6px"><div class="progress-bar" style="width:<?= round($oran, 1) ?>%"></div></div><span class="small text-muted">%<?= number_format($oran, 1, ',', '.') ?></span></div></td>
+                            <?php if ($maske): ?>
+                                <td class="text-end fw-semibold"><?= $tl($m['adet'] ?? 0) ?></td>
+                            <?php else: ?>
+                                <td class="text-end fw-semibold">₺<?= $tl($m['tutar']) ?></td>
+                                <td><div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:6px"><div class="progress-bar" style="width:<?= round($oran, 1) ?>%"></div></div><span class="small text-muted">%<?= number_format($oran, 1, ',', '.') ?></span></div></td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
-                    <?php if (!$maliyetler): ?><tr><td colspan="3" class="text-center text-muted py-4">Bu yıl maliyet kaydı yok.</td></tr><?php endif; ?>
+                    <?php if (!$maliyetler): ?><tr><td colspan="<?= $maske ? 2 : 3 ?>" class="text-center text-muted py-4">Bu yıl maliyet kaydı yok.</td></tr><?php endif; ?>
                     </tbody>
-                    <?php if ($maliyetler): ?><tfoot><tr><th>Toplam</th><th class="text-end">₺<?= $tl($maliyetToplam) ?></th><th></th></tr></tfoot><?php endif; ?>
+                    <?php if ($maliyetler && !$maske): ?><tfoot><tr><th>Toplam</th><th class="text-end">₺<?= $tl($maliyetToplam) ?></th><th></th></tr></tfoot><?php endif; ?>
                 </table>
             </div>
         </div>

@@ -55,8 +55,13 @@ $simdiSaat = date('H:i');
                 </div>
             </div>
             <?php
+            $maske = Auth::fiyatMaskeli();
             $depTutar = $konaklama ? (float) $konaklama['tutar'] : 0.0;
             $eklenenToplam = array_sum(array_map(fn ($x) => (float) $x['tutar'], $eklenenler));
+            $ozelSabit = array_sum(array_map(
+                fn ($x) => !empty($x['bayi_fiyat_degistirebilir']) ? (float) $x['tutar'] : 0,
+                $eklenenler
+            ));
             ?>
             <div class="card">
                 <div class="card-header"><h5>Hizmetler ve Ücret</h5><?php if (Auth::isAdmin()): ?><a href="/tanimlamalar" class="small" target="_blank"><i class="mdi mdi-cog-outline"></i> Hizmet tanımları</a><?php endif; ?></div>
@@ -79,21 +84,33 @@ $simdiSaat = date('H:i');
                         </tr>
                         <?php foreach ($eklenenler as $x): ?>
                             <tr><td><i class="mdi mdi-check-circle-outline text-success me-1"></i><?= e($x['ad']) ?> <span class="text-muted small">— <?= date('d.m.Y', strtotime($x['islem_tarihi'])) ?></span></td>
-                                <td class="text-end"><?= number_format((float) $x['tutar'], 2, ',', '.') ?> ₺</td></tr>
+                                <td class="text-end"><?= $maske
+                                    ? \App\Services\HizmetFiyat::bayiTutarHtml(!empty($x['bayi_fiyat_degistirebilir']), $x['tutar'])
+                                    : number_format((float) $x['tutar'], 2, ',', '.') . ' ₺' ?></td></tr>
                         <?php endforeach; ?>
                         </tbody>
                     </table>
 
                     <div class="form-section mt-0">Çıkışta eklenecek hizmetler</div>
                     <table class="table table-sm align-middle mb-2">
-                        <thead><tr><th>Hizmet</th><th style="width: 180px">Ücret (₺)</th><th style="width: 40px"></th></tr></thead>
+                        <thead><tr><th>Hizmet</th><th style="width: 180px">Ücret</th><th style="width: 40px"></th></tr></thead>
                         <tbody id="cikis-hizmetleri"></tbody>
                     </table>
                     <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="#hizmet-satir" data-target="#cikis-hizmetleri"><i class="mdi mdi-plus me-1"></i>Hizmet Ekle</button>
 
                     <div class="d-flex justify-content-between align-items-center border-top mt-3 pt-3">
                         <span class="text-muted">Toplam ücret<?= $fg ? ' (depolama + hizmetler)' : ' (hizmetler)' ?></span>
-                        <span class="fs-4 fw-bold text-primary" id="toplam-ucret" data-sabit="<?= ($fg ? $depTutar : 0) + $eklenenToplam ?>"><?= number_format(($fg ? $depTutar : 0) + $eklenenToplam, 2, ',', '.') ?> ₺</span>
+                        <span class="fs-5 fw-bold text-primary" id="toplam-ucret"
+                              data-maske="<?= $maske ? '1' : '0' ?>"
+                              data-sabit="<?= $fg ? $depTutar : 0 ?>"
+                              data-ozel-sabit="<?= $ozelSabit ?>"
+                              data-anlasmali-sabit="<?= count(array_filter($eklenenler, fn ($x) => empty($x['bayi_fiyat_degistirebilir']))) ?>"><?php
+                            if ($maske) {
+                                echo e(\App\Services\HizmetFiyat::bayiToplamOzeti($eklenenler));
+                            } else {
+                                echo number_format(($fg ? $depTutar : 0) + $eklenenToplam, 2, ',', '.') . ' ₺';
+                            }
+                        ?></span>
                     </div>
                 </div>
             </div>
@@ -101,7 +118,7 @@ $simdiSaat = date('H:i');
                 <tr>
                     <td><select name="hizmet_id[]" class="form-select form-select-sm select2" required>
                         <option value="">Seçiniz</option>
-                        <?php foreach ($hizmetler as $h): ?><option value="<?= $h['id'] ?>" data-bayi-degistirebilir="<?= !empty($h['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($h['ad']) ?><?= empty($h['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?></option><?php endforeach; ?>
+                        <?php foreach ($hizmetler as $h): ?><option value="<?= $h['id'] ?>" data-bayi-degistirebilir="<?= !empty($h['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>" data-tekrar-eklenebilir="<?= !empty($h['tekrar_eklenebilir']) ? '1' : '0' ?>"><?= e($h['ad']) ?><?= empty($h['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?><?= empty($h['tekrar_eklenebilir']) ? ' (tek sefer)' : '' ?></option><?php endforeach; ?>
                     </select></td>
                     <td><input type="number" name="hizmet_tutar[]" class="form-control form-control-sm text-end" step="0.01" min="0" placeholder="Fiyat belirlenmedi" required></td>
                     <td><button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-close"></i></button></td>
@@ -139,14 +156,33 @@ $simdiSaat = date('H:i');
 $(function () {
     const $toplam = $('#toplam-ucret');
     const hesapla = () => {
-        let t = Number($toplam.data('sabit') || 0);
-        $('#cikis-hizmetleri [name="hizmet_tutar[]"]').each(function () { t += Number(this.value || 0); });
-        $toplam.text(App.money(t));
+        const maske = $toplam.data('maske') === 1 || $toplam.data('maske') === '1';
+        if (!maske) {
+            let t = Number($toplam.data('sabit') || 0);
+            $('#cikis-hizmetleri [name="hizmet_tutar[]"]').each(function () { t += Number(this.value || 0); });
+            $toplam.text(App.money(t));
+            return;
+        }
+        let anlasmali = Number($toplam.data('anlasmaliSabit') || 0);
+        let ozel = Number($toplam.data('ozelSabit') || 0);
+        $('#cikis-hizmetleri tr').each(function () {
+            const deg = $(this).find('[name="hizmet_id[]"] option:selected').data('bayiDegistirebilir');
+            const degOk = !(deg === false || deg === 0 || deg === '0');
+            const tip = $(this).find('[name="hizmet_id[]"]').val();
+            if (!tip) return;
+            if (degOk) ozel += Number($(this).find('[name="hizmet_tutar[]"]').val() || 0);
+            else anlasmali += 1;
+        });
+        const parca = [];
+        if (anlasmali > 0) parca.push(anlasmali === 1 ? 'Anlaşmalı Fiyat' : (anlasmali + ' × Anlaşmalı Fiyat'));
+        if (ozel > 0) parca.push('Özel: ' + App.money(ozel));
+        $toplam.text(parca.length ? parca.join(' + ') : '—');
     };
     $('#cikis-hizmetleri').on('change', '[name="hizmet_id[]"]', function () {
         hesapla();
     }).on('input', '[name="hizmet_tutar[]"]', hesapla);
     $(document).on('click', '#cikis-hizmetleri [data-remove-row]', () => setTimeout(hesapla));
+    $(document).on('ajax-form-saved change', () => setTimeout(hesapla, 50));
 
     const GIRIS = new Date(<?= json_encode(date('c', $girisTs)) ?>);
     const GIRIS_TARIH = <?= json_encode($girisTarih) ?>;

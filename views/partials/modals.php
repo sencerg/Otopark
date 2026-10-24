@@ -3,7 +3,7 @@ use App\Core\Csrf;
 use App\Core\Database;
 use App\Core\Tanim;
 
-$maliyetTipleri = Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY id');
+$maliyetTipleri = Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir, tekrar_eklenebilir FROM maliyet_tipleri WHERE aktif ORDER BY id');
 $bayiler = Tanim::liste('bayiler');
 ?>
 <div class="modal fade" id="hizli-arac-ekle-modal" tabindex="-1">
@@ -86,10 +86,10 @@ $bayiler = Tanim::liste('bayiler');
                     <div class="col-md-8"><label class="form-label required">Maliyet Tipi</label>
                         <select name="maliyet_tipi_modal" class="form-select select2" required data-tutar-target="#hizli-maliyet-tutar">
                             <option value="">Seçiniz</option>
-                            <?php foreach ($maliyetTipleri as $m): ?><option value="<?= $m['id'] ?>" data-bayi-degistirebilir="<?= !empty($m['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>"><?= e($m['ad']) ?><?= empty($m['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?></option><?php endforeach; ?>
+                            <?php foreach ($maliyetTipleri as $m): ?><option value="<?= $m['id'] ?>" data-bayi-degistirebilir="<?= !empty($m['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>" data-tekrar-eklenebilir="<?= !empty($m['tekrar_eklenebilir']) ? '1' : '0' ?>"><?= e($m['ad']) ?><?= empty($m['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?><?= empty($m['tekrar_eklenebilir']) ? ' (tek sefer)' : '' ?></option><?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-md-4"><label class="form-label required">Fiyat (₺)</label><input type="number" step="0.01" min="0" name="tutar_ek" id="hizli-maliyet-tutar" class="form-control" required></div>
+                    <div class="col-md-4"><label class="form-label required">Fiyat</label><input type="number" step="0.01" min="0" name="tutar_ek" id="hizli-maliyet-tutar" class="form-control" required placeholder="Fiyat belirlenmedi"></div>
                     <div class="col-md-12"><label class="form-label">Açıklama</label><textarea name="aciklama_ekstre" class="form-control" rows="2"></textarea></div>
                     <div class="col-md-4"><label class="form-label">İrsaliye Bilgisi</label><input type="text" name="irsaliye" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Fatura No</label><input type="text" name="fatura_no" class="form-control"></div>

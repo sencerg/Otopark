@@ -99,14 +99,33 @@ final class ApiController extends Controller
         }
         $tutar = HizmetFiyat::tutar($musteriId, $tipId, $bayiId);
         $tanimli = HizmetFiyat::tanimli($musteriId, $tipId, $bayiId);
+        $deg = HizmetFiyat::bayiDegistirebilir($tipId);
+        $tekrar = HizmetFiyat::tekrarEklenebilir($tipId);
+        $aractaAdet = $aracId ? HizmetFiyat::aracHizmetAdedi($aracId, $tipId) : 0;
+        $tekrarEngelli = !$tekrar && $aractaAdet > 0 && !Auth::isAdmin();
+        $adminOzelGerekli = !$tekrar && $aractaAdet > 0 && Auth::isAdmin();
+        $maskeli = Auth::fiyatMaskeli();
         View::json([
             'success' => true,
-            'tutar' => $tutar,
+            // Bayi hiçbir katalog tutarını görmez; admin/müşteri gerçek tutarı alır
+            'tutar' => ($maskeli || $adminOzelGerekli) ? null : $tutar,
             'tanimli' => $tanimli,
             'kaynak' => $tanimli ? 'firma_otopark' : null,
             'musteri_id' => $musteriId,
             'bayi_id' => $bayiId,
-            'bayi_fiyat_degistirebilir' => HizmetFiyat::bayiDegistirebilir($tipId),
+            'bayi_fiyat_degistirebilir' => $deg,
+            'tekrar_eklenebilir' => $tekrar,
+            'aracta_adet' => $aractaAdet,
+            'tekrar_engelli' => $tekrarEngelli,
+            'admin_ozel_gerekli' => $adminOzelGerekli,
+            'uyari' => $tekrarEngelli
+                ? 'Bu hizmet araca zaten eklenmiş. Tekrar eklemek için yöneticiye başvurun.'
+                : ($adminOzelGerekli
+                    ? 'Bu hizmet araca ' . $aractaAdet . ' kez eklenmiş. Yeni kayıt için özel fiyat giriniz (sınırsız ekleyebilirsiniz).'
+                    : null),
+            'bayi_etiket' => $maskeli
+                ? ($deg ? 'Özel fiyat girin' : 'Anlaşmalı Fiyat')
+                : null,
         ]);
     }
 }

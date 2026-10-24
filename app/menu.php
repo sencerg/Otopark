@@ -18,13 +18,17 @@ return [
         ]],
         ['title' => 'Araç Sayımları', 'url' => '/sayim_kayitlari', 'izin' => 'menu.sayim'],
         ['title' => 'Saha Operasyon İş Takibi', 'url' => '/is_takibi', 'izin' => 'menu.is_takibi'],
-        ['title' => 'Raporlar', 'children' => [
-            ['title' => 'Stok Araç Depolama Lokasyon Raporu', 'url' => '/depolama_raporu', 'izin' => 'menu.depolama_raporu'],
-            ['title' => 'Saha Operasyon Ek Hizmetler Lokasyon Raporu', 'url' => '/ek_hizmet_raporu', 'izin' => 'menu.ek_hizmet_raporu'],
-        ]],
         ['title' => 'Saha Operasyon Tanımları', 'children' => [
             ['title' => 'Araç Tanımları', 'url' => '/arac_yonetimi/tanimlar', 'izin' => 'menu.tanimlar'],
         ]],
+    ]],
+    ['title' => 'Araç Ekspertiz', 'icon' => 'mdi-car-search', 'url' => '/vis', 'izin' => 'menu.vis'],
+    ['title' => 'Raporlar', 'icon' => 'mdi-file-chart-outline', 'izin' => 'menu.raporlar', 'children' => [
+        ['title' => 'Tüm Raporlar', 'url' => '/raporlar', 'izin' => 'menu.raporlar'],
+        ['title' => 'Depolama Raporu', 'url' => '/depolama_raporu', 'izin' => 'menu.depolama_raporu'],
+        ['title' => 'Ek Hizmet Raporu', 'url' => '/ek_hizmet_raporu', 'izin' => 'menu.ek_hizmet_raporu'],
+        ['title' => 'Stok Özet Raporu', 'url' => '/raporlar/stok_ozet', 'izin' => 'menu.stok_ozet_raporu'],
+        ['title' => 'Giriş–Çıkış Özeti', 'url' => '/raporlar/giris_cikis', 'izin' => 'menu.giris_cikis_raporu'],
     ]],
     ['title' => 'Operasyon İş Emri Yönetimi', 'icon' => 'mdi-clipboard-text-outline', 'izin' => 'menu.is_emri', 'children' => [
         ['title' => 'İş Emri Oluştur', 'url' => '/gorev_yonetimi/ekle', 'izin' => 'is_emri.ekle'],
@@ -38,8 +42,5 @@ return [
     ]],
     ['title' => 'Tanımlamalar', 'icon' => 'mdi-cog-outline', 'url' => '/tanimlamalar', 'izin' => 'menu.tanimlamalar'],
     ['title' => 'Yetki Yönetimi', 'icon' => 'mdi-shield-account-outline', 'url' => '/yetki_yonetimi', 'izin' => 'menu.yetki'],
-    ['title' => 'Proje Notları', 'icon' => 'mdi-notebook-outline', 'children' => [
-        ['title' => 'Referans ↔ MD Karşılaştırma', 'url' => '/referans_md_karsilastirma', 'izin' => 'menu.karsilastirma'],
-        ['title' => 'Tema Önizleme', 'url' => '/tema_onizleme', 'izin' => 'menu.tema', 'admin' => true],
-    ]],
+    ['title' => 'Proje Notları', 'icon' => 'mdi-history', 'url' => '/surumler', 'izin' => 'menu.surumler'],
 ];

@@ -1,12 +1,15 @@
 <?php
 use App\Core\Auth;
 use App\Core\Tanim;
+
+$fiyat = Auth::fiyatGorebilir();
+$maske = Auth::fiyatMaskeli();
 ?>
 <div class="card">
     <div class="card-header">
         <h5>Ek Hizmet Raporu</h5>
         <div class="dt-toolbar">
-            <?php if (Auth::fiyatGorebilir()): ?><div class="total-box">Toplam: <b id="toplam-tutar">0,00 ₺</b></div><?php endif; ?>
+            <?php if ($fiyat || $maske): ?><div class="total-box">Toplam: <b id="toplam-tutar"><?= $maske ? '—' : '0,00 ₺' ?></b></div><?php endif; ?>
             <button id="dt-export" class="btn btn-sm btn-success"><i class="mdi mdi-microsoft-excel me-1"></i>Excel İndir</button>
         </div>
     </div>
@@ -31,7 +34,7 @@ use App\Core\Tanim;
         </div>
         <div class="table-responsive">
             <table id="liste" class="table table-hover w-100">
-                <thead><tr><th>İşlem Tarihi</th><th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka / Seri</th><th>Lokasyon</th><th>Hizmet</th><th>Açıklama</th><th>Fatura No</th><?php if (Auth::fiyatGorebilir()): ?><th class="text-end">Tutar</th><?php endif; ?></tr></thead>
+                <thead><tr><th>İşlem Tarihi</th><th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka / Seri</th><th>Lokasyon</th><th>Hizmet</th><th>Açıklama</th><th>Fatura No</th><?php if ($fiyat || $maske): ?><th class="text-end">Tutar</th><?php endif; ?></tr></thead>
             </table>
         </div>
     </div>
@@ -41,6 +44,7 @@ use App\Core\Tanim;
 <script>
 $(function () {
     const fiyat = document.body.dataset.fiyat === '1';
+    const maske = document.body.dataset.fiyatMaske === '1';
     const ozet = (rows) => {
         if (!fiyat) { $('#ozet').empty(); return; }
         $('#ozet').html((rows || []).map((r) => `
@@ -64,10 +68,20 @@ $(function () {
     if (fiyat) {
         cols.push({ data: 'tutar', className: 'text-end fw-semibold text-nowrap', render: (v) => App.money(v)
             + (Number(v) ? '' : '<div><span class="badge bg-danger">Fiyat belirlenmedi</span></div>') });
+    } else if (maske) {
+        cols.push({
+            data: 'tutar_etiket',
+            className: 'text-end fw-semibold text-nowrap',
+            render: (v, _, r) => App.bayiTutarHtml(r.bayi_fiyat_degistirebilir, r.tutar),
+        });
     }
     App.table('#liste', {
         url: '/ek_hizmet_raporu/liste', order: [[0, 'desc']],
-        onData: (json) => { if (fiyat) $('#toplam-tutar').text(App.money(json.toplam)); ozet(json.ozet); },
+        onData: (json) => {
+            if (maske) $('#toplam-tutar').text(json.toplam_etiket || '—');
+            else if (fiyat) $('#toplam-tutar').text(App.money(json.toplam));
+            ozet(json.ozet);
+        },
         columns: cols,
         createdRow: (row, r) => { if (r.cikis_sonrasi) row.classList.add('table-warning'); },
     });

@@ -21,7 +21,6 @@ final class Yetki
                 'izinler' => [
                     ['kod' => 'menu.dashboard', 'ad' => 'Ana dashboard', 'aciklama' => 'Saha operasyon ana ekranı'],
                     ['kod' => 'menu.saha_dashboard', 'ad' => 'Araç yönetimi dashboard'],
-                    ['kod' => 'menu.ik_dashboard', 'ad' => 'İK dashboard'],
                     ['kod' => 'menu.arama', 'ad' => 'Üst arama (şasi / plaka)'],
                     ['kod' => 'menu.hizli_arac', 'ad' => 'Hızlı araç ekle'],
                     ['kod' => 'menu.hizli_maliyet', 'ad' => 'Hızlı maliyet ekle'],
@@ -46,10 +45,19 @@ final class Yetki
                 ],
             ],
             [
+                'grup' => 'Araç Ekspertiz',
+                'izinler' => [
+                    ['kod' => 'menu.vis', 'ad' => 'Araç ekspertiz (VIS)', 'aciklama' => 'Bağımsız ekspertiz modülü — stoka yazılmaz'],
+                ],
+            ],
+            [
                 'grup' => 'Raporlar',
                 'izinler' => [
-                    ['kod' => 'menu.depolama_raporu', 'ad' => 'Depolama raporu'],
-                    ['kod' => 'menu.ek_hizmet_raporu', 'ad' => 'Ek hizmet raporu'],
+                    ['kod' => 'menu.raporlar', 'ad' => 'Raporlar ana sayfa', 'aciklama' => 'Menü: Raporlar hub'],
+                    ['kod' => 'menu.depolama_raporu', 'ad' => 'Depolama raporu', 'aciklama' => 'Interaktif'],
+                    ['kod' => 'menu.ek_hizmet_raporu', 'ad' => 'Ek hizmet raporu', 'aciklama' => 'Interaktif'],
+                    ['kod' => 'menu.stok_ozet_raporu', 'ad' => 'Stok özet raporu', 'aciklama' => 'Seçerek hazırla'],
+                    ['kod' => 'menu.giris_cikis_raporu', 'ad' => 'Giriş–çıkış özeti', 'aciklama' => 'Seçerek hazırla'],
                 ],
             ],
             [
@@ -60,9 +68,15 @@ final class Yetki
                 ],
             ],
             [
-                'grup' => 'Destek ve tanımlar',
+                'grup' => 'İK ve Satın Alma Yönetimi',
                 'izinler' => [
-                    ['kod' => 'menu.destek', 'ad' => 'Destek talepleri'],
+                    ['kod' => 'menu.ik_dashboard', 'ad' => 'İK dashboard', 'aciklama' => 'Menü: İK ve Satın Alma → Dashboard'],
+                    ['kod' => 'menu.destek', 'ad' => 'Destek talepleri', 'aciklama' => 'Menü: İK ve Satın Alma → Destek Talepleri'],
+                ],
+            ],
+            [
+                'grup' => 'Tanımlar',
+                'izinler' => [
                     ['kod' => 'menu.tanimlar', 'ad' => 'Araç tanımları'],
                     ['kod' => 'menu.tanimlamalar', 'ad' => 'Tanımlamalar (müşteri / otopark / hizmet)'],
                     ['kod' => 'tanimlama.yaz', 'ad' => 'Tanımlama kaydet / sil'],
@@ -77,10 +91,9 @@ final class Yetki
                 ],
             ],
             [
-                'grup' => 'Proje / diğer',
+                'grup' => 'Proje Notları',
                 'izinler' => [
-                    ['kod' => 'menu.karsilastirma', 'ad' => 'Referans ↔ MD karşılaştırma'],
-                    ['kod' => 'menu.tema', 'ad' => 'Tema önizleme'],
+                    ['kod' => 'menu.surumler', 'ad' => 'Sürüm geçmişi', 'aciklama' => 'Menü: Proje Notları'],
                 ],
             ],
             [
@@ -119,16 +132,23 @@ final class Yetki
         return match (true) {
             $tip === 'admin' => $tum,
             $tip === 'musteri' => $musteri,
-            $tip === 'bayi' && str_contains(mb_strtolower($profilAd), 'kişisel') => [
+            $tip === 'bayi' && self::otoparkPersonelMi($profilAd) => [
                 'menu.dashboard', 'menu.saha_dashboard', 'menu.arama',
                 'menu.stok', 'menu.cikis', 'menu.araclar',
                 'arac.goruntule', 'hareket.goruntule', 'hareket.stoktan_cikar',
-                'menu.is_takibi', 'menu.depolama_raporu', 'menu.destek',
+                'menu.is_takibi',
+                'menu.raporlar', 'menu.depolama_raporu', 'menu.stok_ozet_raporu', 'menu.giris_cikis_raporu',
             ],
+            // Bayi: İK / destek / VIS yok (yalnızca yönetici veya özel profil)
             $tip === 'bayi' => array_values(array_filter(
                 $tum,
                 static fn ($k) => !str_starts_with($k, 'musteri.')
-                    && !in_array($k, ['menu.yetki', 'yetki.yonet', 'kullanici.yonet', 'menu.tema', 'menu.tanimlamalar', 'tanimlama.yaz'], true)
+                    && !in_array($k, [
+                        'menu.yetki', 'yetki.yonet', 'kullanici.yonet',
+                        'menu.tanimlamalar', 'tanimlama.yaz',
+                        'menu.ik_dashboard', 'menu.destek',
+                        'menu.vis',
+                    ], true)
             )),
             default => [],
         };
@@ -171,7 +191,7 @@ final class Yetki
                 $yonetici = (int) $p['id'];
             } elseif ($p['tip'] === 'musteri') {
                 $musteri = (int) $p['id'];
-            } elseif ($p['tip'] === 'bayi' && str_contains($ad, 'kişisel')) {
+            } elseif ($p['tip'] === 'bayi' && self::otoparkPersonelMi($p['ad'])) {
                 $bayiKisisel = (int) $p['id'];
             } elseif ($p['tip'] === 'bayi') {
                 $bayiGenel = (int) $p['id'];
@@ -197,6 +217,16 @@ final class Yetki
                 ['p' => $profil, 'k' => $kapsam, 'id' => $u['id']]
             );
         }
+    }
+
+    /** Otopark personel (eski: Bayi Kişisel) profili mi? */
+    public static function otoparkPersonelMi(string $profilAd): bool
+    {
+        $ad = mb_strtolower($profilAd);
+
+        return str_contains($ad, 'kişisel')
+            || str_contains($ad, 'kisisel')
+            || str_contains($ad, 'personel');
     }
 
     /** @param list<string> $kodlar */

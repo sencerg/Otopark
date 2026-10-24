@@ -50,6 +50,7 @@ final class TanimController extends Controller
                 'alanlar' => [
                     'ad' => ['Maliyet Tipi', 'text', true],
                     'bayi_fiyat_degistirebilir' => ['Bayi fiyatı değiştirebilir', 'bool', false],
+                    'tekrar_eklenebilir' => ['Bayi birden fazla ekleyebilir', 'bool', false],
                     'depolama_mi' => ['Depolama Kalemi', 'bool', false],
                     'aktif' => ['Aktif', 'bool', false],
                 ]],

@@ -10,11 +10,21 @@ final class Auth
     /** @var list<string>|null */
     private static ?array $izinler = null;
 
-    public static function attempt(string $email, string $password): bool
+    public static function attempt(string $login, string $password): bool
     {
+        $login = trim($login);
+        if ($login === '') {
+            return false;
+        }
         $user = Database::fetch(
-            'SELECT * FROM users WHERE email = :email AND is_active = TRUE',
-            ['email' => mb_strtolower(trim($email))]
+            'SELECT * FROM users
+             WHERE is_active = TRUE
+               AND (
+                    lower(email) = lower(:login)
+                 OR (kullanici_adi IS NOT NULL AND kullanici_adi <> \'\' AND lower(kullanici_adi) = lower(:login2))
+               )
+             LIMIT 1',
+            ['login' => $login, 'login2' => $login]
         );
 
         if ($user === null || !password_verify($password, $user['password_hash'])) {
@@ -32,7 +42,7 @@ final class Auth
     {
         if (self::$user === null && isset($_SESSION['user_id'])) {
             self::$user = Database::fetch(
-                'SELECT u.id, u.name, u.email, u.role, u.bayi_id, u.musteri_id, u.telefon, u.resim, u.kullanici_grubu_id,
+                'SELECT u.id, u.name, u.email, u.kullanici_adi, u.role, u.bayi_id, u.musteri_id, u.telefon, u.resim, u.kullanici_grubu_id,
                         u.yetki_profil_id, u.bayi_kapsam,
                         b.ad AS bayi_adi, g.ad AS grup_adi, m.ad AS musteri_adi, yp.ad AS yetki_profil_adi
                  FROM users u
@@ -122,10 +132,16 @@ final class Auth
         return (self::user()['role'] ?? null) === 'musteri';
     }
 
-    /** Fiyat / tutar görme: yönetici ve müşteri portalı. Bayi kullanıcıları görmez. */
+    /** Gerçek tutarı görme: yönetici ve müşteri portalı. */
     public static function fiyatGorebilir(): bool
     {
         return self::isAdmin() || self::isMusteri();
+    }
+
+    /** Bayi personeli: hizmet tutarları maskelenir (Anlaşmalı / özel fiyat). */
+    public static function fiyatMaskeli(): bool
+    {
+        return self::check() && !self::fiyatGorebilir();
     }
 
     /** Müşteri portal kullanıcısının firma id'si. */

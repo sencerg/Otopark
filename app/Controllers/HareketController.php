@@ -96,11 +96,15 @@ final class HareketController extends Controller
              LEFT JOIN hareket_nedenleri hn ON hn.id = h.hareket_nedeni_id
              LEFT JOIN LATERAL (SELECT g.hareket_tarihi FROM arac_hareketleri g WHERE g.arac_id = h.arac_id AND g.hareket_tipi = 1 AND g.hareket_tarihi <= h.hareket_tarihi ORDER BY g.hareket_tarihi DESC LIMIT 1) gh ON TRUE
              LEFT JOIN LATERAL (SELECT SUM(e.tutar) AS tutar, COUNT(*) FILTER (WHERE e.cikis_sonrasi) AS sonradan,
-                                       SUM(e.tutar) FILTER (WHERE e.cikis_sonrasi) AS sonradan_tutar
+                                       SUM(e.tutar) FILTER (WHERE e.cikis_sonrasi) AS sonradan_tutar,
+                                       COUNT(*) FILTER (WHERE NOT COALESCE(mt.bayi_fiyat_degistirebilir, FALSE)) AS anlasmali_adet,
+                                       COALESCE(SUM(e.tutar) FILTER (WHERE COALESCE(mt.bayi_fiyat_degistirebilir, FALSE)), 0) AS ozel_tutar
                                 FROM arac_ekstreleri e
+                                JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
                                 WHERE e.arac_id = h.arac_id AND (e.hareket_id = h.id OR (e.hareket_id IS NULL AND e.islem_tarihi BETWEEN gh.hareket_tarihi::date AND h.hareket_tarihi::date))) hz ON TRUE',
             [
                 'hizmet_tutari' => 'COALESCE(hz.tutar, 0)', 'sonradan_adet' => 'COALESCE(hz.sonradan, 0)', 'sonradan_tutar' => 'COALESCE(hz.sonradan_tutar, 0)',
+                'anlasmali_adet' => 'COALESCE(hz.anlasmali_adet, 0)', 'ozel_tutar' => 'COALESCE(hz.ozel_tutar, 0)',
                 'id' => 'h.id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad',
                 'lokasyon' => 'b.ad', 'hareket_nedeni' => 'hn.ad',
                 'hareket_tarihi' => "to_char(h.hareket_tarihi, 'DD.MM.YYYY HH24:MI')", 'hareket_tarihi_sort' => 'h.hareket_tarihi',
@@ -114,26 +118,44 @@ final class HareketController extends Controller
         );
         $this->ortakFiltreler($dt, 'h.hareket_tarihi');
 
-        $fiyat = Auth::fiyatGorebilir();
+        $maske = Auth::fiyatMaskeli();
+        $etiket = static function (array $r): string {
+            $parca = [];
+            $a = (int) ($r['anlasmali_adet'] ?? 0);
+            $o = (float) ($r['ozel_tutar'] ?? 0);
+            if ($a > 0) {
+                $parca[] = $a === 1 ? 'Anlaşmalı Fiyat' : ($a . ' × Anlaşmalı Fiyat');
+            }
+            if ($o > 0) {
+                $parca[] = 'Özel: ' . number_format($o, 2, ',', '.') . ' ₺';
+            }
+
+            return $parca !== [] ? implode(' + ', $parca) : '—';
+        };
         if (Request::input('export')) {
             $kolonlar = [
                 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
                 'hareket_nedeni' => 'Hareket Nedeni', 'hareket_tarihi' => 'Hareket Tarihi', 'depolama_suresi' => 'Depolama Süresi (Gün)',
                 'teslim_alan' => 'Teslim Alan',
+                'hizmet_tutari' => 'Hizmet Ücreti',
             ];
-            if ($fiyat) {
-                $kolonlar += ['hizmet_tutari' => 'Hizmet Ücreti', 'sonradan_tutar' => 'Çıkış Sonrası Eklenen'];
+            if (!$maske) {
+                $kolonlar['sonradan_tutar'] = 'Çıkış Sonrası Eklenen';
             }
-            Excel::download('stoktan-cikanlar', $kolonlar, array_map(static function (array $r) use ($fiyat): array {
-                if (!$fiyat) {
-                    unset($r['hizmet_tutari'], $r['sonradan_tutar'], $r['sonradan_adet']);
+            Excel::download('stoktan-cikanlar', $kolonlar, array_map(static function (array $r) use ($maske, $etiket): array {
+                if ($maske) {
+                    $r['hizmet_tutari'] = $etiket($r);
+                    unset($r['sonradan_tutar'], $r['ozel_tutar'], $r['anlasmali_adet']);
                 }
 
                 return $r;
             }, $dt->all()));
         }
-        $dt->response($fiyat ? null : static function (array $r): array {
-            unset($r['hizmet_tutari'], $r['sonradan_tutar'], $r['sonradan_adet']);
+        $dt->response(static function (array $r) use ($maske, $etiket): array {
+            if ($maske) {
+                $r['hizmet_etiket'] = $etiket($r);
+                unset($r['hizmet_tutari'], $r['sonradan_tutar'], $r['ozel_tutar']);
+            }
 
             return $r;
         });
@@ -176,7 +198,7 @@ final class HareketController extends Controller
             'h' => $h,
             'readonly' => !$duzenle,
             'konaklama' => $konaklama,
-            'hizmetler' => $cikis ? Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY ad') : [],
+            'hizmetler' => $cikis ? Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir, tekrar_eklenebilir FROM maliyet_tipleri WHERE aktif ORDER BY ad') : [],
             'eklenenler' => $eklenenler,
             'envanter' => array_column(Database::fetchAll('SELECT envanter_id FROM arac_envanterleri WHERE arac_id = :a', ['a' => $h['arac_id']]), 'envanter_id'),
             'dosyalar' => Upload::list('hareket', $id),
@@ -191,7 +213,8 @@ final class HareketController extends Controller
             fn ($d) => $d['cikis_tarihi'] !== null && strtotime($d['cikis_tarihi']) === strtotime($h['hareket_tarihi'])
         ))[0] ?? null;
         $eklenenler = Database::fetchAll(
-            'SELECT e.id, mt.ad, e.tutar, e.islem_tarihi, e.aciklama, e.cikis_sonrasi, e.created_at, u.name AS kullanici
+            'SELECT e.id, mt.ad, e.tutar, e.islem_tarihi, e.aciklama, e.cikis_sonrasi, e.created_at, u.name AS kullanici,
+                    mt.bayi_fiyat_degistirebilir
              FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id LEFT JOIN users u ON u.id = e.kullanici_id
              WHERE e.arac_id = :a AND (e.hareket_id = :h OR (e.hareket_id IS NULL AND e.islem_tarihi BETWEEN :g::date AND :c::date))
              ORDER BY e.cikis_sonrasi, e.islem_tarihi, e.id',
@@ -318,10 +341,11 @@ final class HareketController extends Controller
         $this->view('hareketler/stoktan_cikar', [
             'pageTitle' => 'Stoktan Çıkar',
             'breadcrumb' => ['Stoktaki Araçlar' => '/arac_hareketleri/giris', $arac['sase'] => null],
-            'hizmetler' => Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir FROM maliyet_tipleri WHERE aktif ORDER BY ad'),
+            'hizmetler' => Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir, tekrar_eklenebilir FROM maliyet_tipleri WHERE aktif ORDER BY ad'),
             'konaklama' => $konaklama,
             'eklenenler' => $konaklama ? Database::fetchAll(
-                'SELECT mt.ad, e.tutar, e.islem_tarihi FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
+                'SELECT mt.ad, e.tutar, e.islem_tarihi, mt.bayi_fiyat_degistirebilir
+                 FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
                  WHERE e.arac_id = :a AND e.islem_tarihi >= :g::date ORDER BY e.islem_tarihi, e.id',
                 ['a' => $arac['id'], 'g' => $konaklama['giris_tarihi']]
             ) : [],
@@ -403,15 +427,26 @@ final class HareketController extends Controller
                 continue;
             }
             $tip = Database::fetch(
-                'SELECT ad FROM maliyet_tipleri WHERE id = :id AND aktif',
+                'SELECT ad, tekrar_eklenebilir FROM maliyet_tipleri WHERE id = :id AND aktif',
                 ['id' => (int) $tipId]
             );
             if (!$tip) {
                 throw new RuntimeException('Seçilen hizmet bulunamadı veya pasif.');
             }
+            $tipIdInt = (int) $tipId;
+            // Form içinde aynı hizmet birden fazla satır + tekrar kapalı
+            if (empty($tip['tekrar_eklenebilir'])) {
+                foreach ($sonuc as [$oncekiTip]) {
+                    if ($oncekiTip === $tipIdInt) {
+                        if (!Auth::isAdmin()) {
+                            throw new RuntimeException("\"{$tip['ad']}\" aynı anda birden fazla eklenemez. Tekrar için yöneticiye başvurun.");
+                        }
+                        break;
+                    }
+                }
+            }
             $ham = $tutarlar[$i] ?? '';
             $gelen = (is_scalar($ham) && trim((string) $ham) !== '') ? Request::parseDecimal((string) $ham) : null;
-            $tipIdInt = (int) $tipId;
             $tanimli = \App\Services\HizmetFiyat::tanimli($musteriId, $tipIdInt, $bayiId);
             $deg = \App\Services\HizmetFiyat::bayiDegistirebilir($tipIdInt);
             if (!$tanimli && !(Auth::isAdmin() && $gelen !== null && $gelen > 0)
