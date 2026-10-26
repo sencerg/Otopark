@@ -31,6 +31,15 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.44',
+                'tarih' => '2026-10-26 16:35',
+                'baslik' => 'Ekspertiz foto · açı rehberleri',
+                'maddeler' => [
+                    'Foto adımında kreatif SVG açı ipuçları (ön/arka/yan/iç/KM/motor/hasar/evrak).',
+                    'Büyük sahne + alt şerit; VIS kopyası değil, çekim yönü vurgulu.',
+                ],
+            ],
+            [
                 'surum' => 'v0.43',
                 'tarih' => '2026-10-26 16:20',
                 'baslik' => 'Ekspertiz hasar · Excel parça listesi',

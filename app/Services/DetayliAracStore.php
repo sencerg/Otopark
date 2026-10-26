@@ -196,9 +196,40 @@ final class DetayliAracStore
         return ['İyi', 'Orta', 'Kötü', 'Bilinmiyor'];
     }
 
+    /**
+     * Perakende / ekspertiz foto slotları.
+     *
+     * @return list<array{kod:string,ad:string,rehber:string,ipucu:string}>
+     */
+    public static function fotoSlotlari(): array
+    {
+        $base = '/assets/img/foto-rehber/';
+        $v = static function (string $file) use ($base): string {
+            $abs = BASE_PATH . '/public' . $base . $file;
+            $q = is_file($abs) ? ('?v=' . filemtime($abs)) : ('?v=' . time());
+
+            return $base . $file . $q;
+        };
+
+        return [
+            ['kod' => 'on', 'ad' => 'Ön', 'rehber' => $v('on.jpg'), 'ipucu' => 'Tam karşıdan dur; araç çerçevede, plaka ortada'],
+            ['kod' => 'arka', 'ad' => 'Arka', 'rehber' => $v('arka.jpg'), 'ipucu' => 'Tam arkadan; stop lambaları ve plaka net'],
+            ['kod' => 'sol', 'ad' => 'Sol yan', 'rehber' => $v('sol.jpg'), 'ipucu' => 'Sol tarafa geç; tüm profil kapılarla birlikte'],
+            ['kod' => 'sag', 'ad' => 'Sağ yan', 'rehber' => $v('sag.jpg'), 'ipucu' => 'Sağ tarafa geç; tüm profil kapılarla birlikte'],
+            ['kod' => 'ic_on', 'ad' => 'İç ön', 'rehber' => $v('ic_on.jpg'), 'ipucu' => 'Ön kapıdan içeri bak; torpido ve ön koltuklar'],
+            ['kod' => 'ic_arka', 'ad' => 'İç arka', 'rehber' => $v('ic_arka.jpg'), 'ipucu' => 'Arka kapıdan / arkadan; koltuk başlıkları görünsün'],
+            ['kod' => 'km', 'ad' => 'Gösterge / KM', 'rehber' => $v('km.jpg'), 'ipucu' => 'Göstergeye yaklaş; KM rakamı okunaklı olsun'],
+            ['kod' => 'motor', 'ad' => 'Motor bölmesi', 'rehber' => $v('motor.jpg'), 'ipucu' => 'Kaput açık, yukarıdan motor bölgesini çek'],
+            ['kod' => 'hasar1', 'ad' => 'Hasar detay 1', 'rehber' => $v('hasar.jpg'), 'ipucu' => 'Hasara yaklaş; çizik veya göçük net görünsün'],
+            ['kod' => 'hasar2', 'ad' => 'Hasar detay 2', 'rehber' => $v('hasar.jpg'), 'ipucu' => 'İkinci hasar veya farklı açıdan yakın çekim'],
+            ['kod' => 'evrak', 'ad' => 'Evrak / ruhsat', 'rehber' => $v('evrak.jpg'), 'ipucu' => 'Ruhsat ve anahtarları düz zemine koyup üstten çek'],
+        ];
+    }
+
+    /** @return list<string> geri uyum */
     public static function fotoEtiketleri(): array
     {
-        return ['Ön', 'Arka', 'Sol', 'Sağ', 'İç ön', 'İç arka', 'Gösterge / KM', 'Motor bölmesi', 'Hasar detay 1', 'Hasar detay 2', 'Evrak / ruhsat'];
+        return array_column(self::fotoSlotlari(), 'ad');
     }
 
     public static function kondisyonSeviyeleri(): array

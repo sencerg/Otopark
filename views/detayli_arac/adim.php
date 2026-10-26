@@ -466,20 +466,40 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                 </div>
 
             <?php elseif ($eksAlt === 'foto'): ?>
-                <?php $aracDosyalar = $aracDosyalar ?? []; ?>
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Fotoğraflar ve dokümanlar</h5>
-                        <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small mb-3">Her kareye foto ekleyin; not isteğe bağlı. Ek belgeler aşağıda.</p>
-                        <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet" enctype="multipart/form-data">
-                            <?= Csrf::field() ?>
-                            <input type="hidden" name="adim" value="ekspertiz">
-                            <input type="hidden" name="alt" value="foto">
-                            <div class="row g-3">
-                                <?php foreach ($fotoEtiketleri as $i => $etiket):
+                <?php
+                $aracDosyalar = $aracDosyalar ?? [];
+                $fotoSlotlari = $fotoSlotlari ?? \App\Services\DetayliAracStore::fotoSlotlari();
+                $fotoToplam = count($fotoSlotlari);
+                $fotoDolu = 0;
+                foreach ($fotoSlotlari as $i => $slot) {
+                    foreach ($aracDosyalar as $d) {
+                        if (($d['tur'] ?? '') === 'fotograf' && str_starts_with((string) ($d['tanim'] ?? ''), $slot['ad'])) {
+                            $fotoDolu++;
+                            break;
+                        }
+                    }
+                }
+                ?>
+                <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet" enctype="multipart/form-data" id="detayli-foto-form">
+                    <?= Csrf::field() ?>
+                    <input type="hidden" name="adim" value="ekspertiz">
+                    <input type="hidden" name="alt" value="foto">
+
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <h5 class="mb-0">Fotoğraflar</h5>
+                                <div class="small text-muted" id="foto-rehber-baslik">Açı ipucunu takip ederek çekin</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
+                                <span class="badge badge-soft-secondary" id="foto-sayac"><?= (int) $fotoDolu ?> / <?= (int) $fotoToplam ?></span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="detayli-foto-sahne mb-3" id="detayli-foto-sahne">
+                                <?php foreach ($fotoSlotlari as $i => $slot):
+                                    $etiket = $slot['ad'];
                                     $not = $old['foto_not_' . $i] ?? ($fotoData[$i]['not'] ?? '');
                                     $mevcutDosya = null;
                                     foreach ($aracDosyalar as $d) {
@@ -489,41 +509,80 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                         }
                                     }
                                     ?>
-                                    <div class="col-md-6 col-xl-4">
-                                        <div class="foto-slot">
-                                            <div class="fw-semibold small mb-2"><?= e($etiket) ?></div>
+                                    <div class="detayli-foto-panel<?= $i === 0 ? ' is-active' : '' ?>" data-foto-ix="<?= (int) $i ?>" data-ad="<?= e($etiket) ?>" data-ipucu="<?= e($slot['ipucu']) ?>">
+                                        <div class="detayli-foto-canvas mb-3">
                                             <?php if ($mevcutDosya): ?>
-                                                <a href="<?= e($mevcutDosya['dosya_yolu']) ?>" target="_blank">
-                                                    <img class="foto-onizleme mb-2" src="<?= e($mevcutDosya['dosya_yolu']) ?>" alt="">
+                                                <a href="<?= e($mevcutDosya['dosya_yolu']) ?>" target="_blank" class="detayli-foto-yuklenen">
+                                                    <img src="<?= e($mevcutDosya['dosya_yolu']) ?>" alt="">
                                                 </a>
                                             <?php else: ?>
-                                                <div class="foto-bos mb-2"><i class="mdi mdi-camera-outline fs-3"></i></div>
+                                                <img class="detayli-foto-rehber" src="<?= e($slot['rehber']) ?>" alt="<?= e($etiket) ?> açı ipucu">
                                             <?php endif; ?>
-                                            <input type="file" name="foto_file_<?= (int) $i ?>" class="form-control form-control-sm mb-2" accept="image/*">
-                                            <input type="text" name="foto_not_<?= (int) $i ?>" class="form-control form-control-sm" value="<?= e((string) $not) ?>" placeholder="Not (opsiyonel)">
+                                        </div>
+                                        <p class="small text-muted mb-3" data-foto-ipucu><?= e($slot['ipucu']) ?></p>
+                                        <div class="row g-2 align-items-end">
+                                            <div class="col-md-7">
+                                                <label class="form-label mb-1">Görsel seç</label>
+                                                <input type="file" name="foto_file_<?= (int) $i ?>" class="form-control" accept="image/*" data-foto-file>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label mb-1">Not</label>
+                                                <input type="text" name="foto_not_<?= (int) $i ?>" class="form-control" value="<?= e((string) $not) ?>" placeholder="Opsiyonel">
+                                            </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
 
-                            <div class="form-section mt-4">Ek belgeler</div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="foto-onceki"><i class="mdi mdi-chevron-left"></i> Önceki</button>
+                                <span class="small text-muted" id="foto-ix-etiket">1 / <?= (int) $fotoToplam ?></span>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="foto-sonraki">Sonraki <i class="mdi mdi-chevron-right"></i></button>
+                            </div>
+
+                            <div class="detayli-foto-serit" id="detayli-foto-serit">
+                                <?php foreach ($fotoSlotlari as $i => $slot):
+                                    $etiket = $slot['ad'];
+                                    $mevcutDosya = null;
+                                    foreach ($aracDosyalar as $d) {
+                                        if (($d['tur'] ?? '') === 'fotograf' && str_starts_with((string) ($d['tanim'] ?? ''), $etiket)) {
+                                            $mevcutDosya = $d;
+                                            break;
+                                        }
+                                    }
+                                    ?>
+                                    <button type="button" class="detayli-foto-thumb<?= $i === 0 ? ' active' : '' ?><?= $mevcutDosya ? ' has-photo' : '' ?>" data-foto-jump="<?= (int) $i ?>" title="<?= e($etiket) ?>">
+                                        <?php if ($mevcutDosya): ?>
+                                            <img src="<?= e($mevcutDosya['dosya_yolu']) ?>" alt="">
+                                        <?php else: ?>
+                                            <img src="<?= e($slot['rehber']) ?>" alt="">
+                                        <?php endif; ?>
+                                        <span><?= e($etiket) ?></span>
+                                    </button>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="form-section mt-0">Ek belgeler</div>
                             <?php
                             $dosyalar = array_values(array_filter($aracDosyalar, static fn ($d) => ($d['tur'] ?? '') !== 'fotograf'));
                             $readonly = false;
                             require BASE_PATH . '/views/partials/dosyalar.php';
                             ?>
-
                             <div class="detayli-form-actions mt-4">
                                 <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=mekanik" class="btn btn-outline-secondary">Geri</a>
                                 <button type="submit" class="btn btn-primary">Kaydet · lokasyon <i class="mdi mdi-arrow-right ms-1"></i></button>
                             </div>
-                        </form>
-                        <?php
-                        $dosyalar = $aracDosyalar;
-                        require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
-                        ?>
+                        </div>
                     </div>
-                </div>
+                </form>
+                <?php
+                $dosyalar = $aracDosyalar;
+                require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
+                ?>
 
             <?php elseif ($eksAlt === 'lokasyon'): ?>
                 <div class="card">

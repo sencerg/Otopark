@@ -161,6 +161,7 @@ final class DetayliAracController extends Controller
             'mekanikAlanlari' => DetayliAracStore::mekanikAlanlari(),
             'mekanikSeviyeleri' => DetayliAracStore::mekanikSeviyeleri(),
             'fotoEtiketleri' => DetayliAracStore::fotoEtiketleri(),
+            'fotoSlotlari' => DetayliAracStore::fotoSlotlari(),
             'kondisyonSeviyeleri' => DetayliAracStore::kondisyonSeviyeleri(),
             'lastikSiniflari' => DetayliAracStore::lastikSiniflari(),
             'lastikMarkalari' => DetayliAracStore::lastikMarkalari(),
@@ -188,9 +189,11 @@ final class DetayliAracController extends Controller
                 : array_map('intval', (array) ($row['veri']['envanter_ids'] ?? [])),
             'aracDosyalar' => !empty($row['arac_id']) ? Upload::list('arac', (int) $row['arac_id']) : [],
             'headerActions' => '<a href="/detayli-arac" class="btn btn-outline-secondary"><i class="mdi mdi-arrow-left me-1"></i>Taslaklar</a>',
-            'scripts' => ($adim === 'ekspertiz' && $eksAlt === 'hasar')
-                ? '<script src="/assets/js/detayli-ekspertiz.js?v=' . filemtime(BASE_PATH . '/public/assets/js/detayli-ekspertiz.js') . '"></script>'
-                : '',
+            'scripts' => match (true) {
+                $adim === 'ekspertiz' && $eksAlt === 'hasar' => '<script src="/assets/js/detayli-ekspertiz.js?v=' . filemtime(BASE_PATH . '/public/assets/js/detayli-ekspertiz.js') . '"></script>',
+                $adim === 'ekspertiz' && $eksAlt === 'foto' => '<script src="/assets/js/detayli-foto.js?v=' . filemtime(BASE_PATH . '/public/assets/js/detayli-foto.js') . '"></script>',
+                default => '',
+            },
         ]);
     }
 
