@@ -20,9 +20,10 @@ use App\Controllers\SurumController;
 use App\Controllers\TanimController;
 use App\Controllers\TanimlamaController;
 use App\Controllers\TemaController;
-use App\Controllers\VisController;
+use App\Controllers\DetayliAracController;
 use App\Controllers\YetkiController;
 use App\Core\Auth;
+use App\Core\View;
 
 /** @var \App\Core\Router $router */
 
@@ -136,12 +137,18 @@ $router->post('/arac_ekstreleri/maliyet_sil/{id}', [MaliyetController::class, 's
 $router->get('/is_takibi', [MaliyetController::class, 'isTakibi'], $staff);
 $router->get('/is_takibi/liste', [MaliyetController::class, 'isTakibiListe'], $staff);
 
-// Detaylı Araç Ekle — önde kontrol; mevcut Araç Ekle’ye dokunmaz
-$router->get('/vis', [VisController::class, 'index'], $staff);
-$router->get('/vis/yeni', [VisController::class, 'yeni'], $staff);
-$router->post('/vis/baslat', [VisController::class, 'baslat'], $staff);
-$router->get('/vis/kayit/{id}', [VisController::class, 'kayit'], $staff);
-$router->post('/vis/kayit/{id}/kaydet', [VisController::class, 'kaydet'], $staff);
+// Detaylı Araç Ekle (eski /vis yolları yönlendirilir)
+$router->get('/detayli-arac', [DetayliAracController::class, 'index'], $staff);
+$router->get('/detayli-arac/yeni', [DetayliAracController::class, 'yeni'], $staff);
+$router->post('/detayli-arac/baslat', [DetayliAracController::class, 'baslat'], $staff);
+$router->get('/detayli-arac/kayit/{id}', [DetayliAracController::class, 'kayit'], $staff);
+$router->post('/detayli-arac/kayit/{id}/kaydet', [DetayliAracController::class, 'kaydet'], $staff);
+$router->get('/vis', static function () { View::redirect('/detayli-arac'); }, $staff);
+$router->get('/vis/yeni', static function () { View::redirect('/detayli-arac'); }, $staff);
+$router->get('/vis/kayit/{id}', static function (string $id) {
+    $q = $_SERVER['QUERY_STRING'] ?? '';
+    View::redirect('/detayli-arac/kayit/' . rawurlencode($id) . ($q !== '' ? '?' . $q : ''));
+}, $staff);
 
 // Raporlar
 $router->get('/raporlar', [RaporController::class, 'index'], $staff);

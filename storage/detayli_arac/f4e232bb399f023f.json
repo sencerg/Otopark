@@ -1,0 +1,51 @@
+{
+    "id": "f4e232bb399f023f",
+    "akis": "teslim_alma",
+    "durum": "tamamlandi",
+    "adim": "ozet",
+    "veri": {
+        "sase": "12333333333333333",
+        "plaka": "",
+        "arac_tipi_id": 1,
+        "marka_id": 74,
+        "seri_id": 89,
+        "model_id": 529,
+        "model_yili_id": null,
+        "renk_id": null,
+        "yakit_tipi_id": null,
+        "vites_tipi_id": null,
+        "km": null,
+        "yakit_durumu": null,
+        "lokasyon_detay": ""
+    },
+    "taraflar": {
+        "musteri_id": 58,
+        "musteri_ad": "Ali Baba",
+        "musteri_musterisi": "yapı kredi 1",
+        "bayi_id": 1,
+        "bayi_ad": "MOEX ANKARA",
+        "teslim_eden": "",
+        "teslim_eden_telefon": "",
+        "teslim_alan": "",
+        "teslim_alan_telefon": "",
+        "not": ""
+    },
+    "ekspertiz": {
+        "hasar_notu": "",
+        "genel": "Çok iyi",
+        "ic": "Çok iyi",
+        "dis": "Çok iyi",
+        "mekanik_not": ""
+    },
+    "arac_id": 274,
+    "created_at": "2026-10-26T10:52:23+03:00",
+    "updated_at": "2026-10-26T10:53:23+03:00",
+    "kullanici_id": 1,
+    "kontrol": {
+        "kosul_sase": true,
+        "kosul_bilgi": true,
+        "kosul_sorumluluk": true,
+        "at": "2026-10-26T10:52:23+03:00"
+    },
+    "ozet_not": ""
+}

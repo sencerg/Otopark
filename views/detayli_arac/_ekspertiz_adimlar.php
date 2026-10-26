@@ -13,7 +13,7 @@ if ($aktifIx === false) {
         $durum = $i < $aktifIx ? 'done' : ($i === $aktifIx ? 'active' : '');
         ?>
         <a class="detayli-alt-adim <?= $durum ?>"
-           href="/vis/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=<?= e($a['kod']) ?>">
+           href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=<?= e($a['kod']) ?>">
             <span class="no"><?= $i + 1 ?></span>
             <span class="ad"><?= e($a['ad']) ?></span>
         </a>

@@ -1,0 +1,51 @@
+{
+    "id": "3fb0d8908b2c0ae7",
+    "akis": "teslim_alma",
+    "durum": "tamamlandi",
+    "adim": "ozet",
+    "veri": {
+        "sase": "21123312312333333",
+        "plaka": "",
+        "arac_tipi_id": 1,
+        "marka_id": 4,
+        "seri_id": 68,
+        "model_id": 68,
+        "model_yili_id": null,
+        "renk_id": null,
+        "yakit_tipi_id": null,
+        "vites_tipi_id": null,
+        "km": null,
+        "yakit_durumu": null,
+        "lokasyon_detay": ""
+    },
+    "taraflar": {
+        "musteri_id": 45,
+        "musteri_ad": "Altınsoy Şinası",
+        "musteri_musterisi": "yapı kredi",
+        "bayi_id": 1,
+        "bayi_ad": "MOEX ANKARA",
+        "teslim_eden": "",
+        "teslim_eden_telefon": "",
+        "teslim_alan": "",
+        "teslim_alan_telefon": "",
+        "not": ""
+    },
+    "ekspertiz": {
+        "hasar_notu": "",
+        "genel": "Çok iyi",
+        "ic": "Çok iyi",
+        "dis": "İyi",
+        "mekanik_not": ""
+    },
+    "arac_id": null,
+    "created_at": "2026-10-26T10:42:08+03:00",
+    "updated_at": "2026-10-26T10:44:22+03:00",
+    "kullanici_id": 1,
+    "kontrol": {
+        "kosul_sase": true,
+        "kosul_bilgi": true,
+        "kosul_sorumluluk": true,
+        "at": "2026-10-26T10:42:08+03:00"
+    },
+    "ozet_not": ""
+}

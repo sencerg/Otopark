@@ -10,7 +10,7 @@ return [
         ['title' => 'Stoktan Çıkanlar', 'url' => '/arac_hareketleri/cikis', 'izin' => 'menu.cikis'],
         ['title' => 'Tüm Araçlar', 'url' => '/arac_yonetimi', 'izin' => 'menu.araclar'],
         ['title' => 'Araç Ekle', 'url' => '/arac_yonetimi/ekle', 'izin' => 'arac.ekle'],
-        ['title' => 'Detaylı Araç Ekle', 'url' => '/vis', 'izin' => 'menu.vis'],
+        ['title' => 'Detaylı Araç Ekle', 'url' => '/detayli-arac', 'izin' => 'menu.detayli_arac'],
         ['title' => 'Toplu İşlemler', 'izin' => 'menu.toplu', 'children' => [
             ['title' => 'Toplu Stok Girişi', 'url' => '/arac_yonetimi/toplu_stok_girisi', 'izin' => 'menu.toplu'],
             ['title' => 'Toplu Stok Çıkışı', 'url' => '/arac_yonetimi/toplu_stok_cikisi', 'izin' => 'menu.toplu'],

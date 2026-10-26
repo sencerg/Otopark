@@ -47,7 +47,7 @@ final class Yetki
             [
                 'grup' => 'Detaylı Araç Ekle',
                 'izinler' => [
-                    ['kod' => 'menu.vis', 'ad' => 'Detaylı araç ekle', 'aciklama' => 'Kontrol + koşullar sonrası detaylı araç ekleme'],
+                    ['kod' => 'menu.detayli_arac', 'ad' => 'Detaylı araç ekle', 'aciklama' => 'Kontrol + koşullar sonrası detaylı araç ekleme'],
                 ],
             ],
             [
@@ -139,7 +139,7 @@ final class Yetki
                 'menu.is_takibi',
                 'menu.raporlar', 'menu.depolama_raporu', 'menu.stok_ozet_raporu', 'menu.giris_cikis_raporu',
             ],
-            // Bayi: İK / destek / VIS yok (yalnızca yönetici veya özel profil)
+            // Bayi: İK / destek / detaylı araç ekleme yok (yalnızca yönetici veya özel profil)
             $tip === 'bayi' => array_values(array_filter(
                 $tum,
                 static fn ($k) => !str_starts_with($k, 'musteri.')
@@ -147,7 +147,7 @@ final class Yetki
                         'menu.yetki', 'yetki.yonet', 'kullanici.yonet',
                         'menu.tanimlamalar', 'tanimlama.yaz',
                         'menu.ik_dashboard', 'menu.destek',
-                        'menu.vis',
+                        'menu.detayli_arac',
                     ], true)
             )),
             default => [],

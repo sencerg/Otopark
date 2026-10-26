@@ -1,0 +1,17 @@
+{
+    "id": "bc3349845eb4e995",
+    "durum": "taslak",
+    "modul": "tanim",
+    "alan": "plaka",
+    "veri": {
+        "plaka": "34ABC123"
+    },
+    "hasar": [],
+    "mekanik": [],
+    "fotograflar": [],
+    "lokasyon": [],
+    "kondisyon": [],
+    "created_at": "2026-10-23T15:09:28+03:00",
+    "updated_at": "2026-10-23T15:09:36+03:00",
+    "kullanici_id": 1
+}

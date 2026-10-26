@@ -1,0 +1,218 @@
+{
+    "id": "c4bfd743fa530a36",
+    "akis": "teslim_alma",
+    "durum": "taslak",
+    "adim": "ekspertiz",
+    "ekspertiz_alt": "kondisyon",
+    "veri": {
+        "sase": "12312312312312312",
+        "plaka": "",
+        "arac_tipi_id": 1,
+        "marka_id": 74,
+        "seri_id": 89,
+        "model_id": 529,
+        "model_yili_id": null,
+        "renk_id": null,
+        "yakit_tipi_id": null,
+        "vites_tipi_id": null,
+        "km": null,
+        "yakit_durumu": null,
+        "lokasyon_detay": ""
+    },
+    "taraflar": {
+        "musteri_id": 58,
+        "musteri_ad": "Ali Baba",
+        "musteri_musterisi": "yapı kredi 12",
+        "bayi_id": 1,
+        "bayi_ad": "MOEX ANKARA",
+        "teslim_eden": "",
+        "teslim_eden_telefon": "",
+        "teslim_alan": "",
+        "teslim_alan_telefon": "",
+        "not": ""
+    },
+    "ekspertiz": {
+        "hasar": {
+            "on_tampon": {
+                "seviye": "Çizik",
+                "not": "",
+                "ad": "Ön tampon"
+            },
+            "kaput": {
+                "seviye": "Göçük",
+                "not": "",
+                "ad": "Kaput"
+            },
+            "tavan": {
+                "seviye": "Göçük",
+                "not": "",
+                "ad": "Tavan"
+            },
+            "bagaj": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Bagaj \/ arka kapak"
+            },
+            "arka_tampon": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Arka tampon"
+            },
+            "sol_on_kapi": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sol ön kapı"
+            },
+            "sol_arka_kapi": {
+                "seviye": "Göçük",
+                "not": "",
+                "ad": "Sol arka kapı"
+            },
+            "sag_on_kapi": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sağ ön kapı"
+            },
+            "sag_arka_kapi": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sağ arka kapı"
+            },
+            "sol_camurluk": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sol çamurluk"
+            },
+            "sag_camurluk": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sağ çamurluk"
+            },
+            "sol_on_cam": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sol ön cam \/ ayna"
+            },
+            "sag_on_cam": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sağ ön cam \/ ayna"
+            },
+            "far_sol": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sol far"
+            },
+            "far_sag": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sağ far"
+            },
+            "stop_sol": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sol stop"
+            },
+            "stop_sag": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sağ stop"
+            },
+            "jant_sol_on": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sol ön jant"
+            },
+            "jant_sag_on": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sağ ön jant"
+            },
+            "jant_sol_arka": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sol arka jant"
+            },
+            "jant_sag_arka": {
+                "seviye": "Yok",
+                "not": "",
+                "ad": "Sağ arka jant"
+            }
+        },
+        "mekanik": {
+            "motor": "Kötü",
+            "elektrik": "Kötü",
+            "suspansiyon": "Kötü",
+            "fren": "Bilinmiyor",
+            "sanziman": "Bilinmiyor",
+            "klima": "Bilinmiyor",
+            "egzoz": "Bilinmiyor",
+            "direksiyon": "Bilinmiyor",
+            "not": ""
+        },
+        "fotograflar": [
+            {
+                "etiket": "Ön",
+                "not": ""
+            },
+            {
+                "etiket": "Arka",
+                "not": ""
+            },
+            {
+                "etiket": "Sol",
+                "not": ""
+            },
+            {
+                "etiket": "Sağ",
+                "not": ""
+            },
+            {
+                "etiket": "İç ön",
+                "not": ""
+            },
+            {
+                "etiket": "İç arka",
+                "not": ""
+            },
+            {
+                "etiket": "Gösterge \/ KM",
+                "not": ""
+            },
+            {
+                "etiket": "Motor bölmesi",
+                "not": ""
+            },
+            {
+                "etiket": "Hasar detay 1",
+                "not": ""
+            },
+            {
+                "etiket": "Hasar detay 2",
+                "not": ""
+            },
+            {
+                "etiket": "Evrak \/ ruhsat",
+                "not": ""
+            }
+        ],
+        "lokasyon": {
+            "park_alani": "",
+            "blok": "",
+            "sira": "",
+            "detay": ""
+        },
+        "kondisyon": [],
+        "hasar_genel_not": ""
+    },
+    "arac_id": 275,
+    "created_at": "2026-10-26T11:12:37+03:00",
+    "updated_at": "2026-10-26T11:13:51+03:00",
+    "kullanici_id": 1,
+    "kontrol": {
+        "kosul_sase": true,
+        "kosul_bilgi": true,
+        "kosul_sorumluluk": true,
+        "at": "2026-10-26T11:12:37+03:00"
+    }
+}

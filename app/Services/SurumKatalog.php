@@ -31,6 +31,16 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.37',
+                'tarih' => '2026-10-26 11:35',
+                'baslik' => 'Detaylı Araç Ekle URL / isim',
+                'maddeler' => [
+                    'Adres /detayli-arac (eski adres yönlendirilir).',
+                    'İzin kodu menu.detayli_arac; dış sistem isimleri kaldırıldı.',
+                    'Eksik taslakta 404 yerine listeye dönüş + uyarı.',
+                ],
+            ],
+            [
                 'surum' => 'v0.36',
                 'tarih' => '2026-10-26 11:25',
                 'baslik' => 'Ekspertiz şema + foto yükleme',
@@ -46,7 +56,7 @@ final class SurumKatalog
                 'baslik' => 'Ekspertiz alt adımları',
                 'maddeler' => [
                     '4. aşama: Hasar panelleri → Mekanik → Foto → Lokasyon → Kondisyon.',
-                    'VIS bilgi seti; ekranlar ana kart/form tasarımında.',
+                    'ekranlar ana kart/form tasarımında.',
                 ],
             ],
             [
@@ -64,7 +74,7 @@ final class SurumKatalog
                 'tarih' => '2026-10-26 10:45',
                 'baslik' => 'Detaylı Araç Ekle · ana tasarım',
                 'maddeler' => [
-                    'VIS kabuğu kaldırıldı; menü + kart/form tasarımıyla adım adım ilerleme.',
+                    'Ana kabuk kaldırıldı; menü + kart/form tasarımıyla adım adım ilerleme.',
                     'Kontrol → Taraflar → Araç → Ekspertiz → Özet (doldur, kaydet, devam).',
                 ],
             ],
@@ -134,11 +144,11 @@ final class SurumKatalog
             [
                 'surum' => 'v0.25',
                 'tarih' => '2026-10-23 15:10',
-                'baslik' => 'Araç Ekspertiz (VIS) — bağımsız modül',
+                'baslik' => 'Detaylı araç ekleme modülü',
                 'maddeler' => [
-                    'Autorola VIS tarzı wizard: tanım → hasar → mekanik → foto → lokasyon → kondisyon → çıkış.',
-                    'Kayıtlar storage/vis altında; stok / hareket / maliyet akışına bağlanmaz.',
-                    'Menü: Araç Ekspertiz · izin menu.vis (admin).',
+                    'Adım adım ekspertiz sihirbazı: tanım → hasar → mekanik → foto → lokasyon → kondisyon → çıkış.',
+                    'Kayıtlar storage/detayli_arac altında; stok / hareket / maliyet akışına bağlanmaz.',
+                    'Menü: Detaylı Araç Ekle.',
                 ],
             ],
             [
@@ -232,7 +242,7 @@ final class SurumKatalog
                 'tarih' => '2026-10-01 21:24',
                 'baslik' => 'Stok listesi toplu işlemler',
                 'maddeler' => [
-                    'Stoktaki Araçlar: BİA tarzı toplu işlem düğmeleri ve Konsinye filtresi.',
+                    'Stoktaki Araçlar: Toplu toplu işlem düğmeleri ve Konsinye filtresi.',
                 ],
             ],
             [
@@ -289,14 +299,14 @@ final class SurumKatalog
                 'tarih' => '2026-09-30 22:38',
                 'baslik' => 'Karşılaştırma, demo giriş, test paketi',
                 'maddeler' => [
-                    'BİA ↔ MD karşılaştırma dokümanı.',
+                    'Referans ↔ MD karşılaştırma dokümanı.',
                     'Girişte demo hızlı giriş; sıkı test paketi (bin/test.sh).',
                 ],
             ],
             [
                 'surum' => 'v0.6',
                 'tarih' => '2026-09-30 22:21',
-                'baslik' => 'BİA akışına göre çekirdek sistem',
+                'baslik' => 'Operasyon akışına göre çekirdek sistem',
                 'maddeler' => [
                     'Araç yönetimi, hareketler, ek hizmet/maliyet, depolama raporu.',
                     'İş emirleri, dashboardlar, tanımlar, destek, hesabım.',

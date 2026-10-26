@@ -11,24 +11,24 @@ use App\Core\Tanim;
 use App\Core\Upload;
 use App\Core\View;
 use App\Services\AracService;
-use App\Services\VisStore;
+use App\Services\DetayliAracStore;
 use RuntimeException;
 
 /**
  * Detaylı Araç Ekle — Teslim Alma (ana tasarım).
  * Araç adımında stok kaydı oluşur; ekspertiz üzerine yazılır.
  */
-final class VisController extends Controller
+final class DetayliAracController extends Controller
 {
     private function gate(): void
     {
         Auth::requireStaff();
-        Auth::requireIzin('menu.vis');
+        Auth::requireIzin('menu.detayli_arac');
     }
 
     private function sayfa(string $view, array $data = []): void
     {
-        View::render('vis/' . $view, $data + [
+        View::render('detayli_arac/' . $view, $data + [
             'pageTitle' => $data['pageTitle'] ?? 'Detaylı Araç Ekle',
             'breadcrumb' => $data['breadcrumb'] ?? [
                 'Araç Yönetimi' => null,
@@ -41,12 +41,12 @@ final class VisController extends Controller
     {
         $this->gate();
         $taslaklar = array_values(array_filter(
-            VisStore::liste(),
+            DetayliAracStore::liste(),
             static fn (array $r) => ($r['durum'] ?? '') !== 'tamamlandi'
         ));
         $this->sayfa('index', [
             'pageTitle' => 'Detaylı Araç Ekle',
-            'adimlar' => VisStore::adimlar(),
+            'adimlar' => DetayliAracStore::adimlar(),
             'adim' => 'kontrol',
             'taslaklar' => array_slice($taslaklar, 0, 20),
             'headerActions' => '<a href="/arac_yonetimi/ekle" class="btn btn-outline-primary"><i class="mdi mdi-car-plus me-1"></i>Standart Araç Ekle</a>',
@@ -74,7 +74,7 @@ final class VisController extends Controller
                     . ' Detay: /arac_yonetimi/duzenle/' . (int) $var['id']
                 );
             }
-            $row = VisStore::olustur([
+            $row = DetayliAracStore::olustur([
                 'kullanici_id' => Auth::id(),
                 'veri' => [
                     'sase' => $sase,
@@ -88,33 +88,34 @@ final class VisController extends Controller
                 ],
                 'adim' => 'taraflar',
             ]);
-            View::redirect('/vis/kayit/' . $row['id'] . '?adim=taraflar');
+            View::redirect('/detayli-arac/kayit/' . $row['id'] . '?adim=taraflar');
         } catch (RuntimeException $e) {
             flash('error', $e->getMessage());
             $_SESSION['_old'] = ['sase' => $saseHam, 'plaka' => $plaka];
-            View::redirect('/vis');
+            View::redirect('/detayli-arac');
         }
     }
 
     public function yeni(): void
     {
         $this->gate();
-        View::redirect('/vis');
+        View::redirect('/detayli-arac');
     }
 
     public function kayit(string $id): void
     {
         $this->gate();
-        $row = VisStore::bul($id);
+        $row = DetayliAracStore::bul($id);
         if (!$row) {
-            $this->notFound();
+            flash('error', 'Taslak bulunamadı veya bu sunucuda yok. Yeni kayıt için kontrol adımından başlayın.');
+            View::redirect('/detayli-arac');
         }
         $adim = Request::str('adim') ?: ($row['adim'] ?? 'taraflar');
         $gecerli = ['taraflar', 'arac', 'ekspertiz', 'ozet'];
         if (!in_array($adim, $gecerli, true)) {
             $adim = 'taraflar';
         }
-        $eksAltKodlar = array_column(VisStore::ekspertizAdimlari(), 'kod');
+        $eksAltKodlar = array_column(DetayliAracStore::ekspertizAdimlari(), 'kod');
         $eksAlt = Request::str('alt') ?: ($row['ekspertiz_alt'] ?? 'hasar');
         if (!in_array($eksAlt, $eksAltKodlar, true)) {
             $eksAlt = 'hasar';
@@ -122,7 +123,7 @@ final class VisController extends Controller
         $markaId = (int) ($row['veri']['marka_id'] ?? 0);
         $seriId = (int) ($row['veri']['seri_id'] ?? 0);
         $eksBaslik = '';
-        foreach (VisStore::ekspertizAdimlari() as $ea) {
+        foreach (DetayliAracStore::ekspertizAdimlari() as $ea) {
             if ($ea['kod'] === $eksAlt) {
                 $eksBaslik = $ea['ad'];
                 break;
@@ -138,7 +139,7 @@ final class VisController extends Controller
             },
             'breadcrumb' => [
                 'Araç Yönetimi' => null,
-                'Detaylı Araç Ekle' => '/vis',
+                'Detaylı Araç Ekle' => '/detayli-arac',
                 match ($adim) {
                     'taraflar' => 'Taraflar',
                     'arac' => 'Araç',
@@ -149,14 +150,14 @@ final class VisController extends Controller
             'kayit' => $row,
             'adim' => $adim,
             'eksAlt' => $eksAlt,
-            'adimlar' => VisStore::adimlar(),
-            'ekspertizAdimlari' => VisStore::ekspertizAdimlari(),
-            'hasarPanelleri' => VisStore::hasarPanelleri(),
-            'hasarSeviyeleri' => VisStore::hasarSeviyeleri(),
-            'mekanikAlanlari' => VisStore::mekanikAlanlari(),
-            'mekanikSeviyeleri' => VisStore::mekanikSeviyeleri(),
-            'fotoEtiketleri' => VisStore::fotoEtiketleri(),
-            'kondisyonSeviyeleri' => VisStore::kondisyonSeviyeleri(),
+            'adimlar' => DetayliAracStore::adimlar(),
+            'ekspertizAdimlari' => DetayliAracStore::ekspertizAdimlari(),
+            'hasarPanelleri' => DetayliAracStore::hasarPanelleri(),
+            'hasarSeviyeleri' => DetayliAracStore::hasarSeviyeleri(),
+            'mekanikAlanlari' => DetayliAracStore::mekanikAlanlari(),
+            'mekanikSeviyeleri' => DetayliAracStore::mekanikSeviyeleri(),
+            'fotoEtiketleri' => DetayliAracStore::fotoEtiketleri(),
+            'kondisyonSeviyeleri' => DetayliAracStore::kondisyonSeviyeleri(),
             'musteriler' => Tanim::liste('musteriler'),
             'bayiler' => Tanim::liste('bayiler'),
             'markalar' => Tanim::liste('markalar'),
@@ -168,9 +169,9 @@ final class VisController extends Controller
             'vitesTipleri' => Tanim::liste('vites_tipleri'),
             'modelYillari' => Tanim::liste('model_yillari'),
             'aracDosyalar' => !empty($row['arac_id']) ? Upload::list('arac', (int) $row['arac_id']) : [],
-            'headerActions' => '<a href="/vis" class="btn btn-outline-secondary"><i class="mdi mdi-arrow-left me-1"></i>Taslaklar</a>',
+            'headerActions' => '<a href="/detayli-arac" class="btn btn-outline-secondary"><i class="mdi mdi-arrow-left me-1"></i>Taslaklar</a>',
             'scripts' => ($adim === 'ekspertiz' && $eksAlt === 'hasar')
-                ? '<script src="/assets/js/vis-ekspertiz.js?v=' . filemtime(BASE_PATH . '/public/assets/js/vis-ekspertiz.js') . '"></script>'
+                ? '<script src="/assets/js/detayli-ekspertiz.js?v=' . filemtime(BASE_PATH . '/public/assets/js/detayli-ekspertiz.js') . '"></script>'
                 : '',
         ]);
     }
@@ -178,10 +179,10 @@ final class VisController extends Controller
     public function kaydet(string $id): void
     {
         $this->gate();
-        $row = VisStore::bul($id);
+        $row = DetayliAracStore::bul($id);
         if (!$row) {
             flash('error', 'Kayıt bulunamadı.');
-            View::redirect('/vis');
+            View::redirect('/detayli-arac');
         }
         $adim = Request::str('adim') ?: 'taraflar';
         try {
@@ -198,7 +199,7 @@ final class VisController extends Controller
                 if (!$bayiId || !isset(Tanim::liste('bayiler')[$bayiId])) {
                     throw new RuntimeException('Otopark / lokasyon seçilmelidir.');
                 }
-                VisStore::kaydet($id, [
+                DetayliAracStore::kaydet($id, [
                     'adim' => 'arac',
                     'taraflar' => [
                         'musteri_id' => $musteriId,
@@ -214,7 +215,7 @@ final class VisController extends Controller
                     ],
                 ]);
                 flash('success', 'Taraflar kaydedildi.');
-                View::redirect('/vis/kayit/' . $id . '?adim=arac');
+                View::redirect('/detayli-arac/kayit/' . $id . '?adim=arac');
             }
 
             if ($adim === 'arac') {
@@ -306,14 +307,14 @@ final class VisController extends Controller
                     $aracId = (int) $sonuc['arac_id'];
                 }
 
-                VisStore::kaydet($id, [
+                DetayliAracStore::kaydet($id, [
                     'adim' => 'ekspertiz',
                     'ekspertiz_alt' => 'hasar',
                     'arac_id' => $aracId,
                     'veri' => $veri + ['sase' => $row['veri']['sase'] ?? ''],
                 ]);
                 flash('success', 'Araç stoğa kaydedildi. Ekspertize devam edin.');
-                View::redirect('/vis/kayit/' . $id . '?adim=ekspertiz&alt=hasar');
+                View::redirect('/detayli-arac/kayit/' . $id . '?adim=ekspertiz&alt=hasar');
             }
 
             if ($adim === 'ekspertiz') {
@@ -321,7 +322,7 @@ final class VisController extends Controller
                 if ($aracId <= 0) {
                     throw new RuntimeException('Önce araç bilgilerini kaydedin (stok kaydı oluşmalı).');
                 }
-                $altKodlar = array_column(VisStore::ekspertizAdimlari(), 'kod');
+                $altKodlar = array_column(DetayliAracStore::ekspertizAdimlari(), 'kod');
                 $alt = Request::str('alt') ?: 'hasar';
                 if (!in_array($alt, $altKodlar, true)) {
                     throw new RuntimeException('Geçersiz ekspertiz adımı.');
@@ -333,8 +334,8 @@ final class VisController extends Controller
 
                 if ($alt === 'hasar') {
                     $hasar = [];
-                    $seviyeler = VisStore::hasarSeviyeleri();
-                    foreach (VisStore::hasarPanelleri() as $kod => $ad) {
+                    $seviyeler = DetayliAracStore::hasarSeviyeleri();
+                    foreach (DetayliAracStore::hasarPanelleri() as $kod => $ad) {
                         $sev = Request::str('hasar_sev_' . $kod) ?? 'Yok';
                         if (!in_array($sev, $seviyeler, true)) {
                             $sev = 'Yok';
@@ -347,8 +348,8 @@ final class VisController extends Controller
                     $sonrakiAlt = 'mekanik';
                 } elseif ($alt === 'mekanik') {
                     $mk = [];
-                    $seviyeler = VisStore::mekanikSeviyeleri();
-                    foreach (VisStore::mekanikAlanlari() as $kod => $ad) {
+                    $seviyeler = DetayliAracStore::mekanikSeviyeleri();
+                    foreach (DetayliAracStore::mekanikAlanlari() as $kod => $ad) {
                         $sev = Request::str('mek_' . $kod) ?? 'Bilinmiyor';
                         if (!in_array($sev, $seviyeler, true)) {
                             $sev = 'Bilinmiyor';
@@ -361,7 +362,7 @@ final class VisController extends Controller
                 } elseif ($alt === 'foto') {
                     $fotolar = [];
                     $tanimlar = [];
-                    foreach (VisStore::fotoEtiketleri() as $i => $etiket) {
+                    foreach (DetayliAracStore::fotoEtiketleri() as $i => $etiket) {
                         $not = trim((string) (Request::str('foto_not_' . $i) ?? ''));
                         $fotolar[] = [
                             'etiket' => $etiket,
@@ -398,7 +399,7 @@ final class VisController extends Controller
                     }
                     $sonrakiAlt = 'kondisyon';
                 } else { // kondisyon
-                    $seviyeler = VisStore::kondisyonSeviyeleri();
+                    $seviyeler = DetayliAracStore::kondisyonSeviyeleri();
                     $kond = [];
                     foreach (['genel' => 'Genel', 'ic' => 'İç', 'dis' => 'Dış', 'lastik' => 'Lastik'] as $kod => $ad) {
                         $sev = Request::str('kond_' . $kod) ?? '';
@@ -414,26 +415,26 @@ final class VisController extends Controller
 
                 AracService::guncelle($aracId, ['ekspertiz' => $mevcut]);
                 if ($sonrakiAlt === null) {
-                    VisStore::kaydet($id, [
+                    DetayliAracStore::kaydet($id, [
                         'adim' => 'ozet',
                         'ekspertiz_alt' => 'kondisyon',
                         'ekspertiz' => $mevcut,
                     ]);
                     flash('success', 'Ekspertiz tamamlandı.');
-                    View::redirect('/vis/kayit/' . $id . '?adim=ozet');
+                    View::redirect('/detayli-arac/kayit/' . $id . '?adim=ozet');
                 }
-                VisStore::kaydet($id, [
+                DetayliAracStore::kaydet($id, [
                     'adim' => 'ekspertiz',
                     'ekspertiz_alt' => $sonrakiAlt,
                     'ekspertiz' => $mevcut,
                 ]);
                 flash('success', 'Kaydedildi.');
-                View::redirect('/vis/kayit/' . $id . '?adim=ekspertiz&alt=' . $sonrakiAlt);
+                View::redirect('/detayli-arac/kayit/' . $id . '?adim=ekspertiz&alt=' . $sonrakiAlt);
             }
 
             if ($adim === 'ozet') {
                 $aracId = (int) ($row['arac_id'] ?? 0);
-                VisStore::kaydet($id, [
+                DetayliAracStore::kaydet($id, [
                     'durum' => 'tamamlandi',
                     'adim' => 'ozet',
                     'ozet_not' => Request::str('not') ?? '',
@@ -446,7 +447,7 @@ final class VisController extends Controller
         } catch (RuntimeException $e) {
             flash('error', $e->getMessage());
             $_SESSION['_old'] = $_POST;
-            View::redirect('/vis/kayit/' . $id . '?adim=' . urlencode($adim));
+            View::redirect('/detayli-arac/kayit/' . $id . '?adim=' . urlencode($adim));
         }
     }
 }

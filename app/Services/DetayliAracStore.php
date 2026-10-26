@@ -7,7 +7,7 @@ namespace App\Services;
 /**
  * Detaylı Araç Ekle — Teslim Alma taslakları + ekspertiz şeması.
  */
-final class VisStore
+final class DetayliAracStore
 {
     /** @return list<array{kod:string,ad:string}> */
     public static function adimlar(): array
@@ -96,7 +96,7 @@ final class VisStore
 
     private static function dir(): string
     {
-        $dir = BASE_PATH . '/storage/vis';
+        $dir = BASE_PATH . '/storage/detayli_arac';
         if (!is_dir($dir)) {
             mkdir($dir, 0775, true);
         }
@@ -127,6 +127,13 @@ final class VisStore
     public static function bul(string $id): ?array
     {
         $file = self::path($id);
+        // Eski taslak klasörü (geçiş)
+        if (!is_file($file)) {
+            $eski = BASE_PATH . '/storage/vis/' . preg_replace('/[^a-zA-Z0-9_-]/', '', $id) . '.json';
+            if (is_file($eski)) {
+                $file = $eski;
+            }
+        }
         if (!is_file($file)) {
             return null;
         }

@@ -13,7 +13,7 @@ require __DIR__ . '/_adimlar.php';
                     Şasi kontrolü → taraflar → araç (stoğa kayıt) → ekspertiz.
                     Kayıt araç listesinde «Detaylı» olarak görünür. Standart Araç Ekle ayrı kalır.
                 </p>
-                <form method="post" action="/vis/baslat">
+                <form method="post" action="/detayli-arac/baslat">
                     <?= Csrf::field() ?>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -67,7 +67,7 @@ require __DIR__ . '/_adimlar.php';
                 <?php else: ?>
                     <div class="list-group list-group-flush">
                         <?php foreach ($taslaklar as $r): ?>
-                            <a href="/vis/kayit/<?= e($r['id']) ?>?adim=<?= e($r['adim'] ?? 'taraflar') ?>" class="list-group-item list-group-item-action">
+                            <a href="/detayli-arac/kayit/<?= e($r['id']) ?>?adim=<?= e($r['adim'] ?? 'taraflar') ?>" class="list-group-item list-group-item-action">
                                 <div class="fw-semibold"><?= e($r['veri']['sase'] ?? $r['id']) ?></div>
                                 <div class="small text-muted">
                                     <?= e($r['taraflar']['musteri_ad'] ?? '—') ?>

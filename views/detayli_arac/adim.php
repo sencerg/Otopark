@@ -45,7 +45,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                 </div>
                 <div class="card-body">
                     <p class="text-muted small">Araç müşteri firmaya aittir. Müşterinin müşterisi getiren / nihai tarafıdır.</p>
-                    <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet">
+                    <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet">
                         <?= Csrf::field() ?>
                         <input type="hidden" name="adim" value="taraflar">
                         <div class="row g-3">
@@ -87,7 +87,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                         </div>
 
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="/vis" class="btn btn-outline-secondary">İptal</a>
+                            <a href="/detayli-arac" class="btn btn-outline-secondary">İptal</a>
                             <button type="submit" class="btn btn-primary">Kaydet ve devam <i class="mdi mdi-arrow-right ms-1"></i></button>
                         </div>
                     </form>
@@ -108,7 +108,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             <?php if (!empty($t['bayi_ad'])): ?> · <?= e($t['bayi_ad']) ?><?php endif; ?>
                         </div>
                     <?php endif; ?>
-                    <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet">
+                    <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet">
                         <?= Csrf::field() ?>
                         <input type="hidden" name="adim" value="arac">
                         <div class="row g-3">
@@ -175,7 +175,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             </div>
                         </div>
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="/vis/kayit/<?= e($kayit['id']) ?>?adim=taraflar" class="btn btn-outline-secondary">Geri</a>
+                            <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=taraflar" class="btn btn-outline-secondary">Geri</a>
                             <button type="submit" class="btn btn-primary">Kaydet ve ekspertize geç <i class="mdi mdi-arrow-right ms-1"></i></button>
                         </div>
                     </form>
@@ -186,7 +186,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
             <?php require __DIR__ . '/_ekspertiz_adimlar.php'; ?>
 
             <?php if ($eksAlt === 'hasar'): ?>
-                <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet" data-hasar-form>
+                <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet" data-hasar-form>
                     <?= Csrf::field() ?>
                     <input type="hidden" name="adim" value="ekspertiz">
                     <input type="hidden" name="alt" value="hasar">
@@ -239,7 +239,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                     <label class="form-label">Genel hasar notu</label>
                                     <textarea name="hasar_genel_not" class="form-control mb-3" rows="2"><?= e((string) ($old['hasar_genel_not'] ?? ($ex['hasar_genel_not'] ?? ''))) ?></textarea>
                                     <div class="d-flex justify-content-between">
-                                        <a href="/vis/kayit/<?= e($kayit['id']) ?>?adim=arac" class="btn btn-outline-secondary">Geri</a>
+                                        <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=arac" class="btn btn-outline-secondary">Geri</a>
                                         <button type="submit" class="btn btn-primary">Kaydet · mekanik <i class="mdi mdi-arrow-right ms-1"></i></button>
                                     </div>
                                 </div>
@@ -255,7 +255,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                         <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
                     </div>
                     <div class="card-body">
-                        <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet">
+                        <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet">
                             <?= Csrf::field() ?>
                             <input type="hidden" name="adim" value="ekspertiz">
                             <input type="hidden" name="alt" value="mekanik">
@@ -278,7 +278,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                 </div>
                             </div>
                             <div class="d-flex justify-content-between mt-4">
-                                <a href="/vis/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=hasar" class="btn btn-outline-secondary">Geri</a>
+                                <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=hasar" class="btn btn-outline-secondary">Geri</a>
                                 <button type="submit" class="btn btn-primary">Kaydet · fotoğraflar <i class="mdi mdi-arrow-right ms-1"></i></button>
                             </div>
                         </form>
@@ -294,7 +294,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                     </div>
                     <div class="card-body">
                         <p class="text-muted small mb-3">Her kare için dosya yükleyebilir ve not yazabilirsiniz. Ek belgeler alta eklenir.</p>
-                        <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet" enctype="multipart/form-data">
+                        <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet" enctype="multipart/form-data">
                             <?= Csrf::field() ?>
                             <input type="hidden" name="adim" value="ekspertiz">
                             <input type="hidden" name="alt" value="foto">
@@ -334,7 +334,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             ?>
 
                             <div class="d-flex justify-content-between mt-4">
-                                <a href="/vis/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=mekanik" class="btn btn-outline-secondary">Geri</a>
+                                <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=mekanik" class="btn btn-outline-secondary">Geri</a>
                                 <button type="submit" class="btn btn-primary">Kaydet · lokasyon <i class="mdi mdi-arrow-right ms-1"></i></button>
                             </div>
                         </form>
@@ -352,7 +352,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                         <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
                     </div>
                     <div class="card-body">
-                        <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet">
+                        <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet">
                             <?= Csrf::field() ?>
                             <input type="hidden" name="adim" value="ekspertiz">
                             <input type="hidden" name="alt" value="lokasyon">
@@ -375,7 +375,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                 </div>
                             </div>
                             <div class="d-flex justify-content-between mt-4">
-                                <a href="/vis/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=foto" class="btn btn-outline-secondary">Geri</a>
+                                <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=foto" class="btn btn-outline-secondary">Geri</a>
                                 <button type="submit" class="btn btn-primary">Kaydet · kondisyon <i class="mdi mdi-arrow-right ms-1"></i></button>
                             </div>
                         </form>
@@ -389,7 +389,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                         <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
                     </div>
                     <div class="card-body">
-                        <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet">
+                        <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet">
                             <?= Csrf::field() ?>
                             <input type="hidden" name="adim" value="ekspertiz">
                             <input type="hidden" name="alt" value="kondisyon">
@@ -411,7 +411,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                 </div>
                             </div>
                             <div class="d-flex justify-content-between mt-4">
-                                <a href="/vis/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=lokasyon" class="btn btn-outline-secondary">Geri</a>
+                                <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=lokasyon" class="btn btn-outline-secondary">Geri</a>
                                 <button type="submit" class="btn btn-primary">Kaydet · özete geç <i class="mdi mdi-arrow-right ms-1"></i></button>
                             </div>
                         </form>
@@ -478,13 +478,13 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             <a href="/arac_yonetimi/duzenle/<?= (int) $kayit['arac_id'] ?>">Araç kartını aç</a>
                         </div>
                     <?php endif; ?>
-                    <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet">
+                    <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet">
                         <?= Csrf::field() ?>
                         <input type="hidden" name="adim" value="ozet">
                         <label class="form-label">Özet notu</label>
                         <textarea name="not" class="form-control mb-3" rows="2"><?= e((string) ($kayit['ozet_not'] ?? '')) ?></textarea>
                         <div class="d-flex justify-content-between">
-                            <a href="/vis/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=kondisyon" class="btn btn-outline-secondary">Geri</a>
+                            <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=kondisyon" class="btn btn-outline-secondary">Geri</a>
                             <button type="submit" class="btn btn-primary"><i class="mdi mdi-check me-1"></i>Tamamla · araç kartı</button>
                         </div>
                     </form>
