@@ -5,6 +5,8 @@
 !/storage/logs/.gitkeep
 /storage/vis/*
 !/storage/vis/.gitkeep
+/storage/detayli_arac/*
+!/storage/detayli_arac/.gitkeep
 /docs/referans/*.json
 /docs/referans/summary.txt
 /public/uploads/*

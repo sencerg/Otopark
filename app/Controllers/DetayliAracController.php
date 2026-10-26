@@ -88,6 +88,9 @@ final class DetayliAracController extends Controller
                 ],
                 'adim' => 'taraflar',
             ]);
+            if (!DetayliAracStore::bul((string) $row['id'])) {
+                throw new RuntimeException('Taslak kaydedilemedi. Veritabanı migrasyonu (026) çalıştırılmış olmalı.');
+            }
             View::redirect('/detayli-arac/kayit/' . $row['id'] . '?adim=taraflar');
         } catch (RuntimeException $e) {
             flash('error', $e->getMessage());

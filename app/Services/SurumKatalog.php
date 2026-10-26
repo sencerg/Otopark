@@ -31,6 +31,15 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.38',
+                'tarih' => '2026-10-26 12:55',
+                'baslik' => 'Detaylı ekleme taslağı DB’de',
+                'maddeler' => [
+                    'Taslaklar PostgreSQL’de tutulur; canlıda dosya kaybı / 404 giderildi.',
+                    'Eski JSON taslaklar okununca DB’ye taşınır.',
+                ],
+            ],
+            [
                 'surum' => 'v0.37',
                 'tarih' => '2026-10-26 11:35',
                 'baslik' => 'Detaylı Araç Ekle URL / isim',
