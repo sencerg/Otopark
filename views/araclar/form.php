@@ -174,26 +174,43 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
     </div>
     <div class="card-body tab-content">
         <div class="tab-pane fade show active" id="tab-ekstre">
-            <form method="post" action="/arac_ekstreleri/ek_maliyet_save_modal" data-ajax class="row g-2 align-items-end mb-3 p-3 bg-light rounded" id="arac-maliyet-form">
+            <form method="post" action="/arac_ekstreleri/ek_maliyet_save_modal" data-ajax class="mb-3 p-3 bg-light rounded" id="arac-maliyet-form">
                 <?= Csrf::field() ?>
                 <input type="hidden" name="arac_id" value="<?= $arac['id'] ?>">
-                <div class="col-md-3"><label class="form-label required">Maliyet Tipi</label>
-                    <select name="maliyet_tipi_modal" class="form-select select2" data-tutar-target="#arac-maliyet-tutar" required>
-                        <option value="">Seçiniz</option>
-                        <?php foreach (($hizmetler ?? []) as $mt): ?>
-                            <option value="<?= (int) $mt['id'] ?>" data-bayi-degistirebilir="<?= !empty($mt['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>" data-tekrar-eklenebilir="<?= !empty($mt['tekrar_eklenebilir']) ? '1' : '0' ?>"><?= e($mt['ad']) ?><?= empty($mt['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?><?= empty($mt['tekrar_eklenebilir']) ? ' (tek sefer)' : '' ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php if (empty($hizmetler)): ?>
-                        <div class="form-text text-warning">Bu firma / otopark için tanımlı hizmet yok.</div>
-                    <?php endif; ?>
-                    <?php require BASE_PATH . '/views/partials/hizmet_liste_notu.php'; ?>
+                <div class="row g-2 align-items-end">
+                    <div class="col-xl-3 col-lg-4 col-md-6">
+                        <label class="form-label required mb-1">Maliyet Tipi</label>
+                        <select name="maliyet_tipi_modal" class="form-select select2" data-tutar-target="#arac-maliyet-tutar" required>
+                            <option value="">Seçiniz</option>
+                            <?php foreach (($hizmetler ?? []) as $mt): ?>
+                                <option value="<?= (int) $mt['id'] ?>" data-bayi-degistirebilir="<?= !empty($mt['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>" data-tekrar-eklenebilir="<?= !empty($mt['tekrar_eklenebilir']) ? '1' : '0' ?>"><?= e($mt['ad']) ?><?= empty($mt['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?><?= empty($mt['tekrar_eklenebilir']) ? ' (tek sefer)' : '' ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-xl-2 col-lg-2 col-md-3 col-6">
+                        <label class="form-label required mb-1">Tutar</label>
+                        <input type="number" step="0.01" min="0" name="tutar_ek" id="arac-maliyet-tutar" class="form-control" required placeholder="Fiyat belirlenmedi">
+                    </div>
+                    <div class="col-xl-2 col-lg-2 col-md-3 col-6">
+                        <label class="form-label mb-1">İşlem Tarihi</label>
+                        <input type="date" name="islem_tarihi" class="form-control" data-default-today>
+                    </div>
+                    <div class="col-xl-2 col-lg-2 col-md-4 col-6">
+                        <label class="form-label mb-1">Fatura No</label>
+                        <input type="text" name="fatura_no" class="form-control">
+                    </div>
+                    <div class="col-xl-2 col-lg-3 col-md-5 col-6">
+                        <label class="form-label mb-1">Açıklama</label>
+                        <input type="text" name="aciklama_ekstre" class="form-control">
+                    </div>
+                    <div class="col-xl-auto col-lg-3 col-md-3 ms-xl-auto">
+                        <button type="submit" class="btn btn-primary w-100 text-nowrap"><i class="mdi mdi-plus me-1"></i>Maliyet Ekle</button>
+                    </div>
                 </div>
-                <div class="col-md-2"><label class="form-label required">Tutar</label><input type="number" step="0.01" min="0" name="tutar_ek" id="arac-maliyet-tutar" class="form-control" required placeholder="Fiyat belirlenmedi"></div>
-                <div class="col-md-2"><label class="form-label">İşlem Tarihi</label><input type="date" name="islem_tarihi" class="form-control" data-default-today></div>
-                <div class="col-md-2"><label class="form-label">Fatura No</label><input type="text" name="fatura_no" class="form-control"></div>
-                <div class="col-md-3"><label class="form-label">Açıklama</label><input type="text" name="aciklama_ekstre" class="form-control"></div>
-                <div class="col-12 text-end"><button type="submit" class="btn btn-primary"><i class="mdi mdi-plus me-1"></i>Maliyet Ekle</button></div>
+                <?php if (empty($hizmetler)): ?>
+                    <div class="form-text text-warning mt-2 mb-0">Bu firma / otopark için tanımlı hizmet yok.</div>
+                <?php endif; ?>
+                <?php require BASE_PATH . '/views/partials/hizmet_liste_notu.php'; ?>
             </form>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
