@@ -17,9 +17,56 @@ final class DetayliAracStore
         return [
             ['kod' => 'kontrol', 'ad' => 'Kontrol'],
             ['kod' => 'taraflar', 'ad' => 'Taraflar'],
-            ['kod' => 'arac', 'ad' => 'Araç'],
+            ['kod' => 'arac', 'ad' => 'Araç tanımı'],
             ['kod' => 'ekspertiz', 'ad' => 'Ekspertiz'],
             ['kod' => 'ozet', 'ad' => 'Özet'],
+        ];
+    }
+
+    /** VIS Araç tanımı — lastik sınıfı */
+    public static function lastikSiniflari(): array
+    {
+        return ['Yaz' => 'Yaz', 'Kış' => 'Kış', 'Dört mevsim' => 'Dört mevsim', 'Bilinmiyor' => 'Bilinmiyor'];
+    }
+
+    /** VIS Araç tanımı — sık lastik markaları */
+    public static function lastikMarkalari(): array
+    {
+        $list = [
+            'Bilinmiyor', 'Bridgestone', 'Continental', 'Goodyear', 'Michelin', 'Pirelli',
+            'Hankook', 'Kumho', 'Yokohama', 'Nokian', 'Toyo', 'Falken', 'Lassa', 'Petlas', 'Diğer',
+        ];
+
+        return array_combine($list, $list);
+    }
+
+    public static function tekerCekisleri(): array
+    {
+        return [
+            'Önden Çekişli' => 'Önden Çekişli',
+            'Arkadan Çekişli' => 'Arkadan Çekişli',
+            '4x4 / AWD' => '4x4 / AWD',
+            'Bilinmiyor' => 'Bilinmiyor',
+        ];
+    }
+
+    public static function kayitBelgesiSecenekleri(): array
+    {
+        return [
+            'Birinci parça' => 'Birinci parça',
+            'İkinci parça' => 'İkinci parça',
+            'Yok' => 'Yok',
+            'Bilinmiyor' => 'Bilinmiyor',
+        ];
+    }
+
+    public static function lastikPozisyonlari(): array
+    {
+        return [
+            'sol_on' => 'Sol ön',
+            'sag_on' => 'Sağ ön',
+            'sol_arka' => 'Sol arka',
+            'sag_arka' => 'Sağ arka',
         ];
     }
 
@@ -35,6 +82,7 @@ final class DetayliAracStore
         ];
     }
 
+    /** Eski şema panelleri (özet / geri uyum). */
     public static function hasarPanelleri(): array
     {
         return [
@@ -65,6 +113,68 @@ final class DetayliAracStore
     public static function hasarSeviyeleri(): array
     {
         return ['Yok', 'Çizik', 'Göçük', 'Boyalı', 'Değişen', 'Hasarlı'];
+    }
+
+    /**
+     * Excel ekspertiz listesi (ana + alt parçalar).
+     *
+     * @return array{hasar_tipleri:list<array{kod:string,ad:string}>,seviyeler:list<string>,parcalar:list<array{kod:string,ad:string,alt:list<array{kod:string,ad:string}>}>}
+     */
+    public static function ekspertizKatalog(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        $path = BASE_PATH . '/docs/detayli_arac/ekspertiz_parcalari.json';
+        $j = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
+        if (!is_array($j)) {
+            $j = ['hasar_tipleri' => [], 'seviyeler' => ['C0', 'C1', 'C2', 'C3', 'C4', 'C5'], 'parcalar' => []];
+        }
+        $cache = [
+            'hasar_tipleri' => $j['hasar_tipleri'] ?? [],
+            'seviyeler' => $j['seviyeler'] ?? ['C0', 'C1', 'C2', 'C3', 'C4', 'C5'],
+            'parcalar' => $j['parcalar'] ?? [],
+        ];
+
+        return $cache;
+    }
+
+    /** @return list<array{kod:string,ad:string,ana:string,ana_kod:string}> düz seçilebilir satırlar */
+    public static function ekspertizParcaSatirlari(): array
+    {
+        $out = [];
+        foreach (self::ekspertizKatalog()['parcalar'] as $ana) {
+            $anaKod = (string) ($ana['kod'] ?? '');
+            $anaAd = (string) ($ana['ad'] ?? '');
+            $altlar = $ana['alt'] ?? [];
+            if ($altlar === []) {
+                $out[] = ['kod' => $anaKod, 'ad' => $anaAd, 'ana' => $anaAd, 'ana_kod' => $anaKod];
+                continue;
+            }
+            foreach ($altlar as $alt) {
+                $out[] = [
+                    'kod' => (string) ($alt['kod'] ?? ''),
+                    'ad' => (string) ($alt['ad'] ?? ''),
+                    'ana' => $anaAd,
+                    'ana_kod' => $anaKod,
+                ];
+            }
+        }
+
+        return $out;
+    }
+
+    /** @return list<array{kod:string,ad:string}> */
+    public static function hasarTipleri(): array
+    {
+        return self::ekspertizKatalog()['hasar_tipleri'];
+    }
+
+    /** @return list<string> */
+    public static function hasarCSeviyeleri(): array
+    {
+        return self::ekspertizKatalog()['seviyeler'];
     }
 
     public static function mekanikAlanlari(): array

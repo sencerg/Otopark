@@ -95,9 +95,30 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
             </div>
 
         <?php elseif ($adim === 'arac'): ?>
+            <?php
+            $tanimi = is_array($v['arac_tanimi'] ?? null) ? $v['arac_tanimi'] : [];
+            $lastikler = is_array($tanimi['lastikler'] ?? null) ? $tanimi['lastikler'] : [];
+            $donanimSecili = $donanimSecili ?? [];
+            $envanterSecili = $envanterSecili ?? [];
+            $lastikSiniflari = $lastikSiniflari ?? \App\Services\DetayliAracStore::lastikSiniflari();
+            $lastikMarkalari = $lastikMarkalari ?? \App\Services\DetayliAracStore::lastikMarkalari();
+            $tekerCekisleri = $tekerCekisleri ?? \App\Services\DetayliAracStore::tekerCekisleri();
+            $kayitBelgesiSecenekleri = $kayitBelgesiSecenekleri ?? \App\Services\DetayliAracStore::kayitBelgesiSecenekleri();
+            $lastikPozisyonlari = $lastikPozisyonlari ?? \App\Services\DetayliAracStore::lastikPozisyonlari();
+            $kasaTipleri = $kasaTipleri ?? [];
+            $donanimGruplari = $donanimGruplari ?? [];
+            $envanterler = $envanterler ?? [];
+            $tVal = static function (string $key, mixed $fallback = '') use ($old, $tanimi) {
+                if (array_key_exists($key, $old)) {
+                    return $old[$key];
+                }
+
+                return $tanimi[$key] ?? $fallback;
+            };
+            ?>
             <div class="card">
                 <div class="card-header">
-                    <h5>Araç Bilgileri</h5>
+                    <h5>Araç tanımı</h5>
                     <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
                 </div>
                 <div class="card-body">
@@ -108,9 +129,12 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             <?php if (!empty($t['bayi_ad'])): ?> · <?= e($t['bayi_ad']) ?><?php endif; ?>
                         </div>
                     <?php endif; ?>
+                    <p class="text-muted small mb-3">VIS Araç tanımı alanları — tek formda; kayıt kapanmadan ekspertize geçilir.</p>
                     <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet">
                         <?= Csrf::field() ?>
                         <input type="hidden" name="adim" value="arac">
+
+                        <div class="form-section mt-0">Kimlik</div>
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">Şasi</label>
@@ -118,10 +142,10 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Plaka</label>
-                                <input type="text" name="plaka" class="form-control text-uppercase" value="<?= e((string) $val('plaka', $v['plaka'] ?? '')) ?>">
+                                <input type="text" name="plaka" class="form-control text-uppercase" value="<?= e((string) $val('plaka', $v['plaka'] ?? '')) ?>" placeholder="Yoksa boş bırakın">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label required">Araç Tipi</label>
+                                <label class="form-label required">Araç tipi</label>
                                 <select name="arac_tipi_id" class="form-select" required>
                                     <?= Tanim::options($aracTipleri, $val('arac_tipi_id')) ?>
                                 </select>
@@ -145,15 +169,51 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Model Yılı</label>
-                                <select name="model_yili_id" class="form-select"><?= Tanim::options($modelYillari, $val('model_yili_id')) ?></select>
+                                <label class="form-label">İlk tescil tarihi</label>
+                                <input type="month" name="ilk_tescil" class="form-control" value="<?= e((string) $tVal('ilk_tescil')) ?>">
                             </div>
                             <div class="col-md-3">
+                                <label class="form-label">Gövde / kasa tipi</label>
+                                <select name="kasa_tipi_id" class="form-select"><?= Tanim::options($kasaTipleri, $val('kasa_tipi_id', $v['kasa_tipi_id'] ?? null)) ?></select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Koltuk sayısı</label>
+                                <input type="number" name="koltuk_sayisi" min="1" max="99" class="form-control" value="<?= e((string) $tVal('koltuk_sayisi')) ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Model yılı</label>
+                                <select name="model_yili_id" class="form-select"><?= Tanim::options($modelYillari, $val('model_yili_id')) ?></select>
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label">Renk</label>
                                 <select name="renk_id" class="form-select select2"><?= Tanim::options($renkler, $val('renk_id')) ?></select>
                             </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Varyant</label>
+                                <input type="text" name="varyant" class="form-control" value="<?= e((string) $tVal('varyant')) ?>" placeholder="Bilinmiyor">
+                            </div>
+                        </div>
+
+                        <div class="form-section">Teknik</div>
+                        <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label">Yakıt</label>
+                                <label class="form-label">Motor</label>
+                                <input type="text" name="motor_aciklama" class="form-control" value="<?= e((string) $tVal('motor_aciklama')) ?>" placeholder="Örn. 60 kWh / 1.5 TSI">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Motor hacmi (cc)</label>
+                                <input type="number" name="motor_hacmi" min="0" class="form-control" value="<?= e((string) $val('motor_hacmi', $v['motor_hacmi'] ?? '')) ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Motor gücü (hp)</label>
+                                <input type="number" name="motor_gucu" min="0" class="form-control" value="<?= e((string) $val('motor_gucu', $v['motor_gucu'] ?? '')) ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Teker çekişi</label>
+                                <select name="teker_cekisi" class="form-select"><?= Tanim::options($tekerCekisleri, $tVal('teker_cekisi'), 'Seçiniz') ?></select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Yakıt tipi</label>
                                 <select name="yakit_tipi_id" class="form-select"><?= Tanim::options($yakitTipleri, $val('yakit_tipi_id')) ?></select>
                             </div>
                             <div class="col-md-3">
@@ -165,18 +225,99 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                 <input type="number" name="km" min="0" class="form-control" value="<?= e((string) $val('km')) ?>">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Yakıt (%)</label>
+                                <label class="form-label">Yakıt / şarj (%)</label>
                                 <input type="number" name="yakit_durumu" min="0" max="100" class="form-control" value="<?= e((string) $val('yakit_durumu')) ?>">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Lokasyon detay</label>
-                                <input type="text" name="lokasyon_detay" class="form-control" placeholder="Blok / sıra"
-                                       value="<?= e((string) $val('lokasyon_detay')) ?>">
+                        </div>
+
+                        <div class="form-section">Lastikler</div>
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm align-middle">
+                                <thead><tr><th>Pozisyon</th><th>Sınıf</th><th>Marka</th></tr></thead>
+                                <tbody>
+                                <?php foreach ($lastikPozisyonlari as $poz => $pozAd):
+                                    $rowL = $lastikler[$poz] ?? [];
+                                    $sinif = $old['lastik_sinif_' . $poz] ?? ($rowL['sinif'] ?? '');
+                                    $markaL = $old['lastik_marka_' . $poz] ?? ($rowL['marka'] ?? '');
+                                    ?>
+                                    <tr>
+                                        <td class="fw-semibold text-nowrap"><?= e($pozAd) ?></td>
+                                        <td><select name="lastik_sinif_<?= e($poz) ?>" class="form-select form-select-sm"><?= Tanim::options($lastikSiniflari, $sinif, 'Seçiniz') ?></select></td>
+                                        <td><select name="lastik_marka_<?= e($poz) ?>" class="form-select form-select-sm select2"><?= Tanim::options($lastikMarkalari, $markaL, 'Seçiniz') ?></select></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Yedek lastik (spare)</label>
+                                <select name="yedek_lastik" class="form-select">
+                                    <?= Tanim::options(['Var' => 'Var', 'Yok' => 'Yok', 'Tamir kiti' => 'Tamir kiti'], $tVal('yedek_lastik'), 'Seçiniz') ?>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Lastik formu</label>
+                                <select name="lastik_formu" class="form-select">
+                                    <?= Tanim::options(['Evet' => 'Evet', 'Hayır' => 'Hayır'], $tVal('lastik_formu'), 'Seçiniz') ?>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Lastik notu</label>
+                                <input type="text" name="lastik_not" class="form-control" value="<?= e((string) $tVal('lastik_not')) ?>">
                             </div>
                         </div>
+
+                        <div class="form-section">Belge ve durum</div>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Garanti</label>
+                                <input type="text" name="garanti" class="form-control" value="<?= e((string) $tVal('garanti')) ?>" placeholder="Var / Yok / süre">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Kayıt belgesi</label>
+                                <select name="kayit_belgesi" class="form-select"><?= Tanim::options($kayitBelgesiSecenekleri, $tVal('kayit_belgesi'), 'Seçiniz') ?></select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Anahtarlar</label>
+                                <input type="text" name="anahtarlar" class="form-control" value="<?= e((string) $tVal('anahtarlar')) ?>" placeholder="Örn. 2 adet">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Döşeme</label>
+                                <input type="text" name="doseme" class="form-control" value="<?= e((string) $tVal('doseme')) ?>" placeholder="Kumaş / deri…">
+                            </div>
+                        </div>
+
+                        <?php if ($envanterler): ?>
+                            <div class="form-section">Envanter</div>
+                            <div class="check-grid mb-2">
+                                <?php foreach ($envanterler as $eid => $ead): ?>
+                                    <label class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="arac_envanterleri[]" value="<?= (int) $eid ?>" <?= in_array((int) $eid, $envanterSecili, true) ? 'checked' : '' ?>>
+                                        <span class="form-check-label"><?= e($ead) ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($donanimGruplari): ?>
+                            <div class="form-section">Donanım</div>
+                            <?php foreach ($donanimGruplari as $grup => $items): ?>
+                                <div class="small fw-semibold text-muted mb-2"><?= e((string) $grup) ?></div>
+                                <div class="check-grid mb-3">
+                                    <?php foreach ($items as $did => $dad): ?>
+                                        <label class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="arac_donanimlari[]" value="<?= (int) $did ?>" <?= in_array((int) $did, $donanimSecili, true) ? 'checked' : '' ?>>
+                                            <span class="form-check-label"><?= e($dad) ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+
                         <div class="detayli-form-actions mt-4">
                             <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=taraflar" class="btn btn-outline-secondary">Geri</a>
-                            <button type="submit" class="btn btn-primary">Kaydet ve ekspertize geç <i class="mdi mdi-arrow-right ms-1"></i></button>
+                            <button type="submit" class="btn btn-primary">Kaydet · ekspertize geç <i class="mdi mdi-arrow-right ms-1"></i></button>
                         </div>
                     </form>
                 </div>
@@ -186,56 +327,91 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
             <?php require __DIR__ . '/_ekspertiz_adimlar.php'; ?>
 
             <?php if ($eksAlt === 'hasar'): ?>
-                <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet" data-hasar-form>
+                <?php
+                $eksKatalog = $ekspertizKatalog ?? \App\Services\DetayliAracStore::ekspertizKatalog();
+                $hasarTipleri = $eksKatalog['hasar_tipleri'] ?? [];
+                $cSeviyeler = $eksKatalog['seviyeler'] ?? ['C0', 'C1', 'C2', 'C3', 'C4', 'C5'];
+                $parcaAgaci = $eksKatalog['parcalar'] ?? [];
+                $kayitliHasar = is_array($hasarData) ? $hasarData : [];
+                ?>
+                <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet" data-hasar-form id="detayli-hasar-form" enctype="multipart/form-data">
                     <?= Csrf::field() ?>
                     <input type="hidden" name="adim" value="ekspertiz">
                     <input type="hidden" name="alt" value="hasar">
-                    <div class="row g-3">
+                    <input type="hidden" name="hasar_json" id="hasar-json" value="<?= e(json_encode($kayitliHasar, JSON_UNESCAPED_UNICODE)) ?>">
+
+                    <div class="row g-3 detayli-hasar-layout">
                         <div class="col-lg-4">
                             <div class="card h-100">
-                                <div class="card-header"><h5>Araç şeması</h5></div>
-                                <div class="card-body">
-                                    <?php
-                                    $semaReadonly = false;
-                                    require __DIR__ . '/_arac_sema.php';
-                                    ?>
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Parçalar</h5>
+                                    <span class="badge badge-soft-secondary" id="hasar-dolu-sayac">0</span>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="detayli-parca-liste" id="detayli-parca-liste">
+                                        <?php foreach ($parcaAgaci as $ana):
+                                            $anaKod = (string) ($ana['kod'] ?? '');
+                                            $anaAd = (string) ($ana['ad'] ?? '');
+                                            $altlar = $ana['alt'] ?? [];
+                                            $anaKayit = $kayitliHasar[$anaKod] ?? null;
+                                            $anaDolu = is_array($anaKayit) && !empty($anaKayit['tipler']);
+                                            ?>
+                                            <div class="detayli-parca-grup" data-ana="<?= e($anaKod) ?>">
+                                                <?php if ($altlar === []): ?>
+                                                    <button type="button" class="detayli-parca-item<?= $anaDolu ? ' has-data' : '' ?>"
+                                                            data-kod="<?= e($anaKod) ?>" data-ad="<?= e($anaAd) ?>" data-ana-ad="<?= e($anaAd) ?>">
+                                                        <span class="ad"><?= e($anaAd) ?></span>
+                                                        <span class="cnt"><?= $anaDolu ? count($anaKayit['tipler']) : '' ?></span>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <div class="detayli-parca-ana"><?= e($anaAd) ?></div>
+                                                    <?php foreach ($altlar as $alt):
+                                                        $altKod = (string) ($alt['kod'] ?? '');
+                                                        $altAd = (string) ($alt['ad'] ?? '');
+                                                        $altKayit = $kayitliHasar[$altKod] ?? null;
+                                                        $altDolu = is_array($altKayit) && !empty($altKayit['tipler']);
+                                                        ?>
+                                                        <button type="button" class="detayli-parca-item alt<?= $altDolu ? ' has-data' : '' ?>"
+                                                                data-kod="<?= e($altKod) ?>" data-ad="<?= e($altAd) ?>" data-ana-ad="<?= e($anaAd) ?>">
+                                                            <span class="ad"><?= e($altAd) ?></span>
+                                                            <span class="cnt"><?= $altDolu ? count($altKayit['tipler']) : '' ?></span>
+                                                        </button>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
                         <div class="col-lg-8">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5>Hasar tespiti</h5>
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <h5 class="mb-0">Hasar tespiti</h5>
+                                        <div class="small text-muted" id="hasar-breadcrumb">Soldan parça seçin</div>
+                                    </div>
                                     <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
                                 </div>
                                 <div class="card-body">
-                                    <p class="text-muted small mb-3">Şemadan panel seçin veya tablodan durum girin.</p>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm hasar-tablo align-middle">
-                                            <thead>
-                                            <tr><th>Panel</th><th style="width:11rem">Durum</th><th>Not</th></tr>
-                                            </thead>
-                                            <tbody>
-                                            <?php foreach ($hasarPanelleri as $kod => $ad):
-                                                $rowH = $hasarData[$kod] ?? [];
-                                                $sev = $old['hasar_sev_' . $kod] ?? ($rowH['seviye'] ?? 'Yok');
-                                                $not = $old['hasar_not_' . $kod] ?? ($rowH['not'] ?? '');
-                                                ?>
-                                                <tr data-panel-row="<?= e($kod) ?>">
-                                                    <td class="fw-semibold"><?= e($ad) ?></td>
-                                                    <td>
-                                                        <select name="hasar_sev_<?= e($kod) ?>" class="form-select form-select-sm">
-                                                            <?php foreach ($hasarSeviyeleri as $s): ?>
-                                                                <option value="<?= e($s) ?>" <?= (string) $sev === $s ? 'selected' : '' ?>><?= e($s) ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    </td>
-                                                    <td><input type="text" name="hasar_not_<?= e($kod) ?>" class="form-control form-control-sm" value="<?= e((string) $not) ?>" placeholder="Opsiyonel"></td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
+                                    <div id="hasar-bos" class="text-muted small py-5 text-center">
+                                        Excel listesindeki parçalardan birini seçin. Hasar tipi + C0–C5 seçince altına görsel ekleyebilirsiniz (zorunlu değil).
                                     </div>
+                                    <div id="hasar-panel" class="d-none">
+                                        <div class="d-flex justify-content-between align-items-center mb-3 gap-2 flex-wrap">
+                                            <div class="fw-semibold" id="hasar-panel-baslik"></div>
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-secondary" id="hasar-onceki">Önceki</button>
+                                                <button type="button" class="btn btn-outline-primary" id="hasar-sonraki">Sonraki</button>
+                                            </div>
+                                        </div>
+                                        <div id="hasar-tip-satirlari" class="detayli-hasar-tipler mb-3"></div>
+                                        <label class="form-label">Parça notu</label>
+                                        <input type="text" class="form-control mb-3" id="hasar-parca-not" placeholder="Opsiyonel">
+                                    </div>
+
+                                    <hr class="my-4">
                                     <label class="form-label">Genel hasar notu</label>
                                     <textarea name="hasar_genel_not" class="form-control mb-3" rows="2"><?= e((string) ($old['hasar_genel_not'] ?? ($ex['hasar_genel_not'] ?? ''))) ?></textarea>
                                     <div class="detayli-form-actions">
@@ -247,6 +423,10 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                         </div>
                     </div>
                 </form>
+                <script type="application/json" id="hasar-meta"><?= json_encode([
+                    'tipler' => $hasarTipleri,
+                    'seviyeler' => $cSeviyeler,
+                ], JSON_UNESCAPED_UNICODE) ?></script>
 
             <?php elseif ($eksAlt === 'mekanik'): ?>
                 <div class="card">
@@ -422,8 +602,25 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
         <?php else: /* ozet */ ?>
             <?php
             $hasarOzet = [];
+            $hasarTipAdlari = array_column(\App\Services\DetayliAracStore::hasarTipleri(), 'ad', 'kod');
             foreach ($hasarData as $kod => $h) {
-                if (($h['seviye'] ?? 'Yok') !== 'Yok') {
+                if (!is_array($h)) {
+                    continue;
+                }
+                // Yeni format: tipler[C seviyesi]
+                if (!empty($h['tipler']) && is_array($h['tipler'])) {
+                    $parcalar = [];
+                    foreach ($h['tipler'] as $tipKod => $sev) {
+                        $parcalar[] = ($hasarTipAdlari[$tipKod] ?? $tipKod) . ' ' . $sev;
+                    }
+                    $hasarOzet[] = [
+                        'ad' => trim(($h['ana'] ?? '') !== ($h['ad'] ?? '') ? (($h['ana'] ?? '') . ' · ' . ($h['ad'] ?? $kod)) : ($h['ad'] ?? $kod)),
+                        'sev' => implode(', ', $parcalar),
+                    ];
+                    continue;
+                }
+                // Eski format
+                if (($h['seviye'] ?? 'Yok') !== 'Yok' && ($h['seviye'] ?? '') !== '') {
                     $hasarOzet[] = ['ad' => $h['ad'] ?? $kod, 'sev' => $h['seviye'] ?? ''];
                 }
             }

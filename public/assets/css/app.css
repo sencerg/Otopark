@@ -227,6 +227,54 @@ a.detayli-adim.done:hover { color: #047857; }
 .hasar-tablo .form-select, .hasar-tablo .form-control { min-width: 7rem; }
 .hasar-row-focus { outline: 2px solid var(--bs-primary, #4f46e5); outline-offset: -2px; background: #eef2ff; }
 
+.detayli-parca-liste { max-height: min(70vh, 640px); overflow: auto; }
+.detayli-parca-grup { border-bottom: 1px solid #eef1f7; padding: 6px 0; }
+.detayli-parca-ana {
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .02em;
+  color: #64748b; padding: 6px 14px 4px;
+}
+.detayli-parca-item {
+  display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px;
+  border: 0; background: transparent; text-align: left; padding: 8px 14px; font-size: 13px; color: var(--heading);
+}
+.detayli-parca-item.alt { padding-left: 22px; font-size: 12.5px; color: #334155; }
+.detayli-parca-item:hover { background: #f8fafc; }
+.detayli-parca-item.active { background: #eef2ff; color: var(--bs-primary, #4f46e5); font-weight: 700; }
+.detayli-parca-item.has-data .cnt {
+  min-width: 1.25rem; height: 1.25rem; border-radius: 999px; background: #059669; color: #fff;
+  font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px;
+}
+.detayli-hasar-tip-satir {
+  padding: 12px 0; border-bottom: 1px solid #eef1f7;
+}
+.detayli-hasar-tip-head {
+  display: grid; grid-template-columns: minmax(8rem, 11rem) 1fr; gap: 10px; align-items: center;
+}
+.detayli-hasar-tip-satir .tip-ad { font-size: 13px; font-weight: 600; }
+.detayli-c-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.detayli-c-btn {
+  min-width: 2.4rem; height: 2.2rem; border-radius: 6px; border: 1px solid #dbe2ea; background: #fff;
+  font-size: 12px; font-weight: 800; color: #475569;
+}
+.detayli-c-btn:hover { border-color: var(--bs-primary, #4f46e5); color: var(--bs-primary, #4f46e5); }
+.detayli-c-btn.active { background: var(--bs-primary, #4f46e5); border-color: var(--bs-primary, #4f46e5); color: #fff; }
+.detayli-hasar-foto-zone {
+  margin: 10px 0 4px 0; padding: 12px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;
+}
+.detayli-hasar-thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.detayli-hasar-thumb, .detayli-hasar-thumb img {
+  width: 72px; height: 72px; object-fit: cover; border-radius: 6px; display: block;
+}
+.detayli-hasar-thumb {
+  border: 1px solid #e2e8f0; overflow: hidden; background: #fff;
+}
+.detayli-hasar-thumb.is-local { border-color: #93c5fd; }
+
+@media (max-width: 991.98px) {
+  .detayli-parca-liste { max-height: 280px; }
+  .detayli-hasar-tip-head { grid-template-columns: 1fr; gap: 6px; }
+}
+
 .arac-sema-wrap { background: #f8fafc; border: 1px solid #eef1f7; border-radius: var(--radius, 8px); padding: 12px; text-align: center; }
 .arac-sema { width: 100%; max-width: 260px; height: auto; display: block; margin: 0 auto; }
 .arac-sema .sema-govde { fill: #e5e7eb; stroke: #94a3b8; stroke-width: 2; }

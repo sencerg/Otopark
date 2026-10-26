@@ -31,6 +31,24 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.43',
+                'tarih' => '2026-10-26 16:20',
+                'baslik' => 'Ekspertiz hasar · Excel parça listesi',
+                'maddeler' => [
+                    'Hasar: sol Excel parçaları, sağda hasar tipi + C0–C5 (görsel zorunlu değil).',
+                    'Kaynak: docs/detayli_arac/detayli_oto_ekspertiz_listesi.xlsx',
+                ],
+            ],
+            [
+                'surum' => 'v0.42',
+                'tarih' => '2026-10-26 16:10',
+                'baslik' => 'Detaylı Araç · Araç tanımı (VIS)',
+                'maddeler' => [
+                    'Araç adımı «Araç tanımı» oldu; VIS sol alanları tek Moex formunda.',
+                    'Kimlik, teknik, lastik (4 köşe), belge, envanter ve donanım; kayıt kapanmadan ekspertize geçiş.',
+                ],
+            ],
+            [
                 'surum' => 'v0.41',
                 'tarih' => '2026-10-26 13:55',
                 'baslik' => 'Detaylı Araç arayüz cilası',

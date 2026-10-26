@@ -1,0 +1,876 @@
+{
+    "kaynak": "detayli_oto_ekspertiz_listesi.xlsx",
+    "hasar_tipleri": [
+        {
+            "kod": "boyanmis",
+            "ad": "Boyanmış"
+        },
+        {
+            "kod": "degismis",
+            "ad": "Değişmiş"
+        },
+        {
+            "kod": "hasarli",
+            "ad": "Hasarlı"
+        },
+        {
+            "kod": "lokal_boyanmis",
+            "ad": "Lokal Boyanmış"
+        },
+        {
+            "kod": "asinma",
+            "ad": "Aşınma ve yıpranma"
+        },
+        {
+            "kod": "cizik",
+            "ad": "Çizik"
+        },
+        {
+            "kod": "gocuk",
+            "ad": "Göçük"
+        },
+        {
+            "kod": "ezik",
+            "ad": "Ezik"
+        }
+    ],
+    "seviyeler": [
+        "C0",
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5"
+    ],
+    "parcalar": [
+        {
+            "kod": "p1_sol_on_far_grubu",
+            "ad": "Sol Ön Far Grubu",
+            "alt": [
+                {
+                    "kod": "p1_sol_on_far_grubu_1_far_cami_ve_mercegi",
+                    "ad": "Far Camı ve Merceği"
+                },
+                {
+                    "kod": "p1_sol_on_far_grubu_2_far_kasasi_ve_baglanti_ayaklari",
+                    "ad": "Far Kasası ve Bağlantı Ayakları"
+                },
+                {
+                    "kod": "p1_sol_on_far_grubu_3_sinyal_flasor_lambasi_ve_duylari",
+                    "ad": "Sinyal \/ Flaşör Lambası ve Duyları"
+                },
+                {
+                    "kod": "p1_sol_on_far_grubu_4_gunduz_ledi_park_ampulu_yuvasi",
+                    "ad": "Gündüz Ledi \/ Park Ampulü Yuvası"
+                }
+            ]
+        },
+        {
+            "kod": "p2_sol_on_jant",
+            "ad": "Sol Ön Jant",
+            "alt": [
+                {
+                    "kod": "p2_sol_on_jant_1_jant_kapagi",
+                    "ad": "Jant Kapağı"
+                },
+                {
+                    "kod": "p2_sol_on_jant_2_jant_gobegi",
+                    "ad": "Jant Göbeği"
+                },
+                {
+                    "kod": "p2_sol_on_jant_3_bijonlar",
+                    "ad": "Bijonlar"
+                }
+            ]
+        },
+        {
+            "kod": "p3_sol_on_lastik",
+            "ad": "Sol Ön Lastik",
+            "alt": []
+        },
+        {
+            "kod": "p4_sol_on_camurluk",
+            "ad": "Sol Ön Çamurluk",
+            "alt": [
+                {
+                    "kod": "p4_sol_on_camurluk_1_camurluk_dis_saci_plastik_aksam_govdesi",
+                    "ad": "Çamurluk Dış Sacı \/ Plastik Aksam Gövdesi"
+                },
+                {
+                    "kod": "p4_sol_on_camurluk_2_camurluk_ici_davlumbaz_ve_plastik_klipsleri",
+                    "ad": "Çamurluk İçi Davlumbaz ve Plastik Klipsleri"
+                },
+                {
+                    "kod": "p4_sol_on_camurluk_3_camurluk_sinyali_flasor_lambasi",
+                    "ad": "Çamurluk Sinyali \/ Flaşör Lambası"
+                },
+                {
+                    "kod": "p4_sol_on_camurluk_4_camurluk_baglanti_vidalari_ve_ayar_pullari",
+                    "ad": "Çamurluk Bağlantı Vidaları ve Ayar Pulları"
+                },
+                {
+                    "kod": "p4_sol_on_camurluk_5_dodik",
+                    "ad": "Dodik"
+                }
+            ]
+        },
+        {
+            "kod": "p5_ic_sasi_direkleri_ve_marspiyeller",
+            "ad": "İç Şasi Direkleri ve Marşpiyeller",
+            "alt": [
+                {
+                    "kod": "p5_ic_sasi_direkleri_ve_marspiyeller_1_sol_a_direkleri_ic_ve_dis_saclar",
+                    "ad": "Sol A Direkleri (İç ve Dış Saclar)"
+                },
+                {
+                    "kod": "p5_ic_sasi_direkleri_ve_marspiyeller_2_sol_b_direkleri_ic_ve_dis_saclar",
+                    "ad": "Sol B Direkleri (İç ve Dış Saclar)"
+                },
+                {
+                    "kod": "p5_ic_sasi_direkleri_ve_marspiyeller_3_sol_c_direkleri_ic_ve_dis_saclar",
+                    "ad": "Sol C Direkleri (İç ve Dış Saclar)"
+                },
+                {
+                    "kod": "p5_ic_sasi_direkleri_ve_marspiyeller_4_sol_d_direkleri_ic_ve_dis_saclar",
+                    "ad": "Sol D Direkleri (İç ve Dış Saclar)"
+                },
+                {
+                    "kod": "p5_ic_sasi_direkleri_ve_marspiyeller_5_sol_marspiyel_govde_ve_bakaliti",
+                    "ad": "Sol Marşpiyel Gövde ve Bakaliti"
+                }
+            ]
+        },
+        {
+            "kod": "p6_sol_on_kapi",
+            "ad": "Sol Ön Kapı",
+            "alt": [
+                {
+                    "kod": "p6_sol_on_kapi_1_kapi_dis_saci",
+                    "ad": "Kapı Dış Sacı"
+                },
+                {
+                    "kod": "p6_sol_on_kapi_2_kapi_ic_saci_ve_kilitleme_mekanizmasi",
+                    "ad": "Kapı İç Sacı ve Kilitleme Mekanizması"
+                },
+                {
+                    "kod": "p6_sol_on_kapi_3_kapi_dosemesi_ve_fitilleri",
+                    "ad": "Kapı Döşemesi ve Fitilleri"
+                },
+                {
+                    "kod": "p6_sol_on_kapi_4_kapi_cami_cam_fitilleri_ve_otomatigi",
+                    "ad": "Kapı Camı, Cam Fitilleri ve Otomatiği"
+                },
+                {
+                    "kod": "p6_sol_on_kapi_5_kapi_menteseleri_ve_gergisi",
+                    "ad": "Kapı Menteşeleri ve Gergisi"
+                }
+            ]
+        },
+        {
+            "kod": "p7_surucu_koltugu",
+            "ad": "Sürücü Koltuğu",
+            "alt": [
+                {
+                    "kod": "p7_surucu_koltugu_1_surucu_koltugu_tabani",
+                    "ad": "Sürücü Koltuğu Tabanı"
+                },
+                {
+                    "kod": "p7_surucu_koltugu_2_surucu_koltugu_arka",
+                    "ad": "Sürücü Koltuğu Arka"
+                },
+                {
+                    "kod": "p7_surucu_koltugu_3_surucu_koltugu_kol_destegi",
+                    "ad": "Sürücü Koltuğu Kol Desteği"
+                },
+                {
+                    "kod": "p7_surucu_koltugu_4_baslik",
+                    "ad": "Başlık"
+                }
+            ]
+        },
+        {
+            "kod": "p8_sol_yan_dikiz_aynasi",
+            "ad": "Sol Yan Dikiz Aynası",
+            "alt": [
+                {
+                    "kod": "p8_sol_yan_dikiz_aynasi_1_ayna_dis_kapagi_ve_govde_plastigi",
+                    "ad": "Ayna Dış Kapağı ve Gövde Plastiği"
+                },
+                {
+                    "kod": "p8_sol_yan_dikiz_aynasi_2_ayna_cami_rezistansli_kor_nokta",
+                    "ad": "Ayna Camı (Rezistanslı\/Kör Nokta)"
+                },
+                {
+                    "kod": "p8_sol_yan_dikiz_aynasi_3_ayna_sinyal_lambasi_flasor",
+                    "ad": "Ayna Sinyal Lambası \/ Flaşör"
+                },
+                {
+                    "kod": "p8_sol_yan_dikiz_aynasi_4_katlanma_motoru_ve_ayar_mekanizmasi",
+                    "ad": "Katlanma Motoru ve Ayar Mekanizması"
+                }
+            ]
+        },
+        {
+            "kod": "p9_sol_arka_kapi",
+            "ad": "Sol Arka Kapı",
+            "alt": [
+                {
+                    "kod": "p9_sol_arka_kapi_1_kapi_dis_saci",
+                    "ad": "Kapı Dış Sacı"
+                },
+                {
+                    "kod": "p9_sol_arka_kapi_2_kapi_ic_saci_ve_cocuk_kilidi_mekanizmasi",
+                    "ad": "Kapı İç Sacı ve Çocuk Kilidi Mekanizması"
+                },
+                {
+                    "kod": "p9_sol_arka_kapi_3_kapi_dosemesi_ve_fitilleri",
+                    "ad": "Kapı Döşemesi ve Fitilleri"
+                },
+                {
+                    "kod": "p9_sol_arka_kapi_4_kapi_cami_cam_fitilleri_ve_otomatigi",
+                    "ad": "Kapı Camı, Cam Fitilleri ve Otomatiği"
+                },
+                {
+                    "kod": "p9_sol_arka_kapi_5_kapi_menteseleri_ve_gergisi",
+                    "ad": "Kapı Menteşeleri ve Gergisi"
+                }
+            ]
+        },
+        {
+            "kod": "p10_sol_arka_jant",
+            "ad": "Sol Arka Jant",
+            "alt": [
+                {
+                    "kod": "p10_sol_arka_jant_1_jant_kapagi",
+                    "ad": "Jant Kapağı"
+                },
+                {
+                    "kod": "p10_sol_arka_jant_2_jant_gobegi",
+                    "ad": "Jant Göbeği"
+                },
+                {
+                    "kod": "p10_sol_arka_jant_3_bijonlar",
+                    "ad": "Bijonlar"
+                }
+            ]
+        },
+        {
+            "kod": "p11_sol_arka_lastik",
+            "ad": "Sol Arka Lastik",
+            "alt": []
+        },
+        {
+            "kod": "p12_sol_arka_camurluk",
+            "ad": "Sol Arka Çamurluk",
+            "alt": [
+                {
+                    "kod": "p12_sol_arka_camurluk_1_camurluk_dis_saci_plastik_aksam_govdesi",
+                    "ad": "Çamurluk Dış Sacı \/ Plastik Aksam Gövdesi"
+                },
+                {
+                    "kod": "p12_sol_arka_camurluk_2_camurluk_ici_davlumbaz_ve_plastik_klipsleri",
+                    "ad": "Çamurluk İçi Davlumbaz ve Plastik Klipsleri"
+                },
+                {
+                    "kod": "p12_sol_arka_camurluk_3_camurluk_sinyali_flasor_lambasi",
+                    "ad": "Çamurluk Sinyali \/ Flaşör Lambası"
+                },
+                {
+                    "kod": "p12_sol_arka_camurluk_4_camurluk_baglanti_vidalari_ve_ayar_pullari",
+                    "ad": "Çamurluk Bağlantı Vidaları ve Ayar Pulları"
+                },
+                {
+                    "kod": "p12_sol_arka_camurluk_5_dodik",
+                    "ad": "Dodik"
+                },
+                {
+                    "kod": "p12_sol_arka_camurluk_6_kelebek_cam",
+                    "ad": "Kelebek Cam"
+                }
+            ]
+        },
+        {
+            "kod": "p13_sol_arka_stop_grubu",
+            "ad": "Sol Arka Stop Grubu",
+            "alt": [
+                {
+                    "kod": "p13_sol_arka_stop_grubu_1_stop_lambasi_dis_cami",
+                    "ad": "Stop Lambası Dış Camı"
+                },
+                {
+                    "kod": "p13_sol_arka_stop_grubu_2_stop_kasasi_ve_ampul_duy_paneli",
+                    "ad": "Stop Kasası ve Ampul Duy Paneli"
+                },
+                {
+                    "kod": "p13_sol_arka_stop_grubu_3_sinyal_ve_geri_vites_aydinlatma_bolumleri",
+                    "ad": "Sinyal ve Geri Vites Aydınlatma Bölümleri"
+                }
+            ]
+        },
+        {
+            "kod": "p14_arka_tampon",
+            "ad": "Arka Tampon",
+            "alt": [
+                {
+                    "kod": "p14_arka_tampon_1_tampon_plastik_govdesi_ve_braketleri",
+                    "ad": "Tampon Plastik Gövdesi ve Braketleri"
+                },
+                {
+                    "kod": "p14_arka_tampon_2_tampon_alt_karligi_difuzor",
+                    "ad": "Tampon Alt Karlığı \/ Difüzör"
+                },
+                {
+                    "kod": "p14_arka_tampon_3_park_sensorleri_ve_yuvalari",
+                    "ad": "Park Sensörleri ve Yuvaları"
+                },
+                {
+                    "kod": "p14_arka_tampon_4_plakalik_bolgesi_ve_aydinlatmalari",
+                    "ad": "Plakalık Bölgesi ve Aydınlatmaları"
+                },
+                {
+                    "kod": "p14_arka_tampon_5_ceki_demiri_kapagi",
+                    "ad": "Çeki Demiri Kapağı"
+                }
+            ]
+        },
+        {
+            "kod": "p15_bagaj_kapagi",
+            "ad": "Bagaj Kapağı",
+            "alt": [
+                {
+                    "kod": "p15_bagaj_kapagi_1_bagaj_dis_saci_amortisorleri",
+                    "ad": "Bagaj Dış Sacı \/ Amortisörleri"
+                },
+                {
+                    "kod": "p15_bagaj_kapagi_2_bagaj_ic_dosemesi_ve_kilitleme_dili",
+                    "ad": "Bagaj İç Döşemesi ve Kilitleme Dili"
+                },
+                {
+                    "kod": "p15_bagaj_kapagi_3_bagaj_fitilleri_ve_su_tahliye_kanallari",
+                    "ad": "Bagaj Fitilleri ve Su Tahliye Kanalları"
+                },
+                {
+                    "kod": "p15_bagaj_kapagi_4_arka_plaka_logolar",
+                    "ad": "Arka Plaka \/ Logolar"
+                }
+            ]
+        },
+        {
+            "kod": "p16_arka_cam",
+            "ad": "Arka Cam",
+            "alt": [
+                {
+                    "kod": "p16_arka_cam_1_silecek",
+                    "ad": "Silecek"
+                }
+            ]
+        },
+        {
+            "kod": "p17_bagaj",
+            "ad": "Bagaj",
+            "alt": [
+                {
+                    "kod": "p17_bagaj_1_arka_panel_saci_ve_punto_kontrolleri",
+                    "ad": "Arka Panel Sacı ve Punto Kontrolleri"
+                },
+                {
+                    "kod": "p17_bagaj_2_stepne_havuz_saci_ve_fabrika_silikonlari",
+                    "ad": "Stepne Havuz Sacı ve Fabrika Silikonları"
+                },
+                {
+                    "kod": "p17_bagaj_3_bagaj_ici_kaplamalar",
+                    "ad": "Bagaj İçi Kaplamalar"
+                },
+                {
+                    "kod": "p17_bagaj_4_pandizot",
+                    "ad": "Pandizot"
+                }
+            ]
+        },
+        {
+            "kod": "p18_yedek_lastik",
+            "ad": "Yedek Lastik",
+            "alt": []
+        },
+        {
+            "kod": "p19_sag_arka_stop_grubu",
+            "ad": "Sağ Arka Stop Grubu",
+            "alt": [
+                {
+                    "kod": "p19_sag_arka_stop_grubu_1_stop_lambasi_dis_cami",
+                    "ad": "Stop Lambası Dış Camı"
+                },
+                {
+                    "kod": "p19_sag_arka_stop_grubu_2_stop_kasasi_ve_ampul_duy_paneli",
+                    "ad": "Stop Kasası ve Ampul Duy Paneli"
+                },
+                {
+                    "kod": "p19_sag_arka_stop_grubu_3_sinyal_ve_geri_vites_aydinlatma_bolumleri",
+                    "ad": "Sinyal ve Geri Vites Aydınlatma Bölümleri"
+                }
+            ]
+        },
+        {
+            "kod": "p20_sag_arka_camurluk",
+            "ad": "Sağ Arka Çamurluk",
+            "alt": [
+                {
+                    "kod": "p20_sag_arka_camurluk_1_camurluk_dis_saci_plastik_aksam_govdesi",
+                    "ad": "Çamurluk Dış Sacı \/ Plastik Aksam Gövdesi"
+                },
+                {
+                    "kod": "p20_sag_arka_camurluk_2_camurluk_ici_davlumbaz_ve_plastik_klipsleri",
+                    "ad": "Çamurluk İçi Davlumbaz ve Plastik Klipsleri"
+                },
+                {
+                    "kod": "p20_sag_arka_camurluk_3_camurluk_sinyali_flasor_lambasi",
+                    "ad": "Çamurluk Sinyali \/ Flaşör Lambası"
+                },
+                {
+                    "kod": "p20_sag_arka_camurluk_4_camurluk_baglanti_vidalari_ve_ayar_pullari",
+                    "ad": "Çamurluk Bağlantı Vidaları ve Ayar Pulları"
+                },
+                {
+                    "kod": "p20_sag_arka_camurluk_5_dodik",
+                    "ad": "Dodik"
+                },
+                {
+                    "kod": "p20_sag_arka_camurluk_6_kelebek_cam",
+                    "ad": "Kelebek Cam"
+                }
+            ]
+        },
+        {
+            "kod": "p21_sag_arka_jant",
+            "ad": "Sağ Arka Jant",
+            "alt": [
+                {
+                    "kod": "p21_sag_arka_jant_1_jant_kapagi",
+                    "ad": "Jant Kapağı"
+                },
+                {
+                    "kod": "p21_sag_arka_jant_2_jant_gobegi",
+                    "ad": "Jant Göbeği"
+                },
+                {
+                    "kod": "p21_sag_arka_jant_3_bijonlar",
+                    "ad": "Bijonlar"
+                }
+            ]
+        },
+        {
+            "kod": "p22_sag_arka_lastik",
+            "ad": "Sağ Arka Lastik",
+            "alt": []
+        },
+        {
+            "kod": "p23_sag_arka_kapi",
+            "ad": "Sağ Arka Kapı",
+            "alt": [
+                {
+                    "kod": "p23_sag_arka_kapi_1_kapi_dis_saci",
+                    "ad": "Kapı Dış Sacı"
+                },
+                {
+                    "kod": "p23_sag_arka_kapi_2_kapi_ic_saci_ve_kilitleme_mekanizmasi",
+                    "ad": "Kapı İç Sacı ve Kilitleme Mekanizması"
+                },
+                {
+                    "kod": "p23_sag_arka_kapi_3_kapi_dosemesi_ve_fitilleri",
+                    "ad": "Kapı Döşemesi ve Fitilleri"
+                },
+                {
+                    "kod": "p23_sag_arka_kapi_4_kapi_cami_ve_otomatigi",
+                    "ad": "Kapı Camı ve Otomatiği"
+                },
+                {
+                    "kod": "p23_sag_arka_kapi_5_kapi_menteseleri_ve_gergisi",
+                    "ad": "Kapı Menteşeleri ve Gergisi"
+                }
+            ]
+        },
+        {
+            "kod": "p24_arka_koltuk",
+            "ad": "Arka Koltuk",
+            "alt": [
+                {
+                    "kod": "p24_arka_koltuk_1_arka_yolcu_multimedya_ekrani",
+                    "ad": "Arka Yolcu Multimedya Ekranı"
+                },
+                {
+                    "kod": "p24_arka_koltuk_2_kol_destegi",
+                    "ad": "Kol Desteği"
+                },
+                {
+                    "kod": "p24_arka_koltuk_3_taban",
+                    "ad": "Taban"
+                },
+                {
+                    "kod": "p24_arka_koltuk_4_arka_koltuk_arka",
+                    "ad": "Arka Koltuk Arka"
+                },
+                {
+                    "kod": "p24_arka_koltuk_5_sol_baslik",
+                    "ad": "Sol Başlık"
+                },
+                {
+                    "kod": "p24_arka_koltuk_6_orta_baslik",
+                    "ad": "Orta Başlık"
+                },
+                {
+                    "kod": "p24_arka_koltuk_7_sag_baslik",
+                    "ad": "Sağ Başlık"
+                }
+            ]
+        },
+        {
+            "kod": "p25_sag_on_kapi",
+            "ad": "Sağ Ön Kapı",
+            "alt": [
+                {
+                    "kod": "p25_sag_on_kapi_1_kapi_dis_saci",
+                    "ad": "Kapı Dış Sacı"
+                },
+                {
+                    "kod": "p25_sag_on_kapi_2_kapi_ic_saci_ve_kilitleme_mekanizmasi",
+                    "ad": "Kapı İç Sacı ve Kilitleme Mekanizması"
+                },
+                {
+                    "kod": "p25_sag_on_kapi_3_kapi_dosemesi_ve_fitilleri",
+                    "ad": "Kapı Döşemesi ve Fitilleri"
+                },
+                {
+                    "kod": "p25_sag_on_kapi_4_kapi_cami_ve_otomatigi",
+                    "ad": "Kapı Camı ve Otomatiği"
+                },
+                {
+                    "kod": "p25_sag_on_kapi_5_kapi_menteseleri_ve_gergisi",
+                    "ad": "Kapı Menteşeleri ve Gergisi"
+                }
+            ]
+        },
+        {
+            "kod": "p26_yolcu_koltugu",
+            "ad": "Yolcu Koltuğu",
+            "alt": [
+                {
+                    "kod": "p26_yolcu_koltugu_1_yolcu_koltugu_tabani",
+                    "ad": "Yolcu Koltuğu Tabanı"
+                },
+                {
+                    "kod": "p26_yolcu_koltugu_2_yolcu_koltugu_arka",
+                    "ad": "Yolcu Koltuğu Arka"
+                },
+                {
+                    "kod": "p26_yolcu_koltugu_3_yolcu_koltugu_kol_destegi",
+                    "ad": "Yolcu Koltuğu Kol Desteği"
+                },
+                {
+                    "kod": "p26_yolcu_koltugu_4_baslik",
+                    "ad": "Başlık"
+                }
+            ]
+        },
+        {
+            "kod": "p27_gosterge_paneli",
+            "ad": "Gösterge Paneli",
+            "alt": [
+                {
+                    "kod": "p27_gosterge_paneli_1_torpido_gozu",
+                    "ad": "Torpido Gözü"
+                },
+                {
+                    "kod": "p27_gosterge_paneli_2_orta_konsol",
+                    "ad": "Orta Konsol"
+                },
+                {
+                    "kod": "p27_gosterge_paneli_3_head_up_display_hayalet_gosterge",
+                    "ad": "Head-Up Display (Hayalet Gösterge)"
+                },
+                {
+                    "kod": "p27_gosterge_paneli_4_klima_difizorleri",
+                    "ad": "Klima Difizörleri"
+                },
+                {
+                    "kod": "p27_gosterge_paneli_5_muzik_sistemi_ekran",
+                    "ad": "Müzik Sistemi, Ekran"
+                },
+                {
+                    "kod": "p27_gosterge_paneli_6_vites_korugu",
+                    "ad": "Vites körüğü"
+                },
+                {
+                    "kod": "p27_gosterge_paneli_7_direksiyon",
+                    "ad": "Direksiyon"
+                },
+                {
+                    "kod": "p27_gosterge_paneli_8_sinyal_ve_silecek_kollari",
+                    "ad": "Sinyal ve Silecek Kolları"
+                },
+                {
+                    "kod": "p27_gosterge_paneli_9_el_freni",
+                    "ad": "El Freni"
+                }
+            ]
+        },
+        {
+            "kod": "p28_sunroof_acilir_tavan",
+            "ad": "Sunroof (Açılır Tavan)",
+            "alt": [
+                {
+                    "kod": "p28_sunroof_acilir_tavan_1_tuslar",
+                    "ad": "Tuşlar"
+                },
+                {
+                    "kod": "p28_sunroof_acilir_tavan_2_perde",
+                    "ad": "Perde"
+                }
+            ]
+        },
+        {
+            "kod": "p29_tavan_kumaslari",
+            "ad": "Tavan Kumaşları",
+            "alt": [
+                {
+                    "kod": "p29_tavan_kumaslari_1_tavan_dosemesi",
+                    "ad": "Tavan Döşemesi"
+                },
+                {
+                    "kod": "p29_tavan_kumaslari_2_sag_guneslik",
+                    "ad": "Sağ Güneşlik"
+                },
+                {
+                    "kod": "p29_tavan_kumaslari_3_sol_guneslik",
+                    "ad": "Sol Güneşlik"
+                }
+            ]
+        },
+        {
+            "kod": "p30_sag_yan_dikiz_aynasi",
+            "ad": "Sağ Yan Dikiz Aynası",
+            "alt": [
+                {
+                    "kod": "p30_sag_yan_dikiz_aynasi_1_ayna_dis_kapagi_ve_govde_plastigi",
+                    "ad": "Ayna Dış Kapağı ve Gövde Plastiği"
+                },
+                {
+                    "kod": "p30_sag_yan_dikiz_aynasi_2_ayna_cami_ve_sinyal_flasor_lambasi",
+                    "ad": "Ayna Camı ve Sinyal\/Flaşör Lambası"
+                },
+                {
+                    "kod": "p30_sag_yan_dikiz_aynasi_3_katlanma_motoru_ve_ayar_mekanizmasi",
+                    "ad": "Katlanma Motoru ve Ayar Mekanizması"
+                }
+            ]
+        },
+        {
+            "kod": "p31_sag_on_jant",
+            "ad": "Sağ Ön Jant",
+            "alt": [
+                {
+                    "kod": "p31_sag_on_jant_1_jant_kapagi",
+                    "ad": "Jant Kapağı"
+                },
+                {
+                    "kod": "p31_sag_on_jant_2_jant_gobegi",
+                    "ad": "Jant Göbeği"
+                },
+                {
+                    "kod": "p31_sag_on_jant_3_bijonlar",
+                    "ad": "Bijonlar"
+                }
+            ]
+        },
+        {
+            "kod": "p32_sag_on_lastik",
+            "ad": "Sağ Ön Lastik",
+            "alt": []
+        },
+        {
+            "kod": "p33_sag_on_camurluk",
+            "ad": "Sağ Ön Çamurluk",
+            "alt": [
+                {
+                    "kod": "p33_sag_on_camurluk_1_camurluk_dis_saci_plastik_aksam_govdesi",
+                    "ad": "Çamurluk Dış Sacı \/ Plastik Aksam Gövdesi"
+                },
+                {
+                    "kod": "p33_sag_on_camurluk_2_camurluk_ici_davlumbaz_ve_plastik_klipsleri",
+                    "ad": "Çamurluk İçi Davlumbaz ve Plastik Klipsleri"
+                },
+                {
+                    "kod": "p33_sag_on_camurluk_3_camurluk_sinyali_flasor_lambasi",
+                    "ad": "Çamurluk Sinyali \/ Flaşör Lambası"
+                },
+                {
+                    "kod": "p33_sag_on_camurluk_4_camurluk_baglanti_vidalari_ve_ayar_pullari",
+                    "ad": "Çamurluk Bağlantı Vidaları ve Ayar Pulları"
+                },
+                {
+                    "kod": "p33_sag_on_camurluk_5_dodik",
+                    "ad": "Dodik"
+                }
+            ]
+        },
+        {
+            "kod": "p34_sag_on_far_grubu",
+            "ad": "Sağ Ön Far Grubu",
+            "alt": [
+                {
+                    "kod": "p34_sag_on_far_grubu_1_far_cami_ve_mercegi",
+                    "ad": "Far Camı ve Merceği"
+                },
+                {
+                    "kod": "p34_sag_on_far_grubu_2_far_kasasi_ve_baglanti_ayaklari",
+                    "ad": "Far Kasası ve Bağlantı Ayakları"
+                },
+                {
+                    "kod": "p34_sag_on_far_grubu_3_sinyal_flasor_lambasi_ve_duylari",
+                    "ad": "Sinyal \/ Flaşör Lambası ve Duyları"
+                },
+                {
+                    "kod": "p34_sag_on_far_grubu_4_gunduz_ledi_park_ampulu_yuvasi",
+                    "ad": "Gündüz Ledi \/ Park Ampulü Yuvası"
+                }
+            ]
+        },
+        {
+            "kod": "p35_on_tampon",
+            "ad": "Ön Tampon",
+            "alt": [
+                {
+                    "kod": "p35_on_tampon_1_tampon_plastik_govdesi_ve_izgaralari",
+                    "ad": "Tampon Plastik Gövdesi ve Izgaraları"
+                },
+                {
+                    "kod": "p35_on_tampon_2_sis_fari_yuvalari_ve_cerceveleri",
+                    "ad": "Sis Farı Yuvaları ve Çerçeveleri"
+                },
+                {
+                    "kod": "p35_on_tampon_3_tampon_alt_muhafazasi_karlik",
+                    "ad": "Tampon Alt Muhafazası \/ Karlık"
+                },
+                {
+                    "kod": "p35_on_tampon_4_park_sensorleri_ve_varsa_radarlar",
+                    "ad": "Park Sensörleri ve Varsa Radarlar"
+                },
+                {
+                    "kod": "p35_on_tampon_5_ceki_demiri_kapagi",
+                    "ad": "Çeki Demiri Kapağı"
+                }
+            ]
+        },
+        {
+            "kod": "p36_on_panjur",
+            "ad": "Ön Panjur",
+            "alt": [
+                {
+                    "kod": "p36_on_panjur_1_ust_panjur",
+                    "ad": "Üst Panjur"
+                },
+                {
+                    "kod": "p36_on_panjur_2_alt_panjur",
+                    "ad": "Alt Panjur"
+                },
+                {
+                    "kod": "p36_on_panjur_3_logo",
+                    "ad": "Logo"
+                }
+            ]
+        },
+        {
+            "kod": "p37_motor_kaputu",
+            "ad": "Motor Kaputu",
+            "alt": [
+                {
+                    "kod": "p37_motor_kaputu_1_kaput_dis_saci",
+                    "ad": "Kaput Dış Sacı"
+                },
+                {
+                    "kod": "p37_motor_kaputu_2_kaput_ic_bolgesi_ve_izolatoru",
+                    "ad": "Kaput İç Bölgesi ve İzolatörü"
+                },
+                {
+                    "kod": "p37_motor_kaputu_3_kaput_menteseleri_ve_kilit_karsiligi",
+                    "ad": "Kaput Menteşeleri ve Kilit Karşılığı"
+                },
+                {
+                    "kod": "p37_motor_kaputu_4_motor_muhafazasi",
+                    "ad": "Motor Muhafazası"
+                }
+            ]
+        },
+        {
+            "kod": "p38_on_cam",
+            "ad": "Ön Cam",
+            "alt": [
+                {
+                    "kod": "p38_on_cam_1_silecekler",
+                    "ad": "Silecekler"
+                },
+                {
+                    "kod": "p38_on_cam_2_pervaz",
+                    "ad": "Pervaz"
+                }
+            ]
+        },
+        {
+            "kod": "p39_on_panel_ve_podyeler",
+            "ad": "Ön Panel ve Podyeler",
+            "alt": [
+                {
+                    "kod": "p39_on_panel_ve_podyeler_1_on_panel_saci_plastik_tasiyici",
+                    "ad": "Ön Panel Sacı \/ Plastik Taşıyıcı"
+                },
+                {
+                    "kod": "p39_on_panel_ve_podyeler_2_sol_on_podye_ve_kule",
+                    "ad": "Sol Ön Podye ve Kule"
+                },
+                {
+                    "kod": "p39_on_panel_ve_podyeler_3_sag_on_podye_ve_kule",
+                    "ad": "Sağ Ön Podye ve Kule"
+                },
+                {
+                    "kod": "p39_on_panel_ve_podyeler_4_sol_on_sasi_ucu_ve_ezilme_bolgesi",
+                    "ad": "Sol Ön Şasi Ucu ve Ezilme Bölgesi"
+                },
+                {
+                    "kod": "p39_on_panel_ve_podyeler_5_sag_on_sasi_ucu_ve_ezilme_bolgesi",
+                    "ad": "Sağ Ön Şasi Ucu ve Ezilme Bölgesi"
+                }
+            ]
+        },
+        {
+            "kod": "p40_tavan",
+            "ad": "Tavan",
+            "alt": [
+                {
+                    "kod": "p40_tavan_1_anten",
+                    "ad": "Anten"
+                },
+                {
+                    "kod": "p40_tavan_2_lamba",
+                    "ad": "Lamba"
+                },
+                {
+                    "kod": "p40_tavan_3_port_bagaj",
+                    "ad": "Port Bagaj"
+                },
+                {
+                    "kod": "p40_tavan_4_pervaz",
+                    "ad": "Pervaz"
+                }
+            ]
+        },
+        {
+            "kod": "p41_paspas",
+            "ad": "Paspas",
+            "alt": []
+        },
+        {
+            "kod": "p42_tablet_telefon_tutucu",
+            "ad": "Tablet, Telefon Tutucu",
+            "alt": []
+        }
+    ]
+}
