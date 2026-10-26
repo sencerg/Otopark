@@ -31,6 +31,25 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.41',
+                'tarih' => '2026-10-26 13:55',
+                'baslik' => 'Detaylı Araç arayüz cilası',
+                'maddeler' => [
+                    'Taslak listesinde plaka/şasi, adım rozeti ve Devam et.',
+                    'Adım çubuğu: tamamlanan / aktif / kilitli; özet daha okunaklı.',
+                    'Mobilde form aksiyonları ve adımlar sadeleştirildi.',
+                ],
+            ],
+            [
+                'surum' => 'v0.40',
+                'tarih' => '2026-10-26 13:45',
+                'baslik' => 'Detaylı Araç otopark menüsünde',
+                'maddeler' => [
+                    'menu.detayli_arac otopark (bayi) ve otopark personel profillerine eklendi.',
+                    'Saha Operasyon → Detaylı Araç Ekle menüsü bayi hesaplarında görünür.',
+                ],
+            ],
+            [
                 'surum' => 'v0.39',
                 'tarih' => '2026-10-26 13:30',
                 'baslik' => 'Detaylı Araç ortak alan + checkpoint',

@@ -137,9 +137,10 @@ final class Yetki
                 'menu.stok', 'menu.cikis', 'menu.araclar',
                 'arac.goruntule', 'hareket.goruntule', 'hareket.stoktan_cikar',
                 'menu.is_takibi',
+                'menu.detayli_arac',
                 'menu.raporlar', 'menu.depolama_raporu', 'menu.stok_ozet_raporu', 'menu.giris_cikis_raporu',
             ],
-            // Bayi: İK / destek / detaylı araç ekleme yok (yalnızca yönetici veya özel profil)
+            // Bayi / otopark: İK / destek / yetki yönetimi yok; detaylı araç ekleme sahada yapılır
             $tip === 'bayi' => array_values(array_filter(
                 $tum,
                 static fn ($k) => !str_starts_with($k, 'musteri.')
@@ -147,7 +148,6 @@ final class Yetki
                         'menu.yetki', 'yetki.yonet', 'kullanici.yonet',
                         'menu.tanimlamalar', 'tanimlama.yaz',
                         'menu.ik_dashboard', 'menu.destek',
-                        'menu.detayli_arac',
                     ], true)
             )),
             default => [],

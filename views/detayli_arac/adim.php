@@ -86,7 +86,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                 <textarea name="not" class="form-control" rows="2"><?= e((string) $val('not')) ?></textarea></div>
                         </div>
 
-                        <div class="d-flex justify-content-between mt-4">
+                        <div class="detayli-form-actions mt-4">
                             <a href="/detayli-arac" class="btn btn-outline-secondary">İptal</a>
                             <button type="submit" class="btn btn-primary">Kaydet ve devam <i class="mdi mdi-arrow-right ms-1"></i></button>
                         </div>
@@ -174,7 +174,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                        value="<?= e((string) $val('lokasyon_detay')) ?>">
                             </div>
                         </div>
-                        <div class="d-flex justify-content-between mt-4">
+                        <div class="detayli-form-actions mt-4">
                             <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=taraflar" class="btn btn-outline-secondary">Geri</a>
                             <button type="submit" class="btn btn-primary">Kaydet ve ekspertize geç <i class="mdi mdi-arrow-right ms-1"></i></button>
                         </div>
@@ -238,7 +238,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                     </div>
                                     <label class="form-label">Genel hasar notu</label>
                                     <textarea name="hasar_genel_not" class="form-control mb-3" rows="2"><?= e((string) ($old['hasar_genel_not'] ?? ($ex['hasar_genel_not'] ?? ''))) ?></textarea>
-                                    <div class="d-flex justify-content-between">
+                                    <div class="detayli-form-actions">
                                         <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=arac" class="btn btn-outline-secondary">Geri</a>
                                         <button type="submit" class="btn btn-primary">Kaydet · mekanik <i class="mdi mdi-arrow-right ms-1"></i></button>
                                     </div>
@@ -277,7 +277,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                     <textarea name="mekanik_not" class="form-control" rows="3"><?= e((string) ($old['mekanik_not'] ?? ($mekData['not'] ?? ''))) ?></textarea>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-between mt-4">
+                            <div class="detayli-form-actions mt-4">
                                 <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=hasar" class="btn btn-outline-secondary">Geri</a>
                                 <button type="submit" class="btn btn-primary">Kaydet · fotoğraflar <i class="mdi mdi-arrow-right ms-1"></i></button>
                             </div>
@@ -293,7 +293,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                         <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted small mb-3">Her kare için dosya yükleyebilir ve not yazabilirsiniz. Ek belgeler alta eklenir.</p>
+                        <p class="text-muted small mb-3">Her kareye foto ekleyin; not isteğe bağlı. Ek belgeler aşağıda.</p>
                         <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet" enctype="multipart/form-data">
                             <?= Csrf::field() ?>
                             <input type="hidden" name="adim" value="ekspertiz">
@@ -333,7 +333,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             require BASE_PATH . '/views/partials/dosyalar.php';
                             ?>
 
-                            <div class="d-flex justify-content-between mt-4">
+                            <div class="detayli-form-actions mt-4">
                                 <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=mekanik" class="btn btn-outline-secondary">Geri</a>
                                 <button type="submit" class="btn btn-primary">Kaydet · lokasyon <i class="mdi mdi-arrow-right ms-1"></i></button>
                             </div>
@@ -374,7 +374,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                     <input type="text" name="lokasyon_eks_detay" class="form-control" value="<?= e((string) ($old['lokasyon_eks_detay'] ?? ($lokData['detay'] ?? ''))) ?>">
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-between mt-4">
+                            <div class="detayli-form-actions mt-4">
                                 <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=foto" class="btn btn-outline-secondary">Geri</a>
                                 <button type="submit" class="btn btn-primary">Kaydet · kondisyon <i class="mdi mdi-arrow-right ms-1"></i></button>
                             </div>
@@ -410,7 +410,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                     <textarea name="kondisyon_not" class="form-control" rows="3"><?= e((string) ($old['kondisyon_not'] ?? ($kondData['not'] ?? ''))) ?></textarea>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-between mt-4">
+                            <div class="detayli-form-actions mt-4">
                                 <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=lokasyon" class="btn btn-outline-secondary">Geri</a>
                                 <button type="submit" class="btn btn-primary">Kaydet · özete geç <i class="mdi mdi-arrow-right ms-1"></i></button>
                             </div>
@@ -424,9 +424,22 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
             $hasarOzet = [];
             foreach ($hasarData as $kod => $h) {
                 if (($h['seviye'] ?? 'Yok') !== 'Yok') {
-                    $hasarOzet[] = ($h['ad'] ?? $kod) . ': ' . ($h['seviye'] ?? '');
+                    $hasarOzet[] = ['ad' => $h['ad'] ?? $kod, 'sev' => $h['seviye'] ?? ''];
                 }
             }
+            $mekOzet = [];
+            foreach ($mekanikAlanlari as $kod => $ad) {
+                if (!empty($mekData[$kod]) && $mekData[$kod] !== 'İyi' && $mekData[$kod] !== 'Bilinmiyor') {
+                    $mekOzet[] = $ad . ': ' . $mekData[$kod];
+                }
+            }
+            $fotoSayisi = 0;
+            foreach ($fotoData as $f) {
+                if (!empty($f['path']) || !empty($f['url'])) {
+                    $fotoSayisi++;
+                }
+            }
+            $markaSeri = trim(($markalar[$v['marka_id'] ?? 0] ?? '') . ' ' . ($seriler[$v['seri_id'] ?? 0] ?? ''));
             ?>
             <div class="row g-3 mb-3">
                 <div class="col-lg-4">
@@ -437,59 +450,78 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             $semaReadonly = true;
                             require __DIR__ . '/_arac_sema.php';
                             ?>
+                            <?php if ($hasarOzet): ?>
+                                <ul class="list-unstyled small mb-0 mt-3 detayli-ozet-hasar-liste">
+                                    <?php foreach ($hasarOzet as $ho): ?>
+                                        <li class="d-flex justify-content-between gap-2 py-1 border-bottom border-light">
+                                            <span><?= e($ho['ad']) ?></span>
+                                            <span class="badge badge-soft-warning"><?= e($ho['sev']) ?></span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php else: ?>
+                                <p class="text-muted small mb-0 mt-3 text-center">İşaretli hasar yok.</p>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Özet · Teslim Alma</h5>
-                    <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
-                </div>
-                <div class="card-body">
-                    <div class="detail-grid mb-3">
-                        <div><div class="label">Şasi</div><div class="value"><?= e($v['sase'] ?? '—') ?></div></div>
-                        <div><div class="label">Plaka</div><div class="value"><?= e($v['plaka'] ?: '—') ?></div></div>
-                        <div><div class="label">Müşteri</div><div class="value"><?= e($t['musteri_ad'] ?? '—') ?></div></div>
-                        <div><div class="label">Müşterinin müşterisi</div><div class="value"><?= e($t['musteri_musterisi'] ?? '—') ?></div></div>
-                        <div><div class="label">Otopark</div><div class="value"><?= e($t['bayi_ad'] ?? '—') ?></div></div>
-                        <div><div class="label">Marka / Seri</div><div class="value">
-                            <?= e(trim(($markalar[$v['marka_id'] ?? 0] ?? '') . ' ' . ($seriler[$v['seri_id'] ?? 0] ?? '')) ?: '—') ?>
-                        </div></div>
-                        <div><div class="label">Kondisyon</div><div class="value">
-                            <?= e(trim(($kondData['genel'] ?? '') . ' / ' . ($kondData['ic'] ?? '') . ' / ' . ($kondData['dis'] ?? ''), ' /') ?: '—') ?>
-                        </div></div>
-                        <div><div class="label">Hasarlı paneller</div><div class="value"><?= e($hasarOzet ? implode(', ', $hasarOzet) : 'Yok') ?></div></div>
-                        <div><div class="label">Mekanik</div><div class="value">
-                            <?php
-                            $mekOzet = [];
-                            foreach ($mekanikAlanlari as $kod => $ad) {
-                                if (!empty($mekData[$kod]) && $mekData[$kod] !== 'İyi' && $mekData[$kod] !== 'Bilinmiyor') {
-                                    $mekOzet[] = $ad . ': ' . $mekData[$kod];
-                                }
-                            }
-                            echo e($mekOzet ? implode(', ', $mekOzet) : '—');
-                            ?>
-                        </div></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Özet · Teslim Alma</h5>
+                            <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-section mt-0">Taraflar</div>
+                            <div class="detail-grid mb-3">
+                                <div><div class="label">Müşteri</div><div class="value"><?= e($t['musteri_ad'] ?? '—') ?></div></div>
+                                <div><div class="label">Müşterinin müşterisi</div><div class="value"><?= e($t['musteri_musterisi'] ?? '—') ?></div></div>
+                                <div><div class="label">Otopark</div><div class="value"><?= e($t['bayi_ad'] ?? '—') ?></div></div>
+                                <div><div class="label">Teslim eden</div><div class="value"><?= e($t['teslim_eden'] ?: '—') ?></div></div>
+                            </div>
+
+                            <div class="form-section">Araç</div>
+                            <div class="detail-grid mb-3">
+                                <div><div class="label">Şasi</div><div class="value"><?= e($v['sase'] ?? '—') ?></div></div>
+                                <div><div class="label">Plaka</div><div class="value"><?= e($v['plaka'] ?: '—') ?></div></div>
+                                <div><div class="label">Marka / Seri</div><div class="value"><?= e($markaSeri !== '' ? $markaSeri : '—') ?></div></div>
+                                <div><div class="label">KM</div><div class="value"><?= e(isset($v['km']) && $v['km'] !== '' && $v['km'] !== null ? (string) $v['km'] : '—') ?></div></div>
+                            </div>
+
+                            <div class="form-section">Ekspertiz</div>
+                            <div class="detail-grid mb-3">
+                                <div><div class="label">Kondisyon</div><div class="value">
+                                    <?= e(trim(($kondData['genel'] ?? '') . ' / ' . ($kondData['ic'] ?? '') . ' / ' . ($kondData['dis'] ?? '') . ' / ' . ($kondData['lastik'] ?? ''), ' /') ?: '—') ?>
+                                </div></div>
+                                <div><div class="label">Hasarlı panel</div><div class="value"><?= $hasarOzet ? count($hasarOzet) . ' adet' : 'Yok' ?></div></div>
+                                <div><div class="label">Mekanik uyarı</div><div class="value"><?= e($mekOzet ? implode(', ', $mekOzet) : 'Yok') ?></div></div>
+                                <div><div class="label">Fotoğraf</div><div class="value"><?= $fotoSayisi > 0 ? $fotoSayisi . ' adet' : 'Yüklenmedi' ?></div></div>
+                                <div><div class="label">Park</div><div class="value">
+                                    <?= e(trim(($lokData['park_alani'] ?? '') . ' ' . ($lokData['blok'] ?? '') . ' ' . ($lokData['sira'] ?? '')) ?: '—') ?>
+                                </div></div>
+                            </div>
+
+                            <?php if (!empty($kayit['arac_id'])): ?>
+                                <div class="alert alert-success small">
+                                    Stok kaydı oluştu.
+                                    <a href="/arac_yonetimi/duzenle/<?= (int) $kayit['arac_id'] ?>">Araç kartını aç</a>
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-warning small mb-3">Stok kaydı henüz oluşmadı; araç adımını kontrol edin.</div>
+                            <?php endif; ?>
+
+                            <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet">
+                                <?= Csrf::field() ?>
+                                <input type="hidden" name="adim" value="ozet">
+                                <label class="form-label">Özet notu</label>
+                                <textarea name="not" class="form-control mb-3" rows="2" placeholder="İsteğe bağlı"><?= e((string) ($kayit['ozet_not'] ?? '')) ?></textarea>
+                                <div class="detayli-form-actions">
+                                    <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=kondisyon" class="btn btn-outline-secondary">Geri</a>
+                                    <button type="submit" class="btn btn-primary"><i class="mdi mdi-check me-1"></i>Tamamla · araç kartı</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                    <?php if (!empty($kayit['arac_id'])): ?>
-                        <div class="alert alert-success small">
-                            Stok kaydı oluştu.
-                            <a href="/arac_yonetimi/duzenle/<?= (int) $kayit['arac_id'] ?>">Araç kartını aç</a>
-                        </div>
-                    <?php endif; ?>
-                    <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet">
-                        <?= Csrf::field() ?>
-                        <input type="hidden" name="adim" value="ozet">
-                        <label class="form-label">Özet notu</label>
-                        <textarea name="not" class="form-control mb-3" rows="2"><?= e((string) ($kayit['ozet_not'] ?? '')) ?></textarea>
-                        <div class="d-flex justify-content-between">
-                            <a href="/detayli-arac/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=kondisyon" class="btn btn-outline-secondary">Geri</a>
-                            <button type="submit" class="btn btn-primary"><i class="mdi mdi-check me-1"></i>Tamamla · araç kartı</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
                 </div>
             </div>
         <?php endif; ?>
