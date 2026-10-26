@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Auth;
+use App\Core\Database;
 use App\Core\Request;
 use App\Core\View;
+use App\Services\AracService;
 use App\Services\VisStore;
 use RuntimeException;
 
 /**
- * Autorola VIS tarzı araç ekspertiz — bağımsız modül.
- * Mevcut stok / hareket / maliyet akışlarına bağlanmaz.
+ * Detaylı Araç Ekle — Araç Ekle ile aynı hedef; önde kontrol + koşullar adımı.
+ * Mevcut /arac_yonetimi/ekle akışına dokunmaz.
  */
 final class VisController extends Controller
 {
@@ -26,34 +28,74 @@ final class VisController extends Controller
     {
         View::render('vis/' . $view, $data + [
             'hidePageHeader' => true,
-            'pageTitle' => $data['pageTitle'] ?? 'Araç Ekspertiz',
+            'pageTitle' => $data['pageTitle'] ?? 'Detaylı Araç Ekle',
         ], 'vis');
     }
 
     public function index(): void
     {
         $this->gate();
-        $q = trim((string) (Request::str('q') ?? ''));
-        $liste = VisStore::liste();
-        if ($q !== '') {
-            $liste = array_values(array_filter($liste, static function (array $r) use ($q): bool {
-                $hay = mb_strtolower(($r['veri']['plaka'] ?? '') . ' ' . ($r['veri']['sase'] ?? '') . ' ' . ($r['veri']['marka'] ?? '') . ' ' . ($r['veri']['model'] ?? ''));
-
-                return str_contains($hay, mb_strtolower($q));
-            }));
-        }
+        $taslaklar = array_values(array_filter(
+            VisStore::liste(),
+            static fn (array $r) => ($r['durum'] ?? '') !== 'tamamlandi'
+        ));
         $this->visView('index', [
-            'pageTitle' => 'Araç ara',
-            'liste' => $liste,
-            'q' => $q,
+            'pageTitle' => 'Detaylı Araç Ekle',
+            'taslaklar' => array_slice($taslaklar, 0, 20),
+            'sase' => '',
+            'plaka' => '',
+            'hata' => flash('error'),
         ]);
+    }
+
+    /** Kontrol + koşullar sonrası detaylı ekleme kaydını başlatır. */
+    public function baslat(): void
+    {
+        $this->gate();
+        $saseHam = Request::str('sase');
+        $plaka = Request::str('plaka');
+        try {
+            if (!Request::bool('kosul_sase') || !Request::bool('kosul_bilgi') || !Request::bool('kosul_sorumluluk')) {
+                throw new RuntimeException('Devam etmek için tüm koşulları onaylayın.');
+            }
+            $sase = AracService::dogrulaSase($saseHam);
+            $var = Database::fetch(
+                'SELECT id, plaka, stokta FROM araclar WHERE sase = :s AND NOT COALESCE(arsiv, false) LIMIT 1',
+                ['s' => $sase]
+            );
+            if ($var) {
+                throw new RuntimeException(
+                    'Bu şasi sistemde kayıtlı'
+                    . (!empty($var['stokta']) ? ' ve stokta.' : '.')
+                    . ' Detay: /arac_yonetimi/duzenle/' . (int) $var['id']
+                );
+            }
+            $row = VisStore::olustur([
+                'kullanici_id' => Auth::id(),
+                'veri' => [
+                    'sase' => $sase,
+                    'plaka' => $plaka ? mb_strtoupper(trim($plaka)) : '',
+                ],
+                'kontrol' => [
+                    'kosul_sase' => true,
+                    'kosul_bilgi' => true,
+                    'kosul_sorumluluk' => true,
+                    'at' => date('c'),
+                ],
+                'alan' => 'marka',
+            ]);
+            View::redirect('/vis/kayit/' . $row['id'] . '?modul=tanim&alan=marka');
+        } catch (RuntimeException $e) {
+            flash('error', $e->getMessage());
+            $_SESSION['_old'] = ['sase' => $saseHam, 'plaka' => $plaka];
+            View::redirect('/vis');
+        }
     }
 
     public function yeni(): void
     {
         $this->gate();
-        $row = VisStore::olustur(['kullanici_id' => Auth::id()]);
-        View::redirect('/vis/kayit/' . $row['id'] . '?modul=tanim&alan=plaka');
+        View::redirect('/vis');
     }
 
     public function kayit(string $id): void
@@ -181,7 +223,7 @@ final class VisController extends Controller
                     'modul' => 'cikis',
                     'cikis_not' => Request::str('not'),
                 ]);
-                $this->ok('Ekspertiz tamamlandı (bağımsız kayıt — stoka yazılmaz).', [
+                $this->ok('Detaylı araç kaydı tamamlandı (henüz stoka yazılmaz).', [
                     'kayit' => $kayit,
                     'sonraki' => '/vis',
                 ]);

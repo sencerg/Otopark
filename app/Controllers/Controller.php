@@ -31,7 +31,7 @@ abstract class Controller
             $callback();
         } catch (\PDOException $e) {
             error_log($e->getMessage());
-            $this->fail(str_contains($e->getMessage(), 'unique') ? 'Bu kayıt zaten mevcut.' : 'Veritabanı hatası oluştu.', 500);
+            $this->fail(self::pdoKullaniciMesaji($e), 500);
         } catch (RuntimeException $e) {
             $this->fail($e->getMessage());
         }
@@ -46,7 +46,7 @@ abstract class Controller
         } catch (\PDOException $e) {
             error_log($e->getMessage());
             $_SESSION['_old'] = $_POST;
-            flash('error', str_contains($e->getMessage(), 'unique') ? 'Bu kayıt zaten mevcut.' : 'Veritabanı hatası oluştu.');
+            flash('error', self::pdoKullaniciMesaji($e));
         } catch (RuntimeException $e) {
             $_SESSION['_old'] = $_POST;
             flash('error', $e->getMessage());
@@ -59,5 +59,16 @@ abstract class Controller
         http_response_code(404);
         View::render('errors/404', [], 'blank');
         exit;
+    }
+
+    /** Gerçek tekil ihlali (23505); "no unique … constraint" gibi ON CONFLICT hatalarını ayırır. */
+    private static function pdoKullaniciMesaji(\PDOException $e): string
+    {
+        $msg = $e->getMessage();
+        if ($e->getCode() === '23505' || str_contains($msg, 'duplicate key')) {
+            return 'Bu kayıt zaten mevcut.';
+        }
+
+        return 'Veritabanı hatası oluştu.';
     }
 }

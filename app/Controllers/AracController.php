@@ -298,17 +298,30 @@ final class AracController extends Controller
         });
     }
 
+    /** Toplu silme kapalı — hata riski yüksek; yalnızca tekil silme kullanılır. */
     public function topluSil(): void
     {
         Auth::requireAdmin();
         $this->ajax(function () {
-            $ids = Request::ids('ids');
-            if (!$ids) {
-                throw new RuntimeException('Kayıt seçilmedi.');
+            throw new RuntimeException('Toplu araç silme yapılamaz. Araçları tek tek siliniz.');
+        });
+    }
+
+    public function sil(string $id): void
+    {
+        Auth::requireAdmin();
+        Auth::requireIzin('arac.sil');
+        $this->ajax(function () use ($id) {
+            $arac = AracService::bul((int) $id);
+            $n = Database::query(
+                'DELETE FROM araclar WHERE id = :id AND ' . Auth::bayiKosulu('bayi_id'),
+                ['id' => (int) $arac['id']]
+            )->rowCount();
+            if ($n === 0) {
+                throw new RuntimeException('Araç silinemedi veya erişim yok.');
             }
-            $n = Database::query('DELETE FROM araclar WHERE id = ANY(:ids::bigint[])', ['ids' => '{' . implode(',', $ids) . '}'])->rowCount();
-            Log::islem('arac', "{$n} araç silindi");
-            $this->ok("{$n} araç silindi.");
+            Log::islem('arac', 'Araç silindi: ' . $arac['sase'], (int) $arac['id']);
+            $this->ok('Araç silindi.', ['redirect' => '/arac_yonetimi']);
         });
     }
 

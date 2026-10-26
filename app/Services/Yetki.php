@@ -45,9 +45,9 @@ final class Yetki
                 ],
             ],
             [
-                'grup' => 'Araç Ekspertiz',
+                'grup' => 'Detaylı Araç Ekle',
                 'izinler' => [
-                    ['kod' => 'menu.vis', 'ad' => 'Araç ekspertiz (VIS)', 'aciklama' => 'Bağımsız ekspertiz modülü — stoka yazılmaz'],
+                    ['kod' => 'menu.vis', 'ad' => 'Detaylı araç ekle', 'aciklama' => 'Kontrol + koşullar sonrası detaylı araç ekleme'],
                 ],
             ],
             [

@@ -1,4 +1,4 @@
-/* Bağımsız VIS / Araç Ekspertiz — mevcut app.css'e bağlı değil */
+/* Detaylı Araç Ekle (VIS kabuğu) — mevcut Araç Ekle’ye bağlı değil */
 :root {
   --vis-bg: #0b1220;
   --vis-panel: #111827;
@@ -88,6 +88,21 @@ a { color: inherit; text-decoration: none; }
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
   background: #111827; color: #fff; padding: 10px 16px; border-radius: 8px; z-index: 50; font-size: 0.9rem;
 }
+.vis-kontrol { display: flex; justify-content: center; padding: 20px 12px 100px; background: #fff; }
+.vis-kontrol-card { width: 100%; max-width: 560px; }
+.vis-step-title {
+  margin: 18px 0 10px; font-size: 0.75rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--vis-muted);
+}
+.vis-optional { font-weight: 400; color: var(--vis-muted); text-transform: none; letter-spacing: 0; }
+.vis-alert {
+  background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 12px; font-size: 0.9rem;
+}
+.vis-kontrol .vis-check { color: var(--vis-text); margin-bottom: 10px; }
+.vis-kontrol .vis-label { color: #374151; }
+.mt-4 { margin-top: 1.5rem; }
+.mb-3 { margin-bottom: 1rem; }
 @media (max-width: 860px) {
   .vis-shell { grid-template-columns: 1fr; }
   .vis-side {

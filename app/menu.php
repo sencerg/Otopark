@@ -10,6 +10,7 @@ return [
         ['title' => 'Stoktan Çıkanlar', 'url' => '/arac_hareketleri/cikis', 'izin' => 'menu.cikis'],
         ['title' => 'Tüm Araçlar', 'url' => '/arac_yonetimi', 'izin' => 'menu.araclar'],
         ['title' => 'Araç Ekle', 'url' => '/arac_yonetimi/ekle', 'izin' => 'arac.ekle'],
+        ['title' => 'Detaylı Araç Ekle', 'url' => '/vis', 'izin' => 'menu.vis'],
         ['title' => 'Toplu İşlemler', 'izin' => 'menu.toplu', 'children' => [
             ['title' => 'Toplu Stok Girişi', 'url' => '/arac_yonetimi/toplu_stok_girisi', 'izin' => 'menu.toplu'],
             ['title' => 'Toplu Stok Çıkışı', 'url' => '/arac_yonetimi/toplu_stok_cikisi', 'izin' => 'menu.toplu'],
@@ -22,7 +23,6 @@ return [
             ['title' => 'Araç Tanımları', 'url' => '/arac_yonetimi/tanimlar', 'izin' => 'menu.tanimlar'],
         ]],
     ]],
-    ['title' => 'Araç Ekspertiz', 'icon' => 'mdi-car-search', 'url' => '/vis', 'izin' => 'menu.vis'],
     ['title' => 'Raporlar', 'icon' => 'mdi-file-chart-outline', 'izin' => 'menu.raporlar', 'children' => [
         ['title' => 'Tüm Raporlar', 'url' => '/raporlar', 'izin' => 'menu.raporlar'],
         ['title' => 'Depolama Raporu', 'url' => '/depolama_raporu', 'izin' => 'menu.depolama_raporu'],

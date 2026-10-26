@@ -9,7 +9,7 @@ $appName = Env::get('APP_NAME', 'Moex Otopark');
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta name="csrf-token" content="<?= Csrf::token() ?>">
-    <title><?= e($pageTitle ?? 'Araç Ekspertiz') ?> | <?= e($appName) ?></title>
+    <title><?= e($pageTitle ?? 'Detaylı Araç Ekle') ?> | <?= e($appName) ?></title>
     <link rel="stylesheet" href="/vendor/fonts/fonts.css">
     <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css">
     <link rel="stylesheet" href="/assets/css/vis.css?v=<?= filemtime(BASE_PATH . '/public/assets/css/vis.css') ?>">

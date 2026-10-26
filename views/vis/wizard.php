@@ -161,7 +161,7 @@ $baslik = $pageTitle;
                 <textarea name="not" class="vis-input" rows="3" placeholder="Çıkış notu"><?= e($kayit['cikis_not'] ?? '') ?></textarea>
                 <button type="submit" class="vis-btn primary block">Ekspertizi tamamla</button>
             </form>
-            <a class="vis-btn ghost block" href="/vis">Araç ara’ya dön</a>
+            <a class="vis-btn ghost block" href="/vis">Detaylı Araç Ekle’ye dön</a>
         <?php endif; ?>
     </section>
 </div>

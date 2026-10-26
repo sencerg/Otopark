@@ -31,6 +31,23 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.32',
+                'tarih' => '2026-10-26 09:33',
+                'baslik' => 'Detaylı Araç Ekle (ön kontrol)',
+                'maddeler' => [
+                    'Araç Ekspertiz → Detaylı Araç Ekle olarak yeniden adlandırıldı.',
+                    'Önce şasi/plaka kontrolü ve koşullar; mevcut Araç Ekle akışına dokunulmadı.',
+                ],
+            ],
+            [
+                'surum' => 'v0.31',
+                'tarih' => '2026-10-26 09:28',
+                'baslik' => 'Toplu araç silme kapatıldı',
+                'maddeler' => [
+                    'Toplu araç silme kaldırıldı; yalnızca tek tek silme (admin) mümkün.',
+                ],
+            ],
+            [
                 'surum' => 'v0.30',
                 'tarih' => '2026-10-26 09:20',
                 'baslik' => 'Toplu stok: araç tipi / durumu isteğe bağlı',

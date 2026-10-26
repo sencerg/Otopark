@@ -21,7 +21,10 @@ $fg = Auth::fiyatGorebilir();
 if (!$yeni) {
     $headerActions = '<a href="/arac_yonetimi/tesellum_formu/' . $arac['id'] . '" target="_blank" class="btn btn-outline-primary"><i class="mdi mdi-file-document-outline me-1"></i>Tesellüm Formu</a>'
         . '<a href="/arac_yonetimi/qr_toplu?ids[]=' . $arac['id'] . '" target="_blank" class="btn btn-outline-dark"><i class="mdi mdi-qrcode me-1"></i>QR Yazdır</a>'
-        . ($arac['stokta'] ? '<a href="/arac_hareketleri/stoktan_cikar/' . $arac['id'] . '" class="btn btn-danger"><i class="mdi mdi-car-off me-1"></i>Stoktan Çıkar</a>' : '');
+        . ($arac['stokta'] ? '<a href="/arac_hareketleri/stoktan_cikar/' . $arac['id'] . '" class="btn btn-danger"><i class="mdi mdi-car-off me-1"></i>Stoktan Çıkar</a>' : '')
+        . (Auth::isAdmin() && Auth::can('arac.sil')
+            ? '<button type="button" class="btn btn-outline-danger" id="arac-tek-sil" data-id="' . (int) $arac['id'] . '" data-sase="' . e($arac['sase']) . '"><i class="mdi mdi-delete me-1"></i>Sil</button>'
+            : '');
 }
 ?>
 <form method="post" action="<?= $yeni ? '/arac_yonetimi/save' : '/arac_yonetimi/update/' . $arac['id'] ?>" enctype="multipart/form-data">
@@ -325,6 +328,25 @@ $(function () {
                     .done((res) => { App.toast(res.message); setTimeout(() => location.reload(), 700); })
                     .fail((x) => App.error(x.responseJSON?.message));
             });
+    });
+
+    $('#arac-tek-sil').on('click', function () {
+        const id = this.dataset.id;
+        const sase = this.dataset.sase || '';
+        Swal.fire({
+            icon: 'warning',
+            title: 'Araç silinsin mi?',
+            html: (sase ? '<b>' + App.esc(sase) + '</b> — ' : '') + 'Hareket ve maliyet kayıtları da silinir.',
+            showCancelButton: true, confirmButtonText: 'Sil', cancelButtonText: 'Vazgeç', confirmButtonColor: '#dc2626',
+        }).then((r) => {
+            if (!r.isConfirmed) return;
+            $.post('/arac_yonetimi/sil/' + id, { _csrf: $('meta[name="csrf-token"]').attr('content') })
+                .done((res) => {
+                    App.toast(res.message || 'Silindi');
+                    setTimeout(() => { window.location = res.redirect || '/arac_yonetimi'; }, 700);
+                })
+                .fail((x) => App.error(x.responseJSON?.message || 'Silinemedi'));
+        });
     });
 });
 </script>

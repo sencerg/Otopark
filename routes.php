@@ -86,6 +86,7 @@ $router->get('/arac_yonetimi/tesellum_formu/{id}', [AracController::class, 'tese
 $router->get('/arac_yonetimi/qr_toplu', [AracController::class, 'qrToplu'], $staff);
 $router->post('/arac_yonetimi/multiple_arsiv', [AracController::class, 'topluArsiv'], $staff);
 $router->post('/arac_yonetimi/multiple_delete', [AracController::class, 'topluSil'], $staff);
+$router->post('/arac_yonetimi/sil/{id}', [AracController::class, 'sil'], $staff);
 $router->get('/arac_yonetimi/toplu_stok_girisi', [AracController::class, 'topluStokGirisi'], $staff);
 $router->post('/arac_yonetimi/excel_toplu_giris', [AracController::class, 'excelTopluGiris'], $staff);
 $router->get('/arac_yonetimi/toplu_stok_cikisi', [AracController::class, 'topluStokCikisi'], $staff);
@@ -135,9 +136,10 @@ $router->post('/arac_ekstreleri/maliyet_sil/{id}', [MaliyetController::class, 's
 $router->get('/is_takibi', [MaliyetController::class, 'isTakibi'], $staff);
 $router->get('/is_takibi/liste', [MaliyetController::class, 'isTakibiListe'], $staff);
 
-// Araç Ekspertiz (VIS) — bağımsız; stok/hareket/maliyet akışına bağlanmaz
+// Detaylı Araç Ekle — önde kontrol; mevcut Araç Ekle’ye dokunmaz
 $router->get('/vis', [VisController::class, 'index'], $staff);
 $router->get('/vis/yeni', [VisController::class, 'yeni'], $staff);
+$router->post('/vis/baslat', [VisController::class, 'baslat'], $staff);
 $router->get('/vis/kayit/{id}', [VisController::class, 'kayit'], $staff);
 $router->post('/vis/kayit/{id}/kaydet', [VisController::class, 'kaydet'], $staff);
 

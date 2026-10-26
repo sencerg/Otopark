@@ -378,12 +378,19 @@ final class TanimlamaController extends Controller
             if ($tutar === null || $tutar < 0) {
                 throw new RuntimeException('Otopark firma ücreti geçersiz.');
             }
-            Database::query(
-                'INSERT INTO depolama_fiyatlari (musteri_id, bayi_id, arac_tipi_id, gunluk_fiyat)
-                 VALUES (:m, :b, NULL, :f)
-                 ON CONFLICT (musteri_id, bayi_id, arac_tipi_id) DO UPDATE SET gunluk_fiyat = EXCLUDED.gunluk_fiyat',
+            // NULL arac_tipi_id ile ON CONFLICT bazı ortamlarda eşleşmez / yanlış "unique" hatası verir.
+            $guncellenen = Database::query(
+                'UPDATE depolama_fiyatlari SET gunluk_fiyat = :f
+                 WHERE musteri_id = :m AND bayi_id = :b AND arac_tipi_id IS NULL',
                 ['m' => $musteriId, 'b' => $bayiId, 'f' => $tutar]
-            );
+            )->rowCount();
+            if ($guncellenen === 0) {
+                Database::query(
+                    'INSERT INTO depolama_fiyatlari (musteri_id, bayi_id, arac_tipi_id, gunluk_fiyat)
+                     VALUES (:m, :b, NULL, :f)',
+                    ['m' => $musteriId, 'b' => $bayiId, 'f' => $tutar]
+                );
+            }
             DepolamaFiyatGecmisi::kaydet($bayiId, $musteriId, null, (float) $tutar);
         }
     }
