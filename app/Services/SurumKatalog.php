@@ -33,11 +33,12 @@ final class SurumKatalog
             [
                 'surum' => 'v0.39',
                 'tarih' => '2026-10-26 13:30',
-                'baslik' => 'Detaylı Araç alan şeması + v1 kilit',
+                'baslik' => 'Detaylı Araç ortak alan + checkpoint',
                 'maddeler' => [
-                    'Mevcut özet ekspertiz v1 olarak donduruldu (git tag: detayli-arac-v1); müşteri isterse geri dönülebilir.',
-                    'Teslim Formu Excel (188 alan) + Moex ortak katalog: DetayliAracAlanSema / docs/detayli_arac.',
-                    'Araç ekstresi maliyet satırı hizalandı (uyarı alanları satır altına alındı).',
+                    'Basit akış kilitlendi: tag detayli-arac-v1 (= checkpoint/detayli-arac-basit-v1); müşteri eski hali isterse buradan.',
+                    'Teslim Formu Excel (188 alan) + mevcut ekspertiz → DetayliAracAlanSema ortak katalog.',
+                    'Kaynaklar: docs/detayli_arac/ (xlsx, JSON, geri dönüş notu).',
+                    'Araç ekstresi maliyet satırı hizalandı (uyarılar satır altında).',
                 ],
             ],
             [

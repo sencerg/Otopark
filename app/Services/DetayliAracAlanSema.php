@@ -8,11 +8,11 @@ namespace App\Services;
  * Detaylı Araç — ortak alan kataloğu.
  *
  * Kaynaklar:
- *  - basit: checkpoint/detayli-arac-basit-v1 (mevcut UI)
+ *  - basit: git tag detayli-arac-v1 (mevcut UI; alias: checkpoint/detayli-arac-basit-v1)
  *  - excel: docs/detayli_arac/Teslim_Formu_Alan_Listesi.xlsx (teslim / handover)
  *
  * UI genişlemesi bu şemaya göre yapılır. Eski akışa dönüş:
- *   git checkout checkpoint/detayli-arac-basit-v1 -- \
+ *   git checkout detayli-arac-v1 -- \
  *     app/Services/DetayliAracStore.php \
  *     app/Controllers/DetayliAracController.php \
  *     views/detayli_arac public/assets/js/detayli-ekspertiz.js
@@ -25,7 +25,8 @@ namespace App\Services;
  */
 final class DetayliAracAlanSema
 {
-    public const CHECKPOINT = 'checkpoint/detayli-arac-basit-v1';
+    /** @see detayli-arac-v1 ve checkpoint/detayli-arac-basit-v1 (aynı commit) */
+    public const CHECKPOINT = 'detayli-arac-v1';
 
     /** Ortak seçenek setleri (excel + basit). */
     public static function secenekSetleri(): array
@@ -129,8 +130,8 @@ final class DetayliAracAlanSema
             'sag_on_cam' => 'right_mirror_complete',
             'far_sol' => 'front_left_headlamp',
             'far_sag' => 'front_right_headlamp',
-            'stop_sol' => 'rear_left_taillamp',
-            'stop_sag' => 'rear_right_taillamp',
+            'stop_sol' => 'rear_left_reflector_fender',
+            'stop_sag' => 'rear_right_reflector_fender',
             'jant_sol_on' => 'front_left_wheel',
             'jant_sag_on' => 'front_right_wheel',
             'jant_sol_arka' => 'rear_left_wheel',
@@ -244,14 +245,62 @@ final class DetayliAracAlanSema
         return $out;
     }
 
+    /** Excel / Türkçe tip → iç tip kodu */
+    private static function tipNormalize(string $tip): string
+    {
+        $t = mb_strtolower(trim($tip));
+
+        return match (true) {
+            str_contains($t, 'foto') => 'foto',
+            str_contains($t, 'tarih') => 'tarih',
+            str_contains($t, 'sayı') || str_contains($t, 'sayi') => 'sayi',
+            str_contains($t, 'uzun') => 'textarea',
+            str_contains($t, 'radyo') => 'radio',
+            str_contains($t, 'seçim') || str_contains($t, 'secim') => 'select',
+            str_contains($t, 'otopark') => 'otopark',
+            default => 'text',
+        };
+    }
+
+    private static function secenekSetFromExcel(string $secenekler, string $tipHam): ?string
+    {
+        $sec = trim($secenekler);
+        if ($sec === '') {
+            return null;
+        }
+        if (str_contains($sec, 'Standarda Uygun')) {
+            return 'condition';
+        }
+        if (str_contains($sec, 'Uygun / Hasarlı')) {
+            return 'seatbelt_condition';
+        }
+        if ($sec === 'Var / Yok') {
+            return 'yes_no';
+        }
+        if ($sec === 'Evet / Hayır') {
+            return 'bool';
+        }
+        if (str_contains($sec, 'Benzin')) {
+            return 'fuel_type';
+        }
+        if ($sec === 'Yaz / Kış') {
+            return 'tire_class';
+        }
+        if (str_contains(mb_strtolower($tipHam), 'radyo') || str_contains(mb_strtolower($tipHam), 'seçim')) {
+            return 'custom:' . $sec;
+        }
+
+        return 'custom:' . $sec;
+    }
+
     /**
-     * Excel alanlarını yükler (docs/detayli_arac/excel_alanlari.json).
+     * Excel alanlarını yükler (docs/detayli_arac/teslim_formu_alanlari.json).
      *
      * @return list<Alan>
      */
     public static function excelAlanlar(): array
     {
-        $path = BASE_PATH . '/docs/detayli_arac/excel_alanlari.json';
+        $path = BASE_PATH . '/docs/detayli_arac/teslim_formu_alanlari.json';
         if (!is_file($path)) {
             return [];
         }
@@ -266,13 +315,14 @@ final class DetayliAracAlanSema
             if ($kod === '') {
                 continue;
             }
+            $tipHam = (string) ($a['tip'] ?? 'Metin');
             $out[] = [
                 'kod' => $kod,
                 'ad' => (string) ($a['ad'] ?? $kod),
-                'bolum' => (string) ($a['bolum_kod'] ?? ''),
-                'tip' => (string) ($a['tip'] ?? 'text'),
+                'bolum' => (string) ($a['bolum'] ?? $a['bolum_kod'] ?? ''),
+                'tip' => self::tipNormalize($tipHam),
                 'zorunlu' => !empty($a['zorunlu']),
-                'secenek_set' => isset($a['secenek_set']) ? (string) $a['secenek_set'] : null,
+                'secenek_set' => self::secenekSetFromExcel((string) ($a['secenekler'] ?? ''), $tipHam),
                 'kaynak' => 'excel',
                 'eslestirme' => $ters[$kod] ?? null,
                 'not' => (string) ($a['not'] ?? ''),
