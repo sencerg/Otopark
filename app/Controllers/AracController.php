@@ -37,13 +37,15 @@ final class AracController extends Controller
             [
                 'id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad', 'lokasyon' => 'b.ad',
                 'son_hareket' => 'sh.hareket_tipi', 'stokta' => 'a.stokta',
+                'kayit_kaynagi' => 'a.kayit_kaynagi',
+                'musteri_musterisi' => 'a.musteri_musterisi',
                 'giris_tarihi' => "to_char(a.stoga_giris_tarihi, 'DD.MM.YYYY')", 'giris_tarihi_sort' => 'a.stoga_giris_tarihi',
                 'cikis_tarihi' => "to_char(a.stoktan_cikis_tarihi, 'DD.MM.YYYY')", 'cikis_tarihi_sort' => 'a.stoktan_cikis_tarihi',
                 'depolama_suresi' => '(COALESCE(a.stoktan_cikis_tarihi::date, CURRENT_DATE) - a.stoga_giris_tarihi::date + 1)',
             ],
             ['NOT a.arsiv', Auth::bayiKosulu('a.bayi_id')],
             [],
-            ['a.sase', 'a.plaka', 'b.ad', 'mu.ad', 'a.lokasyon_detay'],
+            ['a.sase', 'a.plaka', 'b.ad', 'mu.ad', 'a.lokasyon_detay', 'a.musteri_musterisi'],
             'a.id DESC'
         );
         foreach (['marka_id', 'seri_id', 'musteri_id', 'arac_tipi_id', 'bayi_id'] as $key) {
@@ -96,6 +98,7 @@ final class AracController extends Controller
             'musteri_id' => Request::int('musteri_id'), 'bayi_id' => Request::int('bayi_id'),
             'lokasyon_turu' => Request::int('lokasyon_turu'), 'lokasyon_detay' => Request::str('lokasyon_detay'),
             'proje_adi' => Request::str('proje_adi'), 'konsinye' => Request::bool('konsinye'),
+            'musteri_musterisi' => Request::str('musteri_musterisi'),
             'sigorta_tarihi' => Request::date('sigorta_tarihi'), 'kasko_tarihi' => Request::date('kasko_tarihi'), 'muayene_tarihi' => Request::date('muayene_tarihi'),
         ];
     }

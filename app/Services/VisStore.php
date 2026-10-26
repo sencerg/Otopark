@@ -5,11 +5,95 @@ declare(strict_types=1);
 namespace App\Services;
 
 /**
- * VIS (Araç Ekspertiz) bağımsız depolama.
- * Mevcut araclar / hareket / maliyet tablolarına yazmaz.
+ * Detaylı Araç Ekle — Teslim Alma taslakları + ekspertiz şeması.
  */
 final class VisStore
 {
+    /** @return list<array{kod:string,ad:string}> */
+    public static function adimlar(): array
+    {
+        return [
+            ['kod' => 'kontrol', 'ad' => 'Kontrol'],
+            ['kod' => 'taraflar', 'ad' => 'Taraflar'],
+            ['kod' => 'arac', 'ad' => 'Araç'],
+            ['kod' => 'ekspertiz', 'ad' => 'Ekspertiz'],
+            ['kod' => 'ozet', 'ad' => 'Özet'],
+        ];
+    }
+
+    /** Ekspertiz iç adımları (4. aşama). */
+    public static function ekspertizAdimlari(): array
+    {
+        return [
+            ['kod' => 'hasar', 'ad' => 'Hasar tespiti'],
+            ['kod' => 'mekanik', 'ad' => 'Mekanik / elektrik'],
+            ['kod' => 'foto', 'ad' => 'Fotoğraflar'],
+            ['kod' => 'lokasyon', 'ad' => 'Lokasyon'],
+            ['kod' => 'kondisyon', 'ad' => 'Kondisyon'],
+        ];
+    }
+
+    public static function hasarPanelleri(): array
+    {
+        return [
+            'on_tampon' => 'Ön tampon',
+            'kaput' => 'Kaput',
+            'tavan' => 'Tavan',
+            'bagaj' => 'Bagaj / arka kapak',
+            'arka_tampon' => 'Arka tampon',
+            'sol_on_kapi' => 'Sol ön kapı',
+            'sol_arka_kapi' => 'Sol arka kapı',
+            'sag_on_kapi' => 'Sağ ön kapı',
+            'sag_arka_kapi' => 'Sağ arka kapı',
+            'sol_camurluk' => 'Sol çamurluk',
+            'sag_camurluk' => 'Sağ çamurluk',
+            'sol_on_cam' => 'Sol ön cam / ayna',
+            'sag_on_cam' => 'Sağ ön cam / ayna',
+            'far_sol' => 'Sol far',
+            'far_sag' => 'Sağ far',
+            'stop_sol' => 'Sol stop',
+            'stop_sag' => 'Sağ stop',
+            'jant_sol_on' => 'Sol ön jant',
+            'jant_sag_on' => 'Sağ ön jant',
+            'jant_sol_arka' => 'Sol arka jant',
+            'jant_sag_arka' => 'Sağ arka jant',
+        ];
+    }
+
+    public static function hasarSeviyeleri(): array
+    {
+        return ['Yok', 'Çizik', 'Göçük', 'Boyalı', 'Değişen', 'Hasarlı'];
+    }
+
+    public static function mekanikAlanlari(): array
+    {
+        return [
+            'motor' => 'Motor',
+            'elektrik' => 'Elektrik',
+            'suspansiyon' => 'Süspansiyon',
+            'fren' => 'Fren',
+            'sanziman' => 'Şanzıman',
+            'klima' => 'Klima',
+            'egzoz' => 'Egzoz',
+            'direksiyon' => 'Direksiyon',
+        ];
+    }
+
+    public static function mekanikSeviyeleri(): array
+    {
+        return ['İyi', 'Orta', 'Kötü', 'Bilinmiyor'];
+    }
+
+    public static function fotoEtiketleri(): array
+    {
+        return ['Ön', 'Arka', 'Sol', 'Sağ', 'İç ön', 'İç arka', 'Gösterge / KM', 'Motor bölmesi', 'Hasar detay 1', 'Hasar detay 2', 'Evrak / ruhsat'];
+    }
+
+    public static function kondisyonSeviyeleri(): array
+    {
+        return ['Çok iyi', 'İyi', 'Orta', 'Kötü'];
+    }
+
     private static function dir(): string
     {
         $dir = BASE_PATH . '/storage/vis';
@@ -57,15 +141,20 @@ final class VisStore
         $now = date('c');
         $row = array_merge([
             'id' => $id,
+            'akis' => 'teslim_alma',
             'durum' => 'taslak',
-            'modul' => 'tanim',
-            'alan' => 'plaka',
+            'adim' => 'taraflar',
+            'ekspertiz_alt' => 'hasar',
             'veri' => [],
-            'hasar' => [],
-            'mekanik' => [],
-            'fotograflar' => [],
-            'lokasyon' => [],
-            'kondisyon' => [],
+            'taraflar' => [],
+            'ekspertiz' => [
+                'hasar' => [],
+                'mekanik' => [],
+                'fotograflar' => [],
+                'lokasyon' => [],
+                'kondisyon' => [],
+            ],
+            'arac_id' => null,
             'created_at' => $now,
             'updated_at' => $now,
         ], $seed);
@@ -78,11 +167,15 @@ final class VisStore
     {
         $row = self::bul($id);
         if (!$row) {
-            throw new \RuntimeException('Ekspertiz kaydı bulunamadı.');
+            throw new \RuntimeException('Kayıt bulunamadı.');
         }
         if (isset($patch['veri']) && is_array($patch['veri'])) {
             $row['veri'] = array_merge($row['veri'] ?? [], $patch['veri']);
             unset($patch['veri']);
+        }
+        if (isset($patch['ekspertiz']) && is_array($patch['ekspertiz'])) {
+            $row['ekspertiz'] = array_merge($row['ekspertiz'] ?? [], $patch['ekspertiz']);
+            unset($patch['ekspertiz']);
         }
         foreach ($patch as $k => $v) {
             $row[$k] = $v;
@@ -99,70 +192,5 @@ final class VisStore
             self::path((string) $row['id']),
             json_encode($row, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
         );
-    }
-
-    /** Wizard alan tanımları (VIS Araç tanımı akışına yakın). */
-    public static function tanimAlanlari(): array
-    {
-        return [
-            'plaka' => ['Plaka', 'text', 'Plakayı yazın', true],
-            'sase' => ['Şasi numarası', 'text', '17 haneli şasi', true],
-            'arac_turu' => ['Araç türü', 'select', null, true, ['Binek', 'Hafif Ticari', 'SUV', 'Motosiklet']],
-            'marka' => ['Marka', 'text', 'Marka', true],
-            'model' => ['Model', 'text', 'Model', true],
-            'ilk_tescil' => ['İlk tescil tarihi', 'date', null, false],
-            'govde_tipi' => ['Gövde tipi', 'select', null, false, ['Sedan', 'Hatchback', 'Station', 'Coupe', 'Cabrio', 'Pickup']],
-            'koltuk' => ['Koltuk sayısı', 'number', null, false],
-            'model_yili' => ['Model Yılı', 'number', null, true],
-            'motor' => ['Motor', 'text', 'Örn. 1.5 Dizel', false],
-            'cekis' => ['Teker çekişi', 'select', null, false, ['Önden', 'Arkadan', '4x4']],
-            'vites' => ['Vites', 'select', null, false, ['Manuel', 'Otomatik']],
-            'varyant' => ['Varyant', 'text', null, false],
-            'renk' => ['Renk', 'text', null, false],
-            'lastikler' => ['Lastikler', 'text', null, false],
-            'km' => ['Aracın kilometresi', 'number', null, true],
-            'garanti' => ['Garanti', 'select', null, false, ['Var', 'Yok', 'Bilinmiyor']],
-            'anahtar' => ['Anahtar sayısı', 'number', null, false],
-            'doseme' => ['Döşeme', 'text', null, false],
-            'donanim' => ['Donanım', 'textarea', 'Not / ekipman listesi', false],
-            'ozet' => ['Genel bakış', 'textarea', 'Özet not', false],
-        ];
-    }
-
-    /** @return list<array{kod:string,ad:string}> */
-    public static function moduller(): array
-    {
-        return [
-            ['kod' => 'tanim', 'ad' => 'Araç tanımı'],
-            ['kod' => 'hasar', 'ad' => 'Hasar tespiti'],
-            ['kod' => 'mekanik', 'ad' => 'Mekanik ve Elektrik'],
-            ['kod' => 'foto', 'ad' => 'Fotoğraflar ve Dokümanlar'],
-            ['kod' => 'lokasyon', 'ad' => 'Lokasyon'],
-            ['kod' => 'kondisyon', 'ad' => 'Kondisyon'],
-            ['kod' => 'cikis', 'ad' => 'Çıkış'],
-        ];
-    }
-
-    /** Hasar panelleri (basit şema). */
-    public static function hasarPanelleri(): array
-    {
-        return [
-            'on_tampon' => 'Ön tampon',
-            'kaput' => 'Kaput',
-            'tavan' => 'Tavan',
-            'bagaj' => 'Bagaj / arka kapak',
-            'arka_tampon' => 'Arka tampon',
-            'sol_on_kapi' => 'Sol ön kapı',
-            'sol_arka_kapi' => 'Sol arka kapı',
-            'sag_on_kapi' => 'Sağ ön kapı',
-            'sag_arka_kapi' => 'Sağ arka kapı',
-            'sol_camurluk' => 'Sol çamurluk',
-            'sag_camurluk' => 'Sağ çamurluk',
-        ];
-    }
-
-    public static function hasarSeviyeleri(): array
-    {
-        return ['Yok', 'Çizik', 'Göçük', 'Boyalı', 'Değişen', 'Hasarlı'];
     }
 }

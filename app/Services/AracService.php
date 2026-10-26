@@ -17,6 +17,7 @@ final class AracService
         'plaka', 'onceki_plaka', 'park_kodu', 'arac_durumu', 'arac_tipi_id', 'kasa_tipi_id', 'renk_id', 'marka_id', 'seri_id',
         'model_id', 'model_yili_id', 'motor_hacmi', 'motor_gucu', 'yakit_tipi_id', 'vites_tipi_id', 'km', 'yakit_durumu',
         'musteri_id', 'bayi_id', 'lokasyon_turu', 'lokasyon_detay', 'proje_adi', 'konsinye', 'sigorta_tarihi', 'kasko_tarihi', 'muayene_tarihi',
+        'musteri_musterisi', 'kayit_kaynagi', 'ekspertiz',
     ];
 
     public const HAREKET_ALANLARI = [
@@ -302,6 +303,15 @@ final class AracService
 
     private static function bindable(array $data): array
     {
-        return array_map(fn ($v) => is_bool($v) ? ($v ? 'true' : 'false') : $v, $data);
+        return array_map(static function ($v) {
+            if (is_bool($v)) {
+                return $v ? 'true' : 'false';
+            }
+            if (is_array($v)) {
+                return json_encode($v, JSON_UNESCAPED_UNICODE);
+            }
+
+            return $v;
+        }, $data);
     }
 }

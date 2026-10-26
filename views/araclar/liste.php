@@ -46,9 +46,17 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-primary"><i class
 $(function () {
     const canSil = <?= (\App\Core\Auth::isAdmin() && \App\Core\Auth::can('arac.sil')) ? 'true' : 'false' ?>;
     App.table('#liste', {
-        url: '/arac_yonetimi/liste', bulk: true, order: [[8, 'desc']],
+        url: '/arac_yonetimi/liste', bulk: true, order: [[0, 'desc']],
         columns: [
-            { data: 'sase', render: (v, _, r) => `<a href="/arac_yonetimi/duzenle/${r.id}" class="fw-semibold">${App.esc(v)}</a>` },
+            { data: 'sase', render: (v, _, r) => {
+                const kaynak = r.kayit_kaynagi === 'detayli'
+                    ? ' <span class="badge badge-soft-info" title="Detaylı Araç Ekle">Detaylı</span>'
+                    : '';
+                const alt = r.musteri_musterisi
+                    ? `<div class="small text-muted">${App.esc(r.musteri_musterisi)}</div>`
+                    : '';
+                return `<a href="/arac_yonetimi/duzenle/${r.id}" class="fw-semibold">${App.esc(v)}</a>${kaynak}${alt}`;
+            } },
             { data: 'plaka', render: (v) => App.esc(v || '-') },
             { data: 'firma', render: (v) => App.esc(v || '-') },
             { data: 'marka', render: (v) => App.esc(v || '-') },

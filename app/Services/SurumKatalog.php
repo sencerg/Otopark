@@ -31,6 +31,34 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.35',
+                'tarih' => '2026-10-26 11:15',
+                'baslik' => 'Ekspertiz alt adımları',
+                'maddeler' => [
+                    '4. aşama: Hasar panelleri → Mekanik → Foto → Lokasyon → Kondisyon.',
+                    'VIS bilgi seti; ekranlar ana kart/form tasarımında.',
+                ],
+            ],
+            [
+                'surum' => 'v0.34',
+                'tarih' => '2026-10-26 10:55',
+                'baslik' => 'Detaylı ekleme stoka yazılır',
+                'maddeler' => [
+                    'Araç adımında gerçek stok + giriş hareketi oluşur; listede «Detaylı» rozeti.',
+                    'Liste varsayılan sıra: en yeni kayıt başta (id DESC).',
+                    'Müşterinin müşterisi alanı araç kartında tutulur.',
+                ],
+            ],
+            [
+                'surum' => 'v0.33',
+                'tarih' => '2026-10-26 10:45',
+                'baslik' => 'Detaylı Araç Ekle · ana tasarım',
+                'maddeler' => [
+                    'VIS kabuğu kaldırıldı; menü + kart/form tasarımıyla adım adım ilerleme.',
+                    'Kontrol → Taraflar → Araç → Ekspertiz → Özet (doldur, kaydet, devam).',
+                ],
+            ],
+            [
                 'surum' => 'v0.32',
                 'tarih' => '2026-10-26 09:33',
                 'baslik' => 'Detaylı Araç Ekle (ön kontrol)',
