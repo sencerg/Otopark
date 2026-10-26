@@ -31,6 +31,16 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.39',
+                'tarih' => '2026-10-26 13:30',
+                'baslik' => 'Detaylı Araç alan şeması + v1 kilit',
+                'maddeler' => [
+                    'Mevcut özet ekspertiz v1 olarak donduruldu (git tag: detayli-arac-v1); müşteri isterse geri dönülebilir.',
+                    'Teslim Formu Excel (188 alan) + Moex ortak katalog: DetayliAracAlanSema / docs/detayli_arac.',
+                    'Araç ekstresi maliyet satırı hizalandı (uyarı alanları satır altına alındı).',
+                ],
+            ],
+            [
                 'surum' => 'v0.38',
                 'tarih' => '2026-10-26 12:55',
                 'baslik' => 'Detaylı ekleme taslağı DB’de',

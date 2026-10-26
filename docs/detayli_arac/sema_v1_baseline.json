@@ -1,0 +1,157 @@
+{
+    "surum": "v1_ozet",
+    "git_tag": "detayli-arac-v1",
+    "akis_adimlari": [
+        {
+            "kod": "kontrol",
+            "ad": "Kontrol"
+        },
+        {
+            "kod": "taraflar",
+            "ad": "Taraflar"
+        },
+        {
+            "kod": "arac",
+            "ad": "Araç"
+        },
+        {
+            "kod": "ekspertiz",
+            "ad": "Ekspertiz"
+        },
+        {
+            "kod": "ozet",
+            "ad": "Özet"
+        }
+    ],
+    "ekspertiz_alt": [
+        {
+            "kod": "hasar",
+            "ad": "Hasar tespiti"
+        },
+        {
+            "kod": "mekanik",
+            "ad": "Mekanik \/ elektrik"
+        },
+        {
+            "kod": "foto",
+            "ad": "Fotoğraflar"
+        },
+        {
+            "kod": "lokasyon",
+            "ad": "Lokasyon"
+        },
+        {
+            "kod": "kondisyon",
+            "ad": "Kondisyon"
+        }
+    ],
+    "kontrol": [
+        "sase",
+        "plaka",
+        "kosul_sase",
+        "kosul_bilgi",
+        "kosul_sorumluluk"
+    ],
+    "taraflar": [
+        "musteri_id",
+        "musteri_musterisi",
+        "bayi_id",
+        "teslim_eden",
+        "teslim_eden_telefon",
+        "teslim_alan",
+        "teslim_alan_telefon",
+        "not"
+    ],
+    "arac": [
+        "plaka",
+        "arac_tipi_id",
+        "marka_id",
+        "seri_id",
+        "model_id",
+        "model_yili_id",
+        "renk_id",
+        "yakit_tipi_id",
+        "vites_tipi_id",
+        "km",
+        "yakit_durumu",
+        "lokasyon_detay"
+    ],
+    "hasar_panelleri": {
+        "on_tampon": "Ön tampon",
+        "kaput": "Kaput",
+        "tavan": "Tavan",
+        "bagaj": "Bagaj \/ arka kapak",
+        "arka_tampon": "Arka tampon",
+        "sol_on_kapi": "Sol ön kapı",
+        "sol_arka_kapi": "Sol arka kapı",
+        "sag_on_kapi": "Sağ ön kapı",
+        "sag_arka_kapi": "Sağ arka kapı",
+        "sol_camurluk": "Sol çamurluk",
+        "sag_camurluk": "Sağ çamurluk",
+        "sol_on_cam": "Sol ön cam \/ ayna",
+        "sag_on_cam": "Sağ ön cam \/ ayna",
+        "far_sol": "Sol far",
+        "far_sag": "Sağ far",
+        "stop_sol": "Sol stop",
+        "stop_sag": "Sağ stop",
+        "jant_sol_on": "Sol ön jant",
+        "jant_sag_on": "Sağ ön jant",
+        "jant_sol_arka": "Sol arka jant",
+        "jant_sag_arka": "Sağ arka jant"
+    },
+    "hasar_seviyeleri": [
+        "Yok",
+        "Çizik",
+        "Göçük",
+        "Boyalı",
+        "Değişen",
+        "Hasarlı"
+    ],
+    "mekanik": {
+        "motor": "Motor",
+        "elektrik": "Elektrik",
+        "suspansiyon": "Süspansiyon",
+        "fren": "Fren",
+        "sanziman": "Şanzıman",
+        "klima": "Klima",
+        "egzoz": "Egzoz",
+        "direksiyon": "Direksiyon"
+    },
+    "mekanik_seviyeleri": [
+        "İyi",
+        "Orta",
+        "Kötü",
+        "Bilinmiyor"
+    ],
+    "foto_etiketleri": [
+        "Ön",
+        "Arka",
+        "Sol",
+        "Sağ",
+        "İç ön",
+        "İç arka",
+        "Gösterge \/ KM",
+        "Motor bölmesi",
+        "Hasar detay 1",
+        "Hasar detay 2",
+        "Evrak \/ ruhsat"
+    ],
+    "lokasyon": [
+        "park_alani",
+        "blok",
+        "sira",
+        "detay"
+    ],
+    "kondisyon": [
+        "genel",
+        "ic",
+        "dis",
+        "lastik"
+    ],
+    "kondisyon_seviyeleri": [
+        "Çok iyi",
+        "İyi",
+        "Orta",
+        "Kötü"
+    ]
+}
