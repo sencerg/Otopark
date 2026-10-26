@@ -58,6 +58,7 @@ $router->get('/api/modeller', [ApiController::class, 'modeller'], $staff);
 $router->get('/api/personeller', [ApiController::class, 'personeller'], $staff);
 $router->get('/api/araclar', [ApiController::class, 'araclar'], $staff);
 $router->get('/api/hizmet_fiyat', [ApiController::class, 'hizmetFiyat'], $staff);
+$router->get('/api/hizmetler', [ApiController::class, 'hizmetler'], $staff);
 $router->get('/arama', [ApiController::class, 'arama'], $staff);
 
 // Araç hareketleri (Stoktaki Araçlar / Stoktan Çıkanlar)

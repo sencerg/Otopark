@@ -42,6 +42,7 @@ $markaOptions = Tanim::options(Tanim::liste('markalar'));
                     <input type="file" name="import_file" class="form-control" accept=".xlsx,.xls,.csv,.txt">
                     <div class="form-text">
                         “Örnek Şablon İndir” ile XLSX alın. <b>MARKA</b> / <b>Seri</b> adları şablondaki “Araç Markaları” ve “Araç Serileri” sayfalarındaki sistem kayıtlarıyla aynı olmalıdır.
+                        <b>Araç Tipi</b> ve <b>Araç Durumu</b> zorunlu değildir; boş bırakılabilir.
                         Dosya seçilirse aşağıdaki manuel satırlar dikkate alınmaz.
                     </div>
                 </div>

@@ -205,6 +205,10 @@ final class AracController extends Controller
                 ['a' => $id]
             ),
             'depolama' => DepolamaHesap::arac((int) $id),
+            'hizmetler' => \App\Services\HizmetFiyat::firmaHizmetleri(
+                isset($arac['musteri_id']) ? (int) $arac['musteri_id'] : null,
+                isset($arac['bayi_id']) ? (int) $arac['bayi_id'] : null
+            ),
         ]);
         unset($_SESSION['_old']);
     }
@@ -409,11 +413,11 @@ final class AracController extends Controller
                     'sase' => 'Şase Numarası *',
                     'marka' => 'MARKA *',
                     'seri' => 'Seri *',
-                    'arac_durumu' => 'Araç Durumu *',
+                    'arac_durumu' => 'Araç Durumu',
                     'kasa_tipi' => 'Kasa Tipi',
                     'renk' => 'Renk',
                     'onceki_plaka' => 'Önceki Plaka',
-                    'arac_tipi' => 'Araç Tipi *',
+                    'arac_tipi' => 'Araç Tipi',
                     'yil' => 'Yıl',
                     'yakit_tipi' => 'Yakıt Tipi',
                     'vites_tipi' => 'Vites Tipi',
@@ -580,10 +584,8 @@ final class AracController extends Controller
                     if (!$seriId) {
                         $seriId = TopluAktarim::seriId($markaId, (string) ($s['seri'] ?? ''));
                     }
+                    // Araç tipi / durumu isteğe bağlı (Excel boş bırakılabilir; form varsayılanı varsa o kullanılır)
                     $aracTipiId = TopluAktarim::bul($aracTipleri, $s['arac_tipi'] ?? '', 'Araç tipi', false) ?? $varsayilanAracTipi;
-                    if (!$aracTipiId) {
-                        throw new RuntimeException('Araç tipi seçilmelidir.');
-                    }
                     $aracDurumu = TopluAktarim::aracDurumu($s['arac_durumu'] ?? null) ?? $varsayilanDurum;
                     AracService::kaydetVeHareket(
                         [
@@ -594,8 +596,8 @@ final class AracController extends Controller
                             'seri_id' => $seriId,
                             'musteri_id' => $musteriId,
                             'bayi_id' => $bayiId,
-                            'arac_tipi_id' => $aracTipiId,
-                            'arac_durumu' => $aracDurumu,
+                            'arac_tipi_id' => $aracTipiId ?: null,
+                            'arac_durumu' => $aracDurumu ?: null,
                             'kasa_tipi_id' => TopluAktarim::bul($kasaTipleri, $s['kasa_tipi'] ?? '', 'Kasa tipi', false),
                             'renk_id' => TopluAktarim::bul($renkler, $s['renk'] ?? '', 'Renk', false),
                             'model_yili_id' => TopluAktarim::modelYili($s['yil'] ?? null),

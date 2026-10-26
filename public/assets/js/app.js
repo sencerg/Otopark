@@ -387,8 +387,70 @@
     $(document).on('change', 'select[data-tutar-target], select[name="hizmet_id[]"], select[name=maliyet_tipi_modal], select[name=maliyet_tipi_id]', function () {
         hizmetTutarDoldur($(this), true);
     });
+    function hizmetOptionMetin(h) {
+        let t = h.ad || '';
+        if (!h.bayi_fiyat_degistirebilir) t += ' (kilitli)';
+        if (!h.tekrar_eklenebilir) t += ' (tek sefer)';
+        return t;
+    }
+    /** Firma × otopark tanımlı hizmetleri select'e doldurur (data-firma-hizmet="1"). */
+    App.firmaHizmetDoldur = function ($select, params) {
+        const prev = $select.val();
+        $select.prop('disabled', true);
+        return $.getJSON('/api/hizmetler', params || {})
+            .done((r) => {
+                const items = (r && r.success && r.hizmetler) ? r.hizmetler : [];
+                $select.empty().append($('<option value="">').text(items.length ? 'Seçiniz' : 'Tanımlı hizmet yok'));
+                items.forEach((h) => {
+                    $select.append(
+                        $('<option>')
+                            .val(h.id)
+                            .text(hizmetOptionMetin(h))
+                            .attr('data-bayi-degistirebilir', h.bayi_fiyat_degistirebilir ? '1' : '0')
+                            .attr('data-tekrar-eklenebilir', h.tekrar_eklenebilir ? '1' : '0')
+                    );
+                });
+                if (prev && items.some((h) => String(h.id) === String(prev))) {
+                    $select.val(prev);
+                } else {
+                    $select.val('');
+                }
+                if ($select.hasClass('select2-hidden-accessible')) {
+                    $select.trigger('change.select2');
+                } else {
+                    $select.trigger('change');
+                }
+                const $uyari = $('#hizli-maliyet-hizmet-uyari');
+                if ($uyari.length) {
+                    const not = 'Sistem yöneticisi tarafından eklenen hizmetler gözükür. Eğer yeni bir hizmet eklemek istiyorsanız sistem yöneticisi ile görüşünüz.';
+                    $uyari
+                        .toggleClass('text-warning', items.length === 0)
+                        .toggleClass('text-muted', items.length > 0)
+                        .text(items.length
+                            ? not
+                            : 'Bu firma / otopark için tanımlı hizmet yok. ' + not);
+                }
+            })
+            .fail(() => {
+                $select.empty().append($('<option value="">').text('Hizmetler yüklenemedi'));
+            })
+            .always(() => { $select.prop('disabled', false); });
+    };
+
     $(document).on('change', 'form select[name=arac_id], form select[name=musteri_id], form select[name=bayi_id]', function () {
         const $form = $(this).closest('form');
+        const aracId = $form.find('[name=arac_id]').val();
+        const musteriId = $form.find('[name=musteri_id]').val();
+        const bayiId = $form.find('[name=bayi_id]').val();
+        $form.find('select[data-firma-hizmet]').each(function () {
+            const params = aracId
+                ? { arac_id: aracId }
+                : (musteriId && bayiId ? { musteri_id: musteriId, bayi_id: bayiId } : null);
+            if (params) App.firmaHizmetDoldur($(this), params);
+            else {
+                $(this).empty().append($('<option value="">').text(aracId || musteriId ? 'Lokasyon / araç seçiniz' : 'Önce araç seçiniz'));
+            }
+        });
         $form.find('select[data-tutar-target], select[name="hizmet_id[]"], select[name=maliyet_tipi_modal]').each(function () {
             if (this.value) hizmetTutarDoldur($(this), true);
         });

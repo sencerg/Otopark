@@ -76,6 +76,38 @@ final class ApiController extends Controller
         View::redirect('/arac_yonetimi?q=' . urlencode($q));
     }
 
+    /** Firmaya tanımlı hizmet listesi (arac_id veya musteri_id + bayi_id). */
+    public function hizmetler(): void
+    {
+        Auth::requireStaff();
+        $aracId = Request::int('arac_id');
+        $musteriId = Request::int('musteri_id');
+        $bayiId = Request::int('bayi_id');
+        if ($aracId) {
+            $arac = Database::fetch(
+                'SELECT musteri_id, bayi_id FROM araclar WHERE id = :id AND ' . Auth::bayiKosulu('bayi_id'),
+                ['id' => $aracId]
+            );
+            if (!$arac) {
+                View::json(['success' => false, 'hizmetler' => [], 'message' => 'Araç bulunamadı.'], 404);
+            }
+            $musteriId = (int) ($arac['musteri_id'] ?? 0) ?: null;
+            $bayiId = (int) ($arac['bayi_id'] ?? 0) ?: null;
+        }
+        $liste = HizmetFiyat::firmaHizmetleri($musteriId, $bayiId);
+        View::json([
+            'success' => true,
+            'musteri_id' => $musteriId,
+            'bayi_id' => $bayiId,
+            'hizmetler' => array_map(static fn (array $h) => [
+                'id' => (int) $h['id'],
+                'ad' => $h['ad'],
+                'bayi_fiyat_degistirebilir' => !empty($h['bayi_fiyat_degistirebilir']),
+                'tekrar_eklenebilir' => !empty($h['tekrar_eklenebilir']),
+            ], $liste),
+        ]);
+    }
+
     /** Müşteri × otopark hizmet ücreti: arac_id veya musteri_id + bayi_id + maliyet_tipi_id */
     public function hizmetFiyat(): void
     {

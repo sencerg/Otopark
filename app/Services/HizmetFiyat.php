@@ -28,6 +28,29 @@ final class HizmetFiyat
         ) !== null;
     }
 
+    /**
+     * Firmaya (müşteri × otopark) fiyatı tanımlanmış aktif hizmetler.
+     * Tanımsız hizmet araç ekstresinde listelenmez.
+     *
+     * @return list<array{id:int,ad:string,bayi_fiyat_degistirebilir:mixed,tekrar_eklenebilir:mixed}>
+     */
+    public static function firmaHizmetleri(?int $musteriId, ?int $bayiId = null): array
+    {
+        if (!$musteriId || !$bayiId) {
+            return [];
+        }
+
+        return Database::fetchAll(
+            'SELECT mt.id, mt.ad, mt.bayi_fiyat_degistirebilir, mt.tekrar_eklenebilir
+             FROM maliyet_tipleri mt
+             INNER JOIN hizmet_fiyatlari f
+                ON f.maliyet_tipi_id = mt.id AND f.musteri_id = :m AND f.bayi_id = :b
+             WHERE mt.aktif
+             ORDER BY mt.ad',
+            ['m' => $musteriId, 'b' => $bayiId]
+        );
+    }
+
     public static function tutar(?int $musteriId, int $maliyetTipiId, ?int $bayiId = null): float
     {
         if (!$musteriId || !$bayiId) {

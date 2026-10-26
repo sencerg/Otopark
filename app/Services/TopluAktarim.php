@@ -59,7 +59,7 @@ final class TopluAktarim
     public static function aracDurumu(?string $ad): ?int
     {
         $ad = trim((string) $ad);
-        if ($ad === '') {
+        if ($ad === '' || $ad === '-') {
             return null;
         }
         foreach (Tanim::ARAC_DURUMU as $id => $label) {

@@ -198,7 +198,10 @@ final class HareketController extends Controller
             'h' => $h,
             'readonly' => !$duzenle,
             'konaklama' => $konaklama,
-            'hizmetler' => $cikis ? Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir, tekrar_eklenebilir FROM maliyet_tipleri WHERE aktif ORDER BY ad') : [],
+            'hizmetler' => $cikis ? \App\Services\HizmetFiyat::firmaHizmetleri(
+                isset($h['musteri_id']) ? (int) $h['musteri_id'] : null,
+                isset($h['bayi_id']) ? (int) $h['bayi_id'] : null
+            ) : [],
             'eklenenler' => $eklenenler,
             'envanter' => array_column(Database::fetchAll('SELECT envanter_id FROM arac_envanterleri WHERE arac_id = :a', ['a' => $h['arac_id']]), 'envanter_id'),
             'dosyalar' => Upload::list('hareket', $id),
@@ -341,7 +344,10 @@ final class HareketController extends Controller
         $this->view('hareketler/stoktan_cikar', [
             'pageTitle' => 'Stoktan Çıkar',
             'breadcrumb' => ['Stoktaki Araçlar' => '/arac_hareketleri/giris', $arac['sase'] => null],
-            'hizmetler' => Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir, tekrar_eklenebilir FROM maliyet_tipleri WHERE aktif ORDER BY ad'),
+            'hizmetler' => \App\Services\HizmetFiyat::firmaHizmetleri(
+                isset($arac['musteri_id']) ? (int) $arac['musteri_id'] : null,
+                isset($arac['bayi_id']) ? (int) $arac['bayi_id'] : null
+            ),
             'konaklama' => $konaklama,
             'eklenenler' => $konaklama ? Database::fetchAll(
                 'SELECT mt.ad, e.tutar, e.islem_tarihi, mt.bayi_fiyat_degistirebilir
@@ -449,9 +455,10 @@ final class HareketController extends Controller
             $gelen = (is_scalar($ham) && trim((string) $ham) !== '') ? Request::parseDecimal((string) $ham) : null;
             $tanimli = \App\Services\HizmetFiyat::tanimli($musteriId, $tipIdInt, $bayiId);
             $deg = \App\Services\HizmetFiyat::bayiDegistirebilir($tipIdInt);
-            if (!$tanimli && !(Auth::isAdmin() && $gelen !== null && $gelen > 0)
-                && !($deg && $gelen !== null && $gelen > 0)) {
-                throw new RuntimeException("{$tip['ad']} için bu otoparkta fiyat belirlenmedi.");
+            if (!$tanimli) {
+                throw new RuntimeException(
+                    "{$tip['ad']} bu firma / otopark için tanımlı değil. Önce Tanımlamalar → müşteri kartından fiyat ekleyin."
+                );
             }
             $tutar = \App\Services\HizmetFiyat::tutarBayiIcin($musteriId, $tipIdInt, $gelen, Auth::isAdmin(), $bayiId);
             if ($tutar < 0 || ($tutar <= 0 && !$tanimli)) {

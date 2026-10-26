@@ -227,10 +227,10 @@ final class AracService
         }
         $tanimli = HizmetFiyat::tanimli($musteriId ?: null, $tipId, $bayiId ?: null);
         $deg = HizmetFiyat::bayiDegistirebilir($tipId);
-        if (!$tekrarOzel && !$tanimli
-            && !(Auth::isAdmin() && $gelen !== null && $gelen !== '' && (float) $gelen > 0)
-            && !($deg && $gelen !== null && $gelen !== '' && (float) $gelen > 0)) {
-            throw new RuntimeException('Bu hizmet için müşteri / otopark fiyatı belirlenmedi.');
+        if (!$tanimli) {
+            throw new RuntimeException(
+                '"' . $tip['ad'] . '" bu firma / otopark için tanımlı değil. Önce Tanımlamalar → müşteri kartından fiyat ekleyin.'
+            );
         }
         $tutar = $tekrarOzel
             ? round((float) $gelen, 2)

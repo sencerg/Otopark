@@ -31,6 +31,23 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.30',
+                'tarih' => '2026-10-26 09:20',
+                'baslik' => 'Toplu stok: araç tipi / durumu isteğe bağlı',
+                'maddeler' => [
+                    'Excel toplu stok girişinde Araç Tipi ve Araç Durumu zorunlu olmaktan çıkarıldı; boş bırakılabilir.',
+                ],
+            ],
+            [
+                'surum' => 'v0.29',
+                'tarih' => '2026-10-26 09:12',
+                'baslik' => 'Firma hizmet filtresi',
+                'maddeler' => [
+                    'Firmaya (müşteri × otopark) fiyatı tanımlı olmayan hizmetler araç ekstresinde görünmez.',
+                    'Hızlı maliyet, stoktan çıkış ve araç maliyeti listeleri yalnızca tanımlı hizmetleri gösterir.',
+                ],
+            ],
+            [
                 'surum' => 'v0.28',
                 'tarih' => '2026-10-24 16:18',
                 'baslik' => 'Proje Notları → sürüm geçmişi',

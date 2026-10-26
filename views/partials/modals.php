@@ -1,9 +1,7 @@
 <?php
 use App\Core\Csrf;
-use App\Core\Database;
 use App\Core\Tanim;
 
-$maliyetTipleri = Database::fetchAll('SELECT id, ad, bayi_fiyat_degistirebilir, tekrar_eklenebilir FROM maliyet_tipleri WHERE aktif ORDER BY id');
 $bayiler = Tanim::liste('bayiler');
 ?>
 <div class="modal fade" id="hizli-arac-ekle-modal" tabindex="-1">
@@ -84,10 +82,13 @@ $bayiler = Tanim::liste('bayiler');
                 <div class="row g-3">
                     <div class="col-md-12"><label class="form-label required">Şasi Numarası</label><select name="arac_id" class="form-select arac-select" required></select></div>
                     <div class="col-md-8"><label class="form-label required">Maliyet Tipi</label>
-                        <select name="maliyet_tipi_modal" class="form-select select2" required data-tutar-target="#hizli-maliyet-tutar">
-                            <option value="">Seçiniz</option>
-                            <?php foreach ($maliyetTipleri as $m): ?><option value="<?= $m['id'] ?>" data-bayi-degistirebilir="<?= !empty($m['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>" data-tekrar-eklenebilir="<?= !empty($m['tekrar_eklenebilir']) ? '1' : '0' ?>"><?= e($m['ad']) ?><?= empty($m['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?><?= empty($m['tekrar_eklenebilir']) ? ' (tek sefer)' : '' ?></option><?php endforeach; ?>
+                        <select name="maliyet_tipi_modal" id="hizli-maliyet-tipi" class="form-select select2" required data-tutar-target="#hizli-maliyet-tutar" data-firma-hizmet="1">
+                            <option value="">Önce araç seçiniz</option>
                         </select>
+                        <div class="form-text text-muted mt-1" id="hizli-maliyet-hizmet-uyari">
+                            Sistem yöneticisi tarafından eklenen hizmetler gözükür.
+                            Eğer yeni bir hizmet eklemek istiyorsanız sistem yöneticisi ile görüşünüz.
+                        </div>
                     </div>
                     <div class="col-md-4"><label class="form-label required">Fiyat</label><input type="number" step="0.01" min="0" name="tutar_ek" id="hizli-maliyet-tutar" class="form-control" required placeholder="Fiyat belirlenmedi"></div>
                     <div class="col-md-12"><label class="form-label">Açıklama</label><textarea name="aciklama_ekstre" class="form-control" rows="2"></textarea></div>

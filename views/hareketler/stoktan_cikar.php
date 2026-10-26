@@ -96,7 +96,12 @@ $simdiSaat = date('H:i');
                         <thead><tr><th>Hizmet</th><th style="width: 180px">Ücret</th><th style="width: 40px"></th></tr></thead>
                         <tbody id="cikis-hizmetleri"></tbody>
                     </table>
+                    <?php if (empty($hizmetler)): ?>
+                        <div class="alert alert-warning py-2 small mb-2">Bu firma / otopark için tanımlı hizmet yok.</div>
+                    <?php else: ?>
                     <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="#hizmet-satir" data-target="#cikis-hizmetleri"><i class="mdi mdi-plus me-1"></i>Hizmet Ekle</button>
+                    <?php endif; ?>
+                    <?php require BASE_PATH . '/views/partials/hizmet_liste_notu.php'; ?>
 
                     <div class="d-flex justify-content-between align-items-center border-top mt-3 pt-3">
                         <span class="text-muted">Toplam ücret<?= $fg ? ' (depolama + hizmetler)' : ' (hizmetler)' ?></span>
