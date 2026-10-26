@@ -8,6 +8,7 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Tanim;
+use App\Core\Upload;
 use App\Core\View;
 use App\Services\AracService;
 use App\Services\VisStore;
@@ -166,7 +167,11 @@ final class VisController extends Controller
             'yakitTipleri' => Tanim::liste('yakit_tipleri'),
             'vitesTipleri' => Tanim::liste('vites_tipleri'),
             'modelYillari' => Tanim::liste('model_yillari'),
+            'aracDosyalar' => !empty($row['arac_id']) ? Upload::list('arac', (int) $row['arac_id']) : [],
             'headerActions' => '<a href="/vis" class="btn btn-outline-secondary"><i class="mdi mdi-arrow-left me-1"></i>Taslaklar</a>',
+            'scripts' => ($adim === 'ekspertiz' && $eksAlt === 'hasar')
+                ? '<script src="/assets/js/vis-ekspertiz.js?v=' . filemtime(BASE_PATH . '/public/assets/js/vis-ekspertiz.js') . '"></script>'
+                : '',
         ]);
     }
 
@@ -355,11 +360,23 @@ final class VisController extends Controller
                     $sonrakiAlt = 'foto';
                 } elseif ($alt === 'foto') {
                     $fotolar = [];
+                    $tanimlar = [];
                     foreach (VisStore::fotoEtiketleri() as $i => $etiket) {
+                        $not = trim((string) (Request::str('foto_not_' . $i) ?? ''));
                         $fotolar[] = [
                             'etiket' => $etiket,
-                            'not' => trim((string) (Request::str('foto_' . $i) ?? '')),
+                            'not' => $not,
                         ];
+                        // Her slot için ayrı alan: foto_file_0, foto_file_1…
+                        $field = 'foto_file_' . $i;
+                        if (!empty($_FILES[$field]['name'])) {
+                            Upload::save($field, 'arac', $aracId, 'fotograf', [0 => $etiket . ($not !== '' ? ' — ' . $not : '')]);
+                        }
+                        $tanimlar[] = $etiket;
+                    }
+                    // Ek serbest belgeler
+                    if (!empty($_FILES['dosya']['name'])) {
+                        Upload::save('dosya', 'arac', $aracId, 'belge', (array) ($_POST['dosya_tanim'] ?? []));
                     }
                     $mevcut['fotograflar'] = $fotolar;
                     $sonrakiAlt = 'lokasyon';

@@ -36,7 +36,7 @@ $lokData = is_array($ex['lokasyon'] ?? null) ? $ex['lokasyon'] : [];
 $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
 ?>
 <div class="row">
-    <div class="<?= $adim === 'ekspertiz' && ($eksAlt ?? '') === 'hasar' ? 'col-xl-10' : 'col-xl-8' ?>">
+    <div class="<?= ($adim === 'ekspertiz' && in_array($eksAlt ?? '', ['hasar', 'foto'], true)) || $adim === 'ozet' ? 'col-xl-12' : 'col-xl-8' ?>">
         <?php if ($adim === 'taraflar'): ?>
             <div class="card">
                 <div class="card-header">
@@ -186,52 +186,67 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
             <?php require __DIR__ . '/_ekspertiz_adimlar.php'; ?>
 
             <?php if ($eksAlt === 'hasar'): ?>
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Hasar tespiti</h5>
-                        <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small mb-3">Her panel için durum seçin; gerekirse kısa not ekleyin.</p>
-                        <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet">
-                            <?= Csrf::field() ?>
-                            <input type="hidden" name="adim" value="ekspertiz">
-                            <input type="hidden" name="alt" value="hasar">
-                            <div class="table-responsive">
-                                <table class="table table-sm hasar-tablo align-middle">
-                                    <thead>
-                                    <tr><th>Panel</th><th style="width:11rem">Durum</th><th>Not</th></tr>
-                                    </thead>
-                                    <tbody>
-                                    <?php foreach ($hasarPanelleri as $kod => $ad):
-                                        $rowH = $hasarData[$kod] ?? [];
-                                        $sev = $old['hasar_sev_' . $kod] ?? ($rowH['seviye'] ?? 'Yok');
-                                        $not = $old['hasar_not_' . $kod] ?? ($rowH['not'] ?? '');
-                                        ?>
-                                        <tr>
-                                            <td class="fw-semibold"><?= e($ad) ?></td>
-                                            <td>
-                                                <select name="hasar_sev_<?= e($kod) ?>" class="form-select form-select-sm">
-                                                    <?php foreach ($hasarSeviyeleri as $s): ?>
-                                                        <option value="<?= e($s) ?>" <?= (string) $sev === $s ? 'selected' : '' ?>><?= e($s) ?></option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            </td>
-                                            <td><input type="text" name="hasar_not_<?= e($kod) ?>" class="form-control form-control-sm" value="<?= e((string) $not) ?>" placeholder="Opsiyonel"></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                    </tbody>
-                                </table>
+                <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet" data-hasar-form>
+                    <?= Csrf::field() ?>
+                    <input type="hidden" name="adim" value="ekspertiz">
+                    <input type="hidden" name="alt" value="hasar">
+                    <div class="row g-3">
+                        <div class="col-lg-4">
+                            <div class="card h-100">
+                                <div class="card-header"><h5>Araç şeması</h5></div>
+                                <div class="card-body">
+                                    <?php
+                                    $semaReadonly = false;
+                                    require __DIR__ . '/_arac_sema.php';
+                                    ?>
+                                </div>
                             </div>
-                            <label class="form-label">Genel hasar notu</label>
-                            <textarea name="hasar_genel_not" class="form-control mb-3" rows="2"><?= e((string) ($old['hasar_genel_not'] ?? ($ex['hasar_genel_not'] ?? ''))) ?></textarea>
-                            <div class="d-flex justify-content-between">
-                                <a href="/vis/kayit/<?= e($kayit['id']) ?>?adim=arac" class="btn btn-outline-secondary">Geri</a>
-                                <button type="submit" class="btn btn-primary">Kaydet · mekanik <i class="mdi mdi-arrow-right ms-1"></i></button>
+                        </div>
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Hasar tespiti</h5>
+                                    <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted small mb-3">Şemadan panel seçin veya tablodan durum girin.</p>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm hasar-tablo align-middle">
+                                            <thead>
+                                            <tr><th>Panel</th><th style="width:11rem">Durum</th><th>Not</th></tr>
+                                            </thead>
+                                            <tbody>
+                                            <?php foreach ($hasarPanelleri as $kod => $ad):
+                                                $rowH = $hasarData[$kod] ?? [];
+                                                $sev = $old['hasar_sev_' . $kod] ?? ($rowH['seviye'] ?? 'Yok');
+                                                $not = $old['hasar_not_' . $kod] ?? ($rowH['not'] ?? '');
+                                                ?>
+                                                <tr data-panel-row="<?= e($kod) ?>">
+                                                    <td class="fw-semibold"><?= e($ad) ?></td>
+                                                    <td>
+                                                        <select name="hasar_sev_<?= e($kod) ?>" class="form-select form-select-sm">
+                                                            <?php foreach ($hasarSeviyeleri as $s): ?>
+                                                                <option value="<?= e($s) ?>" <?= (string) $sev === $s ? 'selected' : '' ?>><?= e($s) ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </td>
+                                                    <td><input type="text" name="hasar_not_<?= e($kod) ?>" class="form-control form-control-sm" value="<?= e((string) $not) ?>" placeholder="Opsiyonel"></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <label class="form-label">Genel hasar notu</label>
+                                    <textarea name="hasar_genel_not" class="form-control mb-3" rows="2"><?= e((string) ($old['hasar_genel_not'] ?? ($ex['hasar_genel_not'] ?? ''))) ?></textarea>
+                                    <div class="d-flex justify-content-between">
+                                        <a href="/vis/kayit/<?= e($kayit['id']) ?>?adim=arac" class="btn btn-outline-secondary">Geri</a>
+                                        <button type="submit" class="btn btn-primary">Kaydet · mekanik <i class="mdi mdi-arrow-right ms-1"></i></button>
+                                    </div>
+                                </div>
                             </div>
-                        </form>
+                        </div>
                     </div>
-                </div>
+                </form>
 
             <?php elseif ($eksAlt === 'mekanik'): ?>
                 <div class="card">
@@ -271,32 +286,62 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                 </div>
 
             <?php elseif ($eksAlt === 'foto'): ?>
+                <?php $aracDosyalar = $aracDosyalar ?? []; ?>
                 <div class="card">
                     <div class="card-header">
                         <h5>Fotoğraflar ve dokümanlar</h5>
                         <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted small mb-3">Dosya yükleme sonra bağlanacak. Şimdilik her kare için not / dosya adı bırakın.</p>
-                        <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet">
+                        <p class="text-muted small mb-3">Her kare için dosya yükleyebilir ve not yazabilirsiniz. Ek belgeler alta eklenir.</p>
+                        <form method="post" action="/vis/kayit/<?= e($kayit['id']) ?>/kaydet" enctype="multipart/form-data">
                             <?= Csrf::field() ?>
                             <input type="hidden" name="adim" value="ekspertiz">
                             <input type="hidden" name="alt" value="foto">
                             <div class="row g-3">
                                 <?php foreach ($fotoEtiketleri as $i => $etiket):
-                                    $not = $old['foto_' . $i] ?? ($fotoData[$i]['not'] ?? '');
+                                    $not = $old['foto_not_' . $i] ?? ($fotoData[$i]['not'] ?? '');
+                                    $mevcutDosya = null;
+                                    foreach ($aracDosyalar as $d) {
+                                        if (($d['tur'] ?? '') === 'fotograf' && str_starts_with((string) ($d['tanim'] ?? ''), $etiket)) {
+                                            $mevcutDosya = $d;
+                                            break;
+                                        }
+                                    }
                                     ?>
-                                    <div class="col-md-6">
-                                        <label class="form-label"><?= e($etiket) ?></label>
-                                        <input type="text" name="foto_<?= (int) $i ?>" class="form-control" value="<?= e((string) $not) ?>" placeholder="Not veya dosya adı">
+                                    <div class="col-md-6 col-xl-4">
+                                        <div class="foto-slot">
+                                            <div class="fw-semibold small mb-2"><?= e($etiket) ?></div>
+                                            <?php if ($mevcutDosya): ?>
+                                                <a href="<?= e($mevcutDosya['dosya_yolu']) ?>" target="_blank">
+                                                    <img class="foto-onizleme mb-2" src="<?= e($mevcutDosya['dosya_yolu']) ?>" alt="">
+                                                </a>
+                                            <?php else: ?>
+                                                <div class="foto-bos mb-2"><i class="mdi mdi-camera-outline fs-3"></i></div>
+                                            <?php endif; ?>
+                                            <input type="file" name="foto_file_<?= (int) $i ?>" class="form-control form-control-sm mb-2" accept="image/*">
+                                            <input type="text" name="foto_not_<?= (int) $i ?>" class="form-control form-control-sm" value="<?= e((string) $not) ?>" placeholder="Not (opsiyonel)">
+                                        </div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
+
+                            <div class="form-section mt-4">Ek belgeler</div>
+                            <?php
+                            $dosyalar = array_values(array_filter($aracDosyalar, static fn ($d) => ($d['tur'] ?? '') !== 'fotograf'));
+                            $readonly = false;
+                            require BASE_PATH . '/views/partials/dosyalar.php';
+                            ?>
+
                             <div class="d-flex justify-content-between mt-4">
                                 <a href="/vis/kayit/<?= e($kayit['id']) ?>?adim=ekspertiz&alt=mekanik" class="btn btn-outline-secondary">Geri</a>
                                 <button type="submit" class="btn btn-primary">Kaydet · lokasyon <i class="mdi mdi-arrow-right ms-1"></i></button>
                             </div>
                         </form>
+                        <?php
+                        $dosyalar = $aracDosyalar;
+                        require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
+                        ?>
                     </div>
                 </div>
 
@@ -383,6 +428,19 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                 }
             }
             ?>
+            <div class="row g-3 mb-3">
+                <div class="col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header"><h5>Hasar şeması</h5></div>
+                        <div class="card-body">
+                            <?php
+                            $semaReadonly = true;
+                            require __DIR__ . '/_arac_sema.php';
+                            ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-8">
             <div class="card">
                 <div class="card-header">
                     <h5>Özet · Teslim Alma</h5>
@@ -430,6 +488,8 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             <button type="submit" class="btn btn-primary"><i class="mdi mdi-check me-1"></i>Tamamla · araç kartı</button>
                         </div>
                     </form>
+                </div>
+            </div>
                 </div>
             </div>
         <?php endif; ?>

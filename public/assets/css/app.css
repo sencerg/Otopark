@@ -195,6 +195,34 @@ table.dataTable tbody td { vertical-align: middle; }
 
 .hasar-tablo td, .hasar-tablo th { vertical-align: middle; font-size: 13px; }
 .hasar-tablo .form-select, .hasar-tablo .form-control { min-width: 7rem; }
+.hasar-row-focus { outline: 2px solid var(--bs-primary, #4f46e5); outline-offset: -2px; background: #eef2ff; }
+
+.arac-sema-wrap { background: #f8fafc; border: 1px solid #eef1f7; border-radius: var(--radius, 8px); padding: 12px; text-align: center; }
+.arac-sema { width: 100%; max-width: 260px; height: auto; display: block; margin: 0 auto; }
+.arac-sema .sema-govde { fill: #e5e7eb; stroke: #94a3b8; stroke-width: 2; }
+.arac-sema .sema-cam { fill: #bfdbfe; stroke: #60a5fa; stroke-width: 1; pointer-events: none; }
+.arac-sema .sema-panel rect { stroke: #64748b; stroke-width: 1; cursor: pointer; transition: fill .15s; }
+.arac-sema-wrap.readonly .sema-panel rect { cursor: default; }
+.arac-sema .sema-panel:hover rect { stroke: #1d4ed8; stroke-width: 2; }
+.arac-sema .sema-etiket { font-size: 8px; font-weight: 700; fill: #111827; pointer-events: none; }
+.arac-sema .sev-yok rect { fill: #f1f5f9; }
+.arac-sema .sev-cizik rect { fill: #fde68a; }
+.arac-sema .sev-gocuk rect { fill: #fdba74; }
+.arac-sema .sev-boyali rect { fill: #93c5fd; }
+.arac-sema .sev-degisen rect { fill: #c4b5fd; }
+.arac-sema .sev-hasarli rect { fill: #fca5a5; }
+.arac-sema-legend { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 8px; font-size: 11px; font-weight: 600; }
+.arac-sema-legend span { padding: 2px 8px; border-radius: 4px; border: 1px solid #e2e8f0; }
+.arac-sema-legend .sev-yok { background: #f1f5f9; }
+.arac-sema-legend .sev-cizik { background: #fde68a; }
+.arac-sema-legend .sev-gocuk { background: #fdba74; }
+.arac-sema-legend .sev-boyali { background: #93c5fd; }
+.arac-sema-legend .sev-degisen { background: #c4b5fd; }
+.arac-sema-legend .sev-hasarli { background: #fca5a5; }
+
+.foto-slot { border: 1px solid #eef1f7; border-radius: 8px; padding: 12px; background: #fff; height: 100%; }
+.foto-slot .foto-onizleme { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; background: #f1f5f9; }
+.foto-slot .foto-bos { height: 120px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 6px; color: #94a3b8; border: 1px dashed #cbd5e1; }
 
 .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px 20px; }
 .detail-grid .label { font-size: 11.5px; text-transform: uppercase; font-weight: 700; color: #8595ad; }

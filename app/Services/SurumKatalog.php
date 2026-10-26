@@ -31,6 +31,16 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.36',
+                'tarih' => '2026-10-26 11:25',
+                'baslik' => 'Ekspertiz şema + foto yükleme',
+                'maddeler' => [
+                    'Hasar: tıklanabilir araç şeması; durumlar şema üzerinde renk/etiket.',
+                    'Foto adımı: her kare için dosya + not; ek belge yükleme.',
+                    'Özette hasar şeması işaretleriyle gösterilir.',
+                ],
+            ],
+            [
                 'surum' => 'v0.35',
                 'tarih' => '2026-10-26 11:15',
                 'baslik' => 'Ekspertiz alt adımları',
