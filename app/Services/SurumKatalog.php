@@ -31,6 +31,15 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.61',
+                'tarih' => '2026-11-03 17:50',
+                'baslik' => 'Toplu maliyette fiyat müşteriden',
+                'maddeler' => [
+                    'Toplu ek maliyette müşteri seçilmez. Yapıştırılan şasi veya plaka firmayı bulur.',
+                    'Fiyat listesi yalnız bulunan müşteri ve otoparkın tarifesinden gelir. Seçilen fiyat aynı firmadaki araçlara yazılır.',
+                ],
+            ],
+            [
                 'surum' => 'v0.60',
                 'tarih' => '2026-11-03 17:45',
                 'baslik' => 'Toplu maliyette müşteri şasiden',
