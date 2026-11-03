@@ -31,6 +31,15 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.45',
+                'tarih' => '2026-11-03 12:38',
+                'baslik' => 'Hasar C0 fotoğrafsız',
+                'maddeler' => [
+                    'Detaylı araç eklemede C0 seçilince fotoğraf alanı açılmaz ve görsel kaydedilmez.',
+                    'C1–C5 görsel ekleme, mekanik ve sonraki adımlar aynı kaldı.',
+                ],
+            ],
+            [
                 'surum' => 'v0.44',
                 'tarih' => '2026-10-26 16:35',
                 'baslik' => 'Ekspertiz foto · açı rehberleri',
