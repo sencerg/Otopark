@@ -10,8 +10,15 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-primary"><i class
         <div class="dt-toolbar">
             <div class="bulk-bar" id="bulk-bar">
                 <span class="text-muted small"><b class="bulk-count">0</b> seçili</span>
-                <button class="btn btn-sm btn-dark" data-bulk="/arac_yonetimi/qr_toplu" data-bulk-open="1"><i class="mdi mdi-qrcode me-1"></i>QR Yazdır</button>
-                <button class="btn btn-sm btn-outline-danger" data-bulk="/arac_yonetimi/multiple_arsiv" data-confirm="Seçili araçlar arşivlensin mi?"><i class="mdi mdi-archive-outline me-1"></i>Arşivle</button>
+                <button type="button" class="btn btn-sm btn-danger" data-bulk="/arac_yonetimi/toplu_stok_cikisi" data-bulk-nav="1"><i class="mdi mdi-car-off me-1"></i>Toplu stok çıkışı</button>
+                <button type="button" class="btn btn-sm btn-primary" data-bulk="/arac_yonetimi/toplu_ek_maliyet_girisi" data-bulk-nav="1"><i class="mdi mdi-cash-multiple me-1"></i>Toplu maliyet</button>
+                <?php if (\App\Core\Auth::isAdmin() && \App\Core\Auth::can('arac.sil')): ?>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="bulk-sil"><i class="mdi mdi-delete me-1"></i>Sil</button>
+                <?php endif; ?>
+                <button type="button" class="btn btn-sm btn-dark" data-bulk="/arac_yonetimi/qr_toplu" data-bulk-open="1"><i class="mdi mdi-qrcode me-1"></i>QR Yazdır</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bulk="/arac_yonetimi/multiple_arsiv" data-confirm="Seçili araçlar arşivlensin mi?"><i class="mdi mdi-archive-outline me-1"></i>Arşivle</button>
+                <button type="button" class="btn btn-sm btn-light" data-bulk-clear>Seçimi temizle</button>
+                <div class="bulk-secili" id="bulk-secili"></div>
             </div>
             <button id="dt-export" class="btn btn-sm btn-success"><i class="mdi mdi-microsoft-excel me-1"></i>Excel İndir</button>
         </div>
@@ -45,8 +52,18 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-primary"><i class
 <script>
 $(function () {
     const canSil = <?= (\App\Core\Auth::isAdmin() && \App\Core\Auth::can('arac.sil')) ? 'true' : 'false' ?>;
-    App.table('#liste', {
-        url: '/arac_yonetimi/liste', bulk: true, order: [[0, 'desc']],
+    const dt = App.table('#liste', {
+        url: '/arac_yonetimi/liste', bulk: true, bulkRemember: true, order: [[1, 'desc']],
+        onSelection(rows) {
+            window.__seciliAraclar = rows;
+            const $box = $('#bulk-secili');
+            $box.empty();
+            rows.forEach((r) => {
+                const ad = (r.sase || ('#' + r.id)) + (r.plaka ? ' · ' + r.plaka : '');
+                const cls = r.stokta ? 'bulk-chip' : 'bulk-chip is-out';
+                $box.append(`<span class="${cls}">${App.esc(ad + (r.stokta ? '' : ' · stokta değil'))}</span>`);
+            });
+        },
         columns: [
             { data: 'sase', render: (v, _, r) => {
                 const kaynak = r.kayit_kaynagi === 'detayli'
@@ -83,13 +100,35 @@ $(function () {
         Swal.fire({
             icon: 'warning',
             title: 'Araç silinsin mi?',
-            html: (sase ? '<b>' + App.esc(sase) + '</b> — ' : '') + 'Hareket ve maliyet kayıtları da silinir. Toplu silme yoktur; yalnızca tek tek silebilirsiniz.',
+            html: (sase ? '<b>' + App.esc(sase) + '</b> — ' : '') + 'Hareket ve maliyet kayıtları da silinir.',
             showCancelButton: true, confirmButtonText: 'Sil', cancelButtonText: 'Vazgeç', confirmButtonColor: '#dc2626',
         }).then((r) => {
             if (!r.isConfirmed) return;
             $.post('/arac_yonetimi/sil/' + id, { _csrf: $('meta[name="csrf-token"]').attr('content') })
                 .done((res) => { App.toast(res.message || 'Silindi'); $('#liste').DataTable().ajax.reload(null, false); })
                 .fail((x) => App.error(x.responseJSON?.message || 'Silinemedi'));
+        });
+    });
+
+    $('#bulk-sil').on('click', function () {
+        const rows = window.__seciliAraclar || [];
+        if (!rows.length) return;
+        const liste = rows.map((r) => App.esc((r.sase || ('#' + r.id)) + (r.plaka ? ' · ' + r.plaka : ''))).join('<br>');
+        Swal.fire({
+            icon: 'warning',
+            title: rows.length + ' araç silinsin mi?',
+            html: liste + '<div class="small text-muted mt-2">Hareket ve maliyet kayıtları da silinir.</div>',
+            showCancelButton: true, confirmButtonText: 'Sil', cancelButtonText: 'Vazgeç', confirmButtonColor: '#dc2626',
+        }).then((r) => {
+            if (!r.isConfirmed) return;
+            $.post('/arac_yonetimi/multiple_delete', {
+                ids: rows.map((row) => row.id),
+                _csrf: $('meta[name="csrf-token"]').attr('content'),
+            }).done((res) => {
+                App.toast(res.message || 'Silindi');
+                $('#bulk-bar [data-bulk-clear]').trigger('click');
+                dt.ajax.reload(null, false);
+            }).fail((x) => App.error(x.responseJSON?.message || 'Silinemedi'));
         });
     });
 });

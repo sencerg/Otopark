@@ -214,7 +214,7 @@ final class DetayliAracController extends Controller
                 }
                 $alt = trim((string) (Request::str('musteri_musterisi') ?? ''));
                 if ($alt === '') {
-                    throw new RuntimeException('Müşterinin müşterisi zorunludur.');
+                    throw new RuntimeException('Kiralayan firma zorunludur.');
                 }
                 $bayiId = Request::int('bayi_id');
                 if (!$bayiId || !isset(Tanim::liste('bayiler')[$bayiId])) {

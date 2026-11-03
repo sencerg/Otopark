@@ -78,7 +78,7 @@ if (!$yeni) {
                     <div class="row g-3">
                         <div class="col-md-6"><label class="form-label required">Müşteri Adı</label><select name="musteri_id" class="form-select select2" required><?= Tanim::options(Tanim::liste('musteriler'), $v('musteri_id')) ?></select></div>
                         <div class="col-md-6"><label class="form-label required">Lokasyon</label><select name="bayi_id" class="form-select" required><?= Tanim::options(Tanim::liste('bayiler'), $v('bayi_id') ?? Auth::bayiId(), Auth::bayiId() ? null : 'Seçiniz') ?></select></div>
-                        <div class="col-md-6"><label class="form-label">Müşterinin müşterisi</label><input type="text" name="musteri_musterisi" class="form-control" value="<?= e($v('musteri_musterisi')) ?>" placeholder="Detaylı eklemede kullanılır"></div>
+                        <div class="col-md-6"><label class="form-label">Kiralayan Firma</label><input type="text" name="musteri_musterisi" class="form-control" value="<?= e($v('musteri_musterisi')) ?>" placeholder="Firma adı"></div>
                         <div class="col-md-4"><label class="form-label">Lokasyon Türü</label><select name="lokasyon_turu" class="form-select"><?= Tanim::options(Tanim::LOKASYON_TURU, $v('lokasyon_turu')) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Lokasyon Detay</label><input type="text" name="lokasyon_detay" class="form-control" placeholder="Örn. A Blok 12" value="<?= e($v('lokasyon_detay')) ?>"></div>
                         <div class="col-md-4"><label class="form-label">Konsinye Araç Mı?</label><select name="konsinye" class="form-select"><?= Tanim::options([1 => 'Evet', 0 => 'Hayır'], $v('konsinye') ? 1 : 0, null) ?></select></div>

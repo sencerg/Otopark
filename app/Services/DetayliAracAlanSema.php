@@ -149,7 +149,7 @@ final class DetayliAracAlanSema
         $out = [];
         foreach ([
             ['musteri_id', 'Müşteri (firma)', 'taraflar', 'select', true],
-            ['musteri_musterisi', 'Müşterinin müşterisi', 'taraflar', 'text', true],
+            ['musteri_musterisi', 'Kiralayan Firma', 'taraflar', 'text', true],
             ['bayi_id', 'Otopark / lokasyon', 'taraflar', 'otopark', true],
             ['teslim_eden', 'Teslim eden', 'taraflar', 'text', false],
             ['teslim_eden_telefon', 'Teslim eden telefon', 'taraflar', 'text', false],

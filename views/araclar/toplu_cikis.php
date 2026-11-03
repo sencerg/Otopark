@@ -60,6 +60,24 @@ $headerActions = '<a href="/arac_yonetimi/sablon/cikis" class="btn btn-success">
                     <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="#cikis-satir-tpl" data-target="#cikis-satirlari"><i class="mdi mdi-plus"></i> Satır Ekle</button>
                 </div>
                 <div class="card-body">
+                    <?php
+                    $secili = $secili ?? [];
+                    $stoktaMi = static fn ($v) => $v === true || $v === 1 || $v === '1' || $v === 't' || $v === 'true';
+                    $stoktakiler = array_values(array_filter($secili, static fn ($a) => $stoktaMi($a['stokta'] ?? false)));
+                    $stoktaOlmayan = array_values(array_filter($secili, static fn ($a) => !$stoktaMi($a['stokta'] ?? false)));
+                    ?>
+                    <?php if ($secili): ?>
+                        <div class="alert alert-info small">
+                            Listeden <?= count($secili) ?> araç geldi.
+                            <?= count($stoktakiler) ?> tanesi stokta; çıkış onlara uygulanır.
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($stoktaOlmayan): ?>
+                        <div class="alert alert-warning small mb-3">
+                            Stokta olmadığı için çıkışa alınmayanlar:
+                            <?= e(implode(', ', array_map(static fn ($a) => ($a['sase'] ?: $a['plaka'] ?: ('#' . $a['id'])), $stoktaOlmayan))) ?>
+                        </div>
+                    <?php endif; ?>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle">
                             <thead>
@@ -69,7 +87,15 @@ $headerActions = '<a href="/arac_yonetimi/sablon/cikis" class="btn btn-success">
                                 <th></th>
                             </tr>
                             </thead>
-                            <tbody id="cikis-satirlari"></tbody>
+                            <tbody id="cikis-satirlari">
+                            <?php foreach ($stoktakiler as $arac): ?>
+                                <tr class="row-item">
+                                    <td><input type="text" name="satir[plaka][]" class="form-control form-control-sm text-uppercase" value="<?= e((string) ($arac['plaka'] ?? '')) ?>" placeholder="Boş bırakılabilir"></td>
+                                    <td><input type="text" name="satir[sase][]" class="form-control form-control-sm text-uppercase" value="<?= e((string) ($arac['sase'] ?? '')) ?>" placeholder="Şasi yapıştırın"></td>
+                                    <td><button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-delete-outline"></i></button></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
                         </table>
                     </div>
                     <template id="cikis-satir-tpl">
@@ -89,7 +115,9 @@ $headerActions = '<a href="/arac_yonetimi/sablon/cikis" class="btn btn-success">
 <?php ob_start(); ?>
 <script>
 $(function () {
-    $('[data-add-row]').first().trigger('click');
+    if (!$('#cikis-satirlari tr').length) {
+        $('[data-add-row]').first().trigger('click');
+    }
 });
 </script>
 <?php $scripts = ob_get_clean(); ?>

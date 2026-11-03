@@ -166,14 +166,57 @@
             });
         }
 
-        const dt = $table.DataTable({
+        const remembered = opts.bulkRemember ? new Map() : null;
+        let dt;
+        const selectedIds = () => (remembered
+            ? [...remembered.keys()]
+            : $table.find('.row-check:checked').map((_, el) => el.value).get());
+        function rowMeta(el) {
+            const data = dt ? (dt.row($(el).closest('tr')).data() || {}) : {};
+            return {
+                id: String(el.value),
+                sase: data.sase || '',
+                plaka: data.plaka || '',
+                stokta: !!data.stokta,
+            };
+        }
+        function paintBulk() {
+            const ids = selectedIds();
+            const $bar = $(opts.bulkBar || '#bulk-bar');
+            $bar.toggleClass('show', ids.length > 0).find('.bulk-count').text(ids.length);
+            if (typeof opts.onSelection === 'function') {
+                opts.onSelection(remembered ? [...remembered.values()] : ids.map((id) => ({ id })));
+            }
+        }
+        function syncPage() {
+            if (!remembered) {
+                paintBulk();
+                return;
+            }
+            $table.find('.row-check').each(function () {
+                if (this.checked) remembered.set(String(this.value), rowMeta(this));
+                else remembered.delete(String(this.value));
+            });
+            paintBulk();
+        }
+
+        dt = $table.DataTable({
             serverSide: true,
             searching: false,
             ajax: { url: opts.url, type: 'GET', data: (d) => Object.assign(d, filterData()), dataSrc: (json) => { opts.onData && opts.onData(json); return json.data; } },
             columns,
             order: opts.order || [[opts.bulk ? 1 : 0, 'desc']],
             createdRow: opts.createdRow,
-            drawCallback: () => { $table.find('.check-all').prop('checked', false); updateBulk(); },
+            drawCallback: () => {
+                if (remembered) {
+                    $table.find('.row-check').each(function () {
+                        this.checked = remembered.has(String(this.value));
+                    });
+                }
+                const boxes = $table.find('.row-check');
+                $table.find('.check-all').prop('checked', boxes.length > 0 && boxes.filter(':checked').length === boxes.length);
+                paintBulk();
+            },
         });
 
         let timer;
@@ -186,18 +229,25 @@
             window.location = (opts.exportUrl || opts.url) + (opts.url.includes('?') ? '&' : '?') + $.param(Object.assign({ export: 1 }, filterData()));
         });
 
-        const selectedIds = () => $table.find('.row-check:checked').map((_, el) => el.value).get();
-        function updateBulk() {
-            const n = selectedIds().length;
-            $(opts.bulkBar || '#bulk-bar').toggleClass('show', n > 0).find('.bulk-count').text(n);
-        }
-        $table.on('change', '.row-check', updateBulk);
-        $table.on('change', '.check-all', function () { $table.find('.row-check').prop('checked', this.checked); updateBulk(); });
+        $table.on('change', '.row-check', syncPage);
+        $table.on('change', '.check-all', function () {
+            $table.find('.row-check').prop('checked', this.checked);
+            syncPage();
+        });
+        $(opts.bulkBar || '#bulk-bar').on('click', '[data-bulk-clear]', function () {
+            if (remembered) remembered.clear();
+            $table.find('.row-check, .check-all').prop('checked', false);
+            paintBulk();
+        });
 
         $(opts.bulkBar || '#bulk-bar').on('click', '[data-bulk]', function () {
             const ids = selectedIds();
             const $btn = $(this);
             if (!ids.length) return;
+            if ($btn.is('[data-bulk-nav]')) {
+                window.location = $btn.data('bulk') + '?' + $.param({ ids });
+                return;
+            }
             Swal.fire({
                 icon: 'warning', title: $btn.data('confirm') || 'Emin misiniz?', text: ids.length + ' kayıt seçildi.',
                 showCancelButton: true, confirmButtonText: 'Evet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#1d4ed8',
@@ -208,6 +258,7 @@
                     return;
                 }
                 $.post($btn.data('bulk'), { ids, _csrf: csrf }).done((res) => {
+                    if (remembered) remembered.clear();
                     App.toast(res.message || 'İşlem tamamlandı');
                     dt.ajax.reload(null, false);
                 }).fail((x) => App.error(x.responseJSON?.message));

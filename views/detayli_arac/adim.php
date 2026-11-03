@@ -44,7 +44,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                     <span class="badge badge-soft-primary"><?= e($v['sase'] ?? '') ?></span>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted small">Araç müşteri firmaya aittir. Müşterinin müşterisi getiren / nihai tarafıdır.</p>
+                    <p class="text-muted small">Araç müşteri firmaya aittir. Kiralayan firma, aracı kiralayan taraftır.</p>
                     <form method="post" action="/detayli-arac/kayit/<?= e($kayit['id']) ?>/kaydet">
                         <?= Csrf::field() ?>
                         <input type="hidden" name="adim" value="taraflar">
@@ -56,9 +56,9 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label required">Müşterinin müşterisi</label>
+                                <label class="form-label required">Kiralayan Firma</label>
                                 <input type="text" name="musteri_musterisi" class="form-control" required maxlength="150"
-                                       value="<?= e((string) $val('musteri_musterisi')) ?>" placeholder="Ad soyad / firma">
+                                       value="<?= e((string) $val('musteri_musterisi')) ?>" placeholder="Firma adı">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label required">Otopark / lokasyon</label>
@@ -731,7 +731,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             <div class="form-section mt-0">Taraflar</div>
                             <div class="detail-grid mb-3">
                                 <div><div class="label">Müşteri</div><div class="value"><?= e($t['musteri_ad'] ?? '—') ?></div></div>
-                                <div><div class="label">Müşterinin müşterisi</div><div class="value"><?= e($t['musteri_musterisi'] ?? '—') ?></div></div>
+                                <div><div class="label">Kiralayan Firma</div><div class="value"><?= e($t['musteri_musterisi'] ?? '—') ?></div></div>
                                 <div><div class="label">Otopark</div><div class="value"><?= e($t['bayi_ad'] ?? '—') ?></div></div>
                                 <div><div class="label">Teslim eden</div><div class="value"><?= e($t['teslim_eden'] ?: '—') ?></div></div>
                             </div>

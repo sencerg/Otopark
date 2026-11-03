@@ -31,6 +31,25 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.47',
+                'tarih' => '2026-11-03 12:50',
+                'baslik' => 'Taraflarda kiralayan firma',
+                'maddeler' => [
+                    'Detaylı araç eklemede müşterinin müşterisi alanı Kiralayan Firma adıyla gösterilir.',
+                    'Özet ekranı ve boş bırakılırsa çıkan uyarı aynı adı kullanır.',
+                ],
+            ],
+            [
+                'surum' => 'v0.46',
+                'tarih' => '2026-11-03 12:45',
+                'baslik' => 'Araç listesinde seçerek toplu işlem',
+                'maddeler' => [
+                    'Araç Yönetimi listesinde seçilen şasi/plaka görünür; sayfa değişse de seçim durur.',
+                    'Seçilenlerle toplu stok çıkışı ve toplu maliyet formuna geçilir; çıkışta stokta olmayanlar ayrılır.',
+                    'Yönetici, seçilen araçları listeden silebilir.',
+                ],
+            ],
+            [
                 'surum' => 'v0.45',
                 'tarih' => '2026-11-03 12:38',
                 'baslik' => 'Hasar C0 fotoğrafsız',

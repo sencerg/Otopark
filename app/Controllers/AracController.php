@@ -301,12 +301,46 @@ final class AracController extends Controller
         });
     }
 
-    /** Toplu silme kapalı — hata riski yüksek; yalnızca tekil silme kullanılır. */
     public function topluSil(): void
     {
         Auth::requireAdmin();
+        Auth::requireIzin('arac.sil');
         $this->ajax(function () {
-            throw new RuntimeException('Toplu araç silme yapılamaz. Araçları tek tek siliniz.');
+            $ids = Request::ids('ids');
+            if (!$ids) {
+                throw new RuntimeException('Kayıt seçilmedi.');
+            }
+            $n = 0;
+            $hatalar = [];
+            foreach ($ids as $id) {
+                $arac = Database::fetch(
+                    'SELECT id, sase FROM araclar WHERE id = :id AND ' . Auth::bayiKosulu('bayi_id'),
+                    ['id' => $id]
+                );
+                if (!$arac) {
+                    $hatalar[] = '#' . $id . ' bulunamadı';
+                    continue;
+                }
+                try {
+                    $deleted = Database::query('DELETE FROM araclar WHERE id = :id', ['id' => $id])->rowCount();
+                } catch (\PDOException $e) {
+                    error_log($e->getMessage());
+                    $hatalar[] = $arac['sase'] . ' silinemedi';
+                    continue;
+                }
+                if ($deleted) {
+                    Log::islem('arac', 'Araç silindi: ' . $arac['sase'], (int) $arac['id']);
+                    $n++;
+                }
+            }
+            if ($n === 0) {
+                throw new RuntimeException($hatalar ? implode(' | ', array_slice($hatalar, 0, 8)) : 'Seçilen araçlar silinemedi.');
+            }
+            $mesaj = "{$n} araç silindi.";
+            if ($hatalar) {
+                $mesaj .= ' ' . count($hatalar) . ' kayıt atlandı.';
+            }
+            $this->ok($mesaj);
         });
     }
 
@@ -359,19 +393,77 @@ final class AracController extends Controller
 
     public function topluStokCikisi(): void
     {
+        $secili = $this->seciliAraclar(Request::ids('ids'));
         $this->view('araclar/toplu_cikis', [
             'pageTitle' => 'Toplu Stok Çıkışı',
-            'breadcrumb' => ['Stoktan Çıkanlar' => '/arac_hareketleri/cikis', 'Toplu Stok Çıkışı' => null],
+            'breadcrumb' => ['Araç Yönetimi' => '/arac_yonetimi', 'Toplu Stok Çıkışı' => null],
+            'secili' => $secili,
         ]);
     }
 
     public function topluEkMaliyet(): void
     {
+        $secili = $this->seciliAraclar(Request::ids('ids'));
+        if ($secili) {
+            $this->view('araclar/toplu_maliyet_secili', [
+                'pageTitle' => 'Seçilen araçlara maliyet',
+                'breadcrumb' => ['Araç Yönetimi' => '/arac_yonetimi', 'Toplu Maliyet' => null],
+                'secili' => $secili,
+            ]);
+            return;
+        }
         $this->view('araclar/toplu_excel', [
             'pageTitle' => 'Toplu Ek Maliyet Girişi', 'action' => '/arac_yonetimi/excel_toplu_ek_maliyet_giris', 'sablon' => 'maliyet',
             'aciklama' => 'Şablonu indirin. “Hizmet Kalemi” sütununa ikinci sayfadaki (Maliyet Tipleri) adlardan birini yazın; fiyatı girip XLSX olarak yükleyin. Şasi sistemde kayıtlı olmalıdır.',
             'breadcrumb' => ['Araç Yönetimi' => '/arac_yonetimi', 'Toplu Ek Maliyet Girişi' => null],
         ]);
+    }
+
+    public function seciliMaliyet(): void
+    {
+        if (!Auth::can('maliyet.yonet') && !Auth::can('menu.toplu')) {
+            Auth::requireIzin('maliyet.yonet');
+        }
+        $ids = Request::ids('ids');
+        $geri = '/arac_yonetimi/toplu_ek_maliyet_girisi' . ($ids ? '?' . http_build_query(['ids' => $ids]) : '');
+        $this->form(function () use ($ids) {
+            if (!$ids) {
+                throw new RuntimeException('Araç seçilmedi.');
+            }
+            $tipId = (int) (Request::str('maliyet_tipi_id') ?? 0);
+            if ($tipId <= 0) {
+                throw new RuntimeException('Maliyet tipi seçilmelidir.');
+            }
+            $tutar = Request::str('tutar');
+            $payload = [
+                'maliyet_tipi_id' => $tipId,
+                'tutar' => ($tutar === null || $tutar === '') ? null : $tutar,
+                'aciklama' => Request::str('aciklama') ?: null,
+                'irsaliye' => Request::str('irsaliye') ?: null,
+                'fatura_no' => Request::str('fatura_no') ?: null,
+                'fatura_tarihi' => Request::str('fatura_tarihi') ?: null,
+                'islem_tarihi' => Request::str('islem_tarihi') ?: date('Y-m-d'),
+            ];
+            $basarili = 0;
+            $hatalar = [];
+            foreach ($this->seciliAraclar($ids) as $arac) {
+                try {
+                    AracService::maliyetEkle((int) $arac['id'], $payload);
+                    $basarili++;
+                } catch (RuntimeException $e) {
+                    $hatalar[] = ($arac['sase'] ?: $arac['plaka']) . ': ' . $e->getMessage();
+                }
+            }
+            if ($basarili === 0) {
+                throw new RuntimeException($hatalar ? implode(' | ', array_slice($hatalar, 0, 6)) : 'Maliyet eklenemedi.');
+            }
+            Log::islem('maliyet', "Seçili araçlara maliyet: {$basarili} kayıt");
+            flash('success', "{$basarili} araca maliyet eklendi.");
+            if ($hatalar) {
+                flash('error', count($hatalar) . ' araç atlandı: ' . implode(' | ', array_slice($hatalar, 0, 6)));
+            }
+            View::redirect('/arac_yonetimi');
+        }, $geri);
     }
 
     public function topluLokasyon(): void
@@ -839,5 +931,24 @@ final class AracController extends Controller
             flash('success', "{$basarili} aracın lokasyonu güncellendi (" . count($satirlar) . ' satır okundu).');
             View::redirect('/arac_yonetimi/toplu_kayit_guncelleme_lokasyon');
         }, '/arac_yonetimi/toplu_kayit_guncelleme_lokasyon');
+    }
+
+    /** @param list<int> $ids
+     *  @return list<array<string,mixed>>
+     */
+    private function seciliAraclar(array $ids): array
+    {
+        if (!$ids) {
+            return [];
+        }
+
+        return Database::fetchAll(
+            'SELECT a.id, a.sase, a.plaka, a.stokta, mu.ad AS firma
+             FROM araclar a
+             LEFT JOIN musteriler mu ON mu.id = a.musteri_id
+             WHERE a.id = ANY(:ids::bigint[]) AND ' . Auth::bayiKosulu('a.bayi_id') . '
+             ORDER BY a.sase',
+            ['ids' => '{' . implode(',', $ids) . '}']
+        );
     }
 }
