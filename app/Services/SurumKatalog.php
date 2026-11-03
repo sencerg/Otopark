@@ -31,6 +31,15 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.62',
+                'tarih' => '2026-11-03 22:50',
+                'baslik' => 'Toplu stok girişinde yapıştırma',
+                'maddeler' => [
+                    'Toplu stok girişinde şasi veya plaka listesi yapıştırılır.',
+                    'Marka ve model seçildikten sonra liste oluşur. Satırda marka, model ve seri değiştirilip stoğa aktarılır.',
+                ],
+            ],
+            [
                 'surum' => 'v0.61',
                 'tarih' => '2026-11-03 17:50',
                 'baslik' => 'Toplu maliyette fiyat müşteriden',

@@ -398,6 +398,90 @@ final class AracController extends Controller
         $this->view('araclar/toplu_stok', ['pageTitle' => 'Toplu Stok Girişi', 'breadcrumb' => ['Araç Yönetimi' => '/arac_yonetimi', 'Toplu Stok Girişi' => null]]);
     }
 
+    public function topluStokGirisKontrol(): void
+    {
+        $this->ajax(function () {
+            $metin = Request::input('yapiskan');
+            $satirlar = $this->yapistirmaSatirlari(is_string($metin) ? $metin : '');
+            if (!$satirlar) {
+                throw new RuntimeException('Yapıştırılacak şasi veya plaka yok.');
+            }
+            $temiz = [];
+            $gorulen = [];
+            foreach ($satirlar as $satir) {
+                $sase = '';
+                $yazilan = AracService::normalizeSase($satir['sase']);
+                $hata = null;
+                if (trim($satir['sase']) !== '') {
+                    try {
+                        $sase = AracService::dogrulaSase($satir['sase']);
+                    } catch (RuntimeException $e) {
+                        $hata = $e->getMessage();
+                    }
+                }
+                $plaka = AracService::normalizePlaka($satir['plaka'] !== '' ? $satir['plaka'] : null);
+                $temiz[] = ['ham' => $satir['ham'], 'sase' => $sase, 'yazilan' => $yazilan, 'plaka' => (string) $plaka, 'hata' => $hata, 'tekrar' => $sase !== '' && isset($gorulen[$sase])];
+                if ($sase !== '') {
+                    $gorulen[$sase] = true;
+                }
+            }
+            $saseler = array_values(array_filter(array_column($temiz, 'sase')));
+            $plakalar = array_values(array_unique(array_filter(array_column($temiz, 'plaka'))));
+            $kayit = [];
+            if ($saseler) {
+                foreach (Database::fetchAll(
+                    'SELECT sase, plaka, stokta FROM araclar WHERE NOT COALESCE(arsiv, false) AND sase = ANY(:s::text[])',
+                    ['s' => '{' . implode(',', $saseler) . '}']
+                ) as $row) {
+                    $kayit[$row['sase']] = $row;
+                }
+            }
+            $plakaSahip = [];
+            if ($plakalar) {
+                foreach (Database::fetchAll(
+                    'SELECT sase, plaka FROM araclar WHERE NOT COALESCE(arsiv, false) AND plaka = ANY(:p::text[])',
+                    ['p' => '{' . implode(',', $plakalar) . '}']
+                ) as $row) {
+                    $plakaSahip[$row['plaka']] = $row['sase'];
+                }
+            }
+            $sonuc = [];
+            $say = ['uygun' => 0, 'stokta' => 0, 'stok_disi' => 0, 'tekrar' => 0, 'gecersiz' => 0, 'plaka_dolu' => 0];
+            foreach ($temiz as $satir) {
+                if ($satir['sase'] === '') {
+                    $durum = 'gecersiz';
+                    $mesaj = 'Şasi yok';
+                } elseif ($satir['hata']) {
+                    $durum = 'gecersiz';
+                    $mesaj = $satir['hata'];
+                } elseif ($satir['tekrar']) {
+                    $durum = 'tekrar';
+                    $mesaj = 'Aynı şasi tekrar yazılmış';
+                } elseif (isset($kayit[$satir['sase']]) && $this->stoktaMi($kayit[$satir['sase']]['stokta'])) {
+                    $durum = 'stokta';
+                    $mesaj = 'Zaten stokta';
+                } elseif ($satir['plaka'] !== '' && isset($plakaSahip[$satir['plaka']]) && $plakaSahip[$satir['plaka']] !== $satir['sase']) {
+                    $durum = 'plaka_dolu';
+                    $mesaj = 'Plaka başka araçta: ' . $plakaSahip[$satir['plaka']];
+                } elseif (isset($kayit[$satir['sase']])) {
+                    $durum = 'stok_disi';
+                    $mesaj = 'Stok dışı, yeniden giriş';
+                } else {
+                    $durum = 'uygun';
+                    $mesaj = 'Listeye alınacak';
+                }
+                $say[$durum]++;
+                $sonuc[] = [
+                    'sase' => $satir['sase'] !== '' ? $satir['sase'] : $satir['yazilan'],
+                    'plaka' => $satir['plaka'],
+                    'durum' => $durum,
+                    'mesaj' => $mesaj,
+                ];
+            }
+            $this->ok('Kontrol edildi.', $say + ['satirlar' => $sonuc]);
+        });
+    }
+
     public function topluStokCikisi(): void
     {
         $secili = $this->seciliAraclar(Request::ids('ids'));
