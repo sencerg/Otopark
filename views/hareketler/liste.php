@@ -39,7 +39,7 @@ if ($giris) {
                 <thead>
                 <tr>
                     <th><input type="checkbox" class="form-check-input check-all"></th>
-                    <th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka</th><th>Seri</th><th>Lokasyon</th>
+                    <th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka</th><th>Model</th><th>Seri</th><th>Lokasyon</th>
                     <?php if ($giris): ?>
                         <th>Giriş Tarihi</th><th>Depolama Süresi</th>
                     <?php else: ?>
@@ -85,6 +85,7 @@ $(function () {
         { data: 'plaka', render: (v) => App.esc(v || '-') },
         { data: 'firma', render: (v) => App.esc(v || '-') },
         { data: 'marka', render: (v) => App.esc(v || '-') },
+        { data: 'model', render: (v) => App.esc(v || '-') },
         { data: 'seri', render: (v) => App.esc(v || '-') },
         { data: 'lokasyon', render: (v, _, r) => App.esc(v || '-') + (r.lokasyon_detay ? `<div class="small text-muted">${App.esc(r.lokasyon_detay)}</div>` : '') },
     ];

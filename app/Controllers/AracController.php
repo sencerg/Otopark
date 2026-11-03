@@ -31,11 +31,12 @@ final class AracController extends Controller
             'araclar a
              LEFT JOIN musteriler mu ON mu.id = a.musteri_id
              LEFT JOIN markalar m ON m.id = a.marka_id
+             LEFT JOIN modeller mo ON mo.id = a.model_id
              LEFT JOIN seriler s ON s.id = a.seri_id
              LEFT JOIN bayiler b ON b.id = a.bayi_id
              LEFT JOIN LATERAL (SELECT h.hareket_tipi FROM arac_hareketleri h WHERE h.arac_id = a.id AND NOT h.arsiv ORDER BY h.hareket_tarihi DESC LIMIT 1) sh ON TRUE',
             [
-                'id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad', 'lokasyon' => 'b.ad',
+                'id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'model' => 'mo.ad', 'seri' => 's.ad', 'lokasyon' => 'b.ad',
                 'son_hareket' => 'sh.hareket_tipi', 'stokta' => 'a.stokta',
                 'kayit_kaynagi' => 'a.kayit_kaynagi',
                 'musteri_musterisi' => 'a.musteri_musterisi',
@@ -48,7 +49,7 @@ final class AracController extends Controller
             ['a.sase', 'a.plaka', 'b.ad', 'mu.ad', 'a.lokasyon_detay', 'a.musteri_musterisi'],
             'a.id DESC'
         );
-        foreach (['marka_id', 'seri_id', 'musteri_id', 'arac_tipi_id', 'bayi_id'] as $key) {
+        foreach (['marka_id', 'model_id', 'seri_id', 'musteri_id', 'arac_tipi_id', 'bayi_id'] as $key) {
             if ($v = Request::int($key)) {
                 $dt->where("a.{$key} = :f_{$key}", ["f_{$key}" => $v]);
             }
@@ -73,7 +74,7 @@ final class AracController extends Controller
         $map = fn ($r) => $r + ['son_hareket_ad' => Tanim::HAREKET_TIPI[$r['son_hareket'] ?? 0] ?? '-'];
         if (Request::input('export')) {
             Excel::download('arac-listesi', [
-                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
+                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'model' => 'Model', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
                 'son_hareket_ad' => 'Son Hareket Tipi', 'giris_tarihi' => 'Giriş Tarihi', 'cikis_tarihi' => 'Çıkış Tarihi', 'depolama_suresi' => 'Depolama Süresi (Gün)',
             ], array_map($map, $dt->all()));
         }
@@ -128,8 +129,8 @@ final class AracController extends Controller
     public function save(): void
     {
         $this->form(function () {
-            if (!Request::int('arac_tipi') || !Request::int('marka_id') || !Request::int('seri_id')) {
-                throw new RuntimeException('Araç tipi, marka ve seri zorunludur.');
+            if (!Request::int('arac_tipi') || !Request::int('marka_id') || !Request::int('model_id')) {
+                throw new RuntimeException('Araç tipi, marka ve model zorunludur.');
             }
             $sonuc = AracService::kaydetVeHareket(
                 $this->aracFormVerisi(),
@@ -283,8 +284,8 @@ final class AracController extends Controller
             $this->notFound();
         }
         $araclar = Database::fetchAll(
-            'SELECT a.id, a.sase, a.plaka, m.ad AS marka, s.ad AS seri, mu.ad AS musteri, a.lokasyon_detay
-             FROM araclar a LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN seriler s ON s.id = a.seri_id LEFT JOIN musteriler mu ON mu.id = a.musteri_id
+            'SELECT a.id, a.sase, a.plaka, m.ad AS marka, mo.ad AS model, s.ad AS seri, mu.ad AS musteri, a.lokasyon_detay
+             FROM araclar a LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN modeller mo ON mo.id = a.model_id LEFT JOIN seriler s ON s.id = a.seri_id LEFT JOIN musteriler mu ON mu.id = a.musteri_id
              WHERE a.id = ANY(:ids::bigint[]) AND ' . Auth::bayiKosulu('a.bayi_id') . ' ORDER BY a.id',
             ['ids' => '{' . implode(',', $ids) . '}']
         );
@@ -512,18 +513,32 @@ final class AracController extends Controller
     private function stokSablonXlsx(): never
     {
         $markalar = Database::fetchAll('SELECT id, ad FROM markalar ORDER BY ad');
+        $modeller = Database::fetchAll(
+            'SELECT mo.id, m.ad AS marka, mo.ad AS model FROM modeller mo JOIN markalar m ON m.id = mo.marka_id ORDER BY m.ad, mo.ad'
+        );
         $seriler = Database::fetchAll(
-            'SELECT s.id, m.ad AS marka, s.ad AS seri FROM seriler s JOIN markalar m ON m.id = s.marka_id ORDER BY m.ad, s.ad'
+            'SELECT s.id, m.ad AS marka, mo.ad AS model, s.ad AS seri
+             FROM seriler s
+             JOIN modeller mo ON mo.id = s.model_id
+             JOIN markalar m ON m.id = mo.marka_id
+             ORDER BY m.ad, mo.ad, s.ad'
         );
         $ornekMarka = $markalar[0]['ad'] ?? 'Renault';
-        $ornekSeri = Database::fetch('SELECT s.ad FROM seriler s JOIN markalar m ON m.id = s.marka_id WHERE m.ad = :a ORDER BY s.ad LIMIT 1', ['a' => $ornekMarka])['ad'] ?? '';
+        $ornekModelSatir = Database::fetch('SELECT mo.ad FROM modeller mo JOIN markalar m ON m.id = mo.marka_id WHERE m.ad = :a ORDER BY mo.ad LIMIT 1', ['a' => $ornekMarka]);
+        $ornekModel = $ornekModelSatir['ad'] ?? '';
+        $ornekSeriSatir = $ornekModel === '' ? null : Database::fetch(
+            'SELECT s.ad FROM seriler s JOIN modeller mo ON mo.id = s.model_id JOIN markalar m ON m.id = mo.marka_id WHERE m.ad = :a AND mo.ad = :o ORDER BY s.ad LIMIT 1',
+            ['a' => $ornekMarka, 'o' => $ornekModel]
+        );
+        $ornekSeri = $ornekSeriSatir['ad'] ?? '';
         Excel::downloadXlsx('Toplu_Stok_Girisi', [
             'Toplu Stok Girişi' => [
                 'headers' => [
                     'plaka' => 'Plaka *',
                     'sase' => 'Şase Numarası *',
                     'marka' => 'MARKA *',
-                    'seri' => 'Seri *',
+                    'model' => 'Model *',
+                    'seri' => 'Seri',
                     'arac_durumu' => 'Araç Durumu',
                     'kasa_tipi' => 'Kasa Tipi',
                     'renk' => 'Renk',
@@ -542,6 +557,7 @@ final class AracController extends Controller
                     'plaka' => '',
                     'sase' => 'TMBAN8NZ7TC066835',
                     'marka' => $ornekMarka,
+                    'model' => $ornekModel,
                     'seri' => $ornekSeri,
                     'arac_durumu' => 'Sıfır',
                     'kasa_tipi' => '-',
@@ -561,10 +577,16 @@ final class AracController extends Controller
             'Araç Markaları' => [
                 'list' => array_merge([['ID', 'Marka Adı']], array_map(fn ($m) => [(string) $m['id'], $m['ad']], $markalar)),
             ],
+            'Araç Modelleri' => [
+                'list' => array_merge(
+                    [['ID', 'Marka', 'Model Adı']],
+                    array_map(fn ($s) => [(string) $s['id'], $s['marka'], $s['model']], $modeller)
+                ),
+            ],
             'Araç Serileri' => [
                 'list' => array_merge(
-                    [['ID', 'Marka ID', 'Seri Adı']],
-                    array_map(fn ($s) => [(string) $s['id'], $s['marka'], $s['seri']], $seriler)
+                    [['ID', 'Marka', 'Model', 'Seri Adı']],
+                    array_map(fn ($s) => [(string) $s['id'], $s['marka'], $s['model'], $s['seri']], $seriler)
                 ),
             ],
         ]);
@@ -924,7 +946,8 @@ final class AracController extends Controller
                 foreach ((array) ($_POST['satir']['sase'] ?? []) as $i => $sase) {
                     $satirlar[] = [
                         'sase' => $sase, 'plaka' => $_POST['satir']['plaka'][$i] ?? '', 'marka_id' => $_POST['satir']['marka_id'][$i] ?? '',
-                        'seri_id' => $_POST['satir']['seri_id'][$i] ?? '', 'lokasyon_detay' => $_POST['satir']['lokasyon_detay'][$i] ?? '',
+                        'model_id' => $_POST['satir']['model_id'][$i] ?? '', 'seri_id' => $_POST['satir']['seri_id'][$i] ?? '',
+                        'lokasyon_detay' => $_POST['satir']['lokasyon_detay'][$i] ?? '',
                         'sevkiyat_kodu' => $_POST['satir']['sevkiyat_kodu'][$i] ?? '', 'irsaliye_kodu' => $_POST['satir']['irsaliye_kodu'][$i] ?? '',
                         'proje_adi' => $_POST['satir']['proje_adi'][$i] ?? '',
                     ];
@@ -952,9 +975,10 @@ final class AracController extends Controller
             foreach (array_values($satirlar) as $i => $s) {
                 try {
                     $markaId = (int) ($s['marka_id'] ?? 0) ?: TopluAktarim::bul($markalar, $s['marka'] ?? '', 'Marka');
+                    $modelId = (int) ($s['model_id'] ?? 0) ?: TopluAktarim::modelId($markaId, (string) ($s['model'] ?? ''));
                     $seriId = (int) ($s['seri_id'] ?? 0) ?: null;
-                    if (!$seriId) {
-                        $seriId = TopluAktarim::seriId($markaId, (string) ($s['seri'] ?? ''));
+                    if (!$seriId && trim((string) ($s['seri'] ?? '')) !== '') {
+                        $seriId = TopluAktarim::seriId($modelId, (string) $s['seri']);
                     }
                     // Araç tipi / durumu isteğe bağlı (Excel boş bırakılabilir; form varsayılanı varsa o kullanılır)
                     $aracTipiId = TopluAktarim::bul($aracTipleri, $s['arac_tipi'] ?? '', 'Araç tipi', false) ?? $varsayilanAracTipi;
@@ -965,6 +989,7 @@ final class AracController extends Controller
                             'plaka' => ($s['plaka'] ?? '') !== '' ? $s['plaka'] : null,
                             'onceki_plaka' => ($s['onceki_plaka'] ?? '') !== '' ? $s['onceki_plaka'] : null,
                             'marka_id' => $markaId,
+                            'model_id' => $modelId,
                             'seri_id' => $seriId,
                             'musteri_id' => $musteriId,
                             'bayi_id' => $bayiId,

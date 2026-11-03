@@ -24,10 +24,10 @@ final class TanimController extends Controller
         return [
             'arac_markalari' => ['baslik' => 'Araç Markaları', 'tablo' => 'markalar', 'icon' => 'mdi-car-info', 'grup' => 'Araç',
                 'alanlar' => ['ad' => ['Marka Adı', 'text', true]]],
-            'arac_serileri' => ['baslik' => 'Araç Serileri', 'tablo' => 'seriler', 'icon' => 'mdi-car-side', 'grup' => 'Araç',
-                'alanlar' => ['marka_id' => ['Marka', 'select', true, 'markalar'], 'ad' => ['Seri Adı', 'text', true]]],
-            'arac_modelleri' => ['baslik' => 'Araç Modelleri', 'tablo' => 'modeller', 'icon' => 'mdi-car-cog', 'grup' => 'Araç',
-                'alanlar' => ['seri_id' => ['Seri', 'select', true, 'seriler_tam'], 'ad' => ['Model Adı', 'text', true]]],
+            'arac_modelleri' => ['baslik' => 'Araç Modelleri', 'tablo' => 'modeller', 'icon' => 'mdi-car-side', 'grup' => 'Araç',
+                'alanlar' => ['marka_id' => ['Marka', 'select', true, 'markalar'], 'ad' => ['Model Adı', 'text', true]]],
+            'arac_serileri' => ['baslik' => 'Araç Serileri', 'tablo' => 'seriler', 'icon' => 'mdi-car-cog', 'grup' => 'Araç',
+                'alanlar' => ['model_id' => ['Model', 'select', true, 'modeller_tam'], 'ad' => ['Seri Adı', 'text', true]]],
             'arac_tipleri' => ['baslik' => 'Araç Tipleri', 'tablo' => 'arac_tipleri', 'icon' => 'mdi-truck-outline', 'grup' => 'Araç',
                 'alanlar' => ['ad' => ['Araç Tipi', 'text', true]]],
             'kasa_tipleri' => ['baslik' => 'Kasa Tipleri', 'tablo' => 'kasa_tipleri', 'icon' => 'mdi-car-estate', 'grup' => 'Araç',
@@ -111,7 +111,7 @@ final class TanimController extends Controller
         }
 
         return match ($kaynak) {
-            'seriler_tam' => array_column(Database::fetchAll("SELECT s.id, m.ad || ' / ' || s.ad AS ad FROM seriler s JOIN markalar m ON m.id = s.marka_id ORDER BY m.ad, s.ad"), 'ad', 'id'),
+            'modeller_tam' => array_column(Database::fetchAll("SELECT mo.id, m.ad || ' / ' || mo.ad AS ad FROM modeller mo JOIN markalar m ON m.id = mo.marka_id ORDER BY m.ad, mo.ad"), 'ad', 'id'),
             'bayiler' => array_column(Database::fetchAll('SELECT id, ad FROM bayiler WHERE ' . Auth::bayiKosulu('id') . ' ORDER BY id'), 'ad', 'id'),
             'musteriler' => array_column(Database::fetchAll('SELECT id, ad FROM musteriler ORDER BY ad'), 'ad', 'id'),
             default => Tanim::liste($kaynak),
@@ -248,6 +248,10 @@ final class TanimController extends Controller
                 $data['varsayilan_tutar'] = 0;
             }
 
+            if ($tip === 'depolama_fiyatlari') {
+                $this->depolamaTekilUyarisi($data, $id);
+            }
+
             $eskiDepolama = null;
             if ($tip === 'depolama_fiyatlari' && $id) {
                 $eskiDepolama = Database::fetch(
@@ -293,6 +297,33 @@ final class TanimController extends Controller
             Log::islem('tanim', $t['baslik'] . ' kaydedildi', $id);
             $this->ok('Kayıt kaydedildi.');
         });
+    }
+
+    /** Aynı firma, otopark ve araç tipi için ikinci ücret kaydını isimle durdurur. */
+    private function depolamaTekilUyarisi(array $data, ?int $id): void
+    {
+        $aracTipi = $data['arac_tipi_id'] ?? null;
+        $params = [
+            'm' => (int) $data['musteri_id'],
+            'b' => (int) $data['bayi_id'],
+            'id' => $id ?? 0,
+        ];
+        $tipKosul = 'd.arac_tipi_id IS NULL';
+        if ($aracTipi !== null && $aracTipi !== '') {
+            $tipKosul = 'd.arac_tipi_id = :t';
+            $params['t'] = (int) $aracTipi;
+        }
+        $var = Database::fetch(
+            "SELECT m.ad AS musteri, b.ad AS bayi
+             FROM depolama_fiyatlari d
+             JOIN musteriler m ON m.id = d.musteri_id
+             JOIN bayiler b ON b.id = d.bayi_id
+             WHERE d.musteri_id = :m AND d.bayi_id = :b AND {$tipKosul} AND d.id <> :id",
+            $params
+        );
+        if ($var) {
+            throw new RuntimeException($var['musteri'] . ' firması için ' . $var['bayi'] . ' otopark ücreti daha önce eklenmiş.');
+        }
     }
 
     public function getir(string $tip, string $id): void

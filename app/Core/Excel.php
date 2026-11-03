@@ -223,6 +223,7 @@ final class Excel
             'sase' => 'sase',
             'sasi' => 'sase',
             'marka' => 'marka',
+            'model' => 'model',
             'seri' => 'seri',
             'arac durumu' => 'arac_durumu',
             'kasa tipi' => 'kasa_tipi',

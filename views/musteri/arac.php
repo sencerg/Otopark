@@ -12,7 +12,7 @@ $hizToplam = array_sum(array_map(fn ($h) => (float) $h['tutar'], $hizmetler));
                 <dl class="row mb-0 small">
                     <dt class="col-5">Plaka</dt><dd class="col-7 fw-semibold"><?= e($arac['plaka'] ?: '—') ?></dd>
                     <dt class="col-5">Şasi</dt><dd class="col-7 font-monospace"><?= e($arac['sase']) ?></dd>
-                    <dt class="col-5">Marka / Seri</dt><dd class="col-7"><?= e(trim(($arac['marka'] ?? '') . ' ' . ($arac['seri'] ?? '')) ?: '—') ?></dd>
+                    <dt class="col-5">Marka / Model / Seri</dt><dd class="col-7"><?= e(trim(($arac['marka'] ?? '') . ' ' . ($arac['model'] ?? '') . (!empty($arac['seri']) ? ' / ' . $arac['seri'] : '')) ?: '—') ?></dd>
                     <dt class="col-5">Tip</dt><dd class="col-7"><?= e($arac['arac_tipi'] ?? '—') ?></dd>
                     <dt class="col-5">Otopark</dt><dd class="col-7"><?= e($arac['otopark'] ?? '—') ?></dd>
                     <dt class="col-5">Lokasyon</dt><dd class="col-7"><?= e($arac['lokasyon_detay'] ?? '—') ?></dd>

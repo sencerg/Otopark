@@ -7,7 +7,7 @@ $g = fn (string $k) => $_GET[$k] ?? null;
 ?>
 <div class="filter-bar filter-scope">
     <div><label class="form-label">Marka</label><select name="marka_id" data-filter="marka_id" class="form-select select2"><?= Tanim::options(Tanim::liste('markalar'), $g('marka_id'), 'Tüm Markalar') ?></select></div>
-    <div><label class="form-label">Seri</label><select name="seri_id" data-filter="seri_id" class="form-select select2"><?= $g('marka_id') ? Tanim::options(Tanim::seriler((int) $g('marka_id')), $g('seri_id'), 'Tüm Seriler') : '<option value="">Önce Marka Seçiniz</option>' ?></select></div>
+    <div><label class="form-label">Model</label><select name="model_id" data-filter="model_id" class="form-select select2"><?= $g('marka_id') ? Tanim::options(Tanim::modeller((int) $g('marka_id')), $g('model_id'), 'Tüm Modeller') : '<option value="">Önce Marka Seçiniz</option>' ?></select></div>
     <div><label class="form-label">Müşteri</label><select data-filter="musteri_id" class="form-select select2"><?= Tanim::options(Tanim::liste('musteriler'), $g('musteri_id'), 'Tüm Müşteriler') ?></select></div>
     <div><label class="form-label">Araç Tipi</label><select data-filter="arac_tipi_id" class="form-select"><?= Tanim::options(Tanim::liste('arac_tipleri'), $g('arac_tipi_id'), 'Tümü') ?></select></div>
     <?php if (!empty($lokasyonTuruFiltre)): ?>

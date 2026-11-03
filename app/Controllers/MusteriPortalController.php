@@ -131,7 +131,7 @@ final class MusteriPortalController extends Controller
             $headers = [
                 'plaka' => 'Plaka',
                 'sase' => 'Şasi',
-                'marka_seri' => 'Marka / Seri',
+                'marka_seri' => 'Marka / Model / Seri',
                 'otopark' => 'Otopark',
                 'lokasyon_detay' => 'Lokasyon Detay',
             ];
@@ -202,7 +202,7 @@ final class MusteriPortalController extends Controller
         $ozet = [[
             'plaka' => $arac['plaka'] ?? '',
             'sase' => $arac['sase'] ?? '',
-            'marka_seri' => trim(($arac['marka'] ?? '') . ' ' . ($arac['seri'] ?? '')),
+            'marka_seri' => trim(($arac['marka'] ?? '') . ' ' . ($arac['model'] ?? '') . (trim((string) ($arac['seri'] ?? '')) !== '' ? ' / ' . $arac['seri'] : '')),
             'arac_tipi' => $arac['arac_tipi'] ?? '',
             'otopark' => $arac['otopark'] ?? '',
             'lokasyon' => $arac['lokasyon_detay'] ?? '',
@@ -228,7 +228,7 @@ final class MusteriPortalController extends Controller
         Excel::downloadXlsx($this->excelFirmaAdi() . '_' . $ad, [
             'Araç' => [
                 'headers' => [
-                    'plaka' => 'Plaka', 'sase' => 'Şasi', 'marka_seri' => 'Marka / Seri',
+                    'plaka' => 'Plaka', 'sase' => 'Şasi', 'marka_seri' => 'Marka / Model / Seri',
                     'arac_tipi' => 'Tip', 'otopark' => 'Otopark', 'lokasyon' => 'Lokasyon', 'durum' => 'Durum',
                 ],
                 'rows' => $ozet,
@@ -262,7 +262,7 @@ final class MusteriPortalController extends Controller
         $row = [
             'plaka' => $r['plaka'] ?? '',
             'sase' => $r['sase'] ?? '',
-            'marka_seri' => trim(($r['marka'] ?? '') . ' ' . ($r['seri'] ?? '')),
+            'marka_seri' => trim(($r['marka'] ?? '') . ' ' . ($r['model'] ?? '') . (trim((string) ($r['seri'] ?? '')) !== '' ? ' / ' . $r['seri'] : '')),
             'otopark' => $r['otopark'] ?? '',
             'lokasyon_detay' => $r['lokasyon_detay'] ?? '',
             'giris' => !empty($r['giris_tarihi']) ? date('d.m.Y H:i', strtotime((string) $r['giris_tarihi'])) : '',
@@ -290,12 +290,13 @@ final class MusteriPortalController extends Controller
         return Database::fetchAll(
             'SELECT e.id, e.islem_tarihi, e.tutar, e.aciklama, e.fatura_no,
                     mt.ad AS hizmet, a.plaka, a.sase, b.ad AS otopark,
-                    mk.ad AS marka, s.ad AS seri
+                    mk.ad AS marka, mo.ad AS model, s.ad AS seri
              FROM arac_ekstreleri e
              JOIN araclar a ON a.id = e.arac_id
              JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
              LEFT JOIN bayiler b ON b.id = a.bayi_id
              LEFT JOIN markalar mk ON mk.id = a.marka_id
+             LEFT JOIN modeller mo ON mo.id = a.model_id
              LEFT JOIN seriler s ON s.id = a.seri_id
              WHERE a.musteri_id = :m AND NOT COALESCE(a.arsiv, false)
              ORDER BY e.islem_tarihi DESC NULLS LAST, e.id DESC',
@@ -396,10 +397,11 @@ final class MusteriPortalController extends Controller
     {
         return Database::fetch(
             'SELECT a.id, a.plaka, a.sase, a.stokta, a.stoga_giris_tarihi, a.lokasyon_detay,
-                    b.ad AS otopark, mk.ad AS marka, s.ad AS seri, at.ad AS arac_tipi
+                    b.ad AS otopark, mk.ad AS marka, mo.ad AS model, s.ad AS seri, at.ad AS arac_tipi
              FROM araclar a
              LEFT JOIN bayiler b ON b.id = a.bayi_id
              LEFT JOIN markalar mk ON mk.id = a.marka_id
+             LEFT JOIN modeller mo ON mo.id = a.model_id
              LEFT JOIN seriler s ON s.id = a.seri_id
              LEFT JOIN arac_tipleri at ON at.id = a.arac_tipi_id
              WHERE a.id = :id AND a.musteri_id = :m AND NOT COALESCE(a.arsiv, false)',

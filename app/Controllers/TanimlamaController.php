@@ -62,22 +62,22 @@ final class TanimlamaController extends Controller
         'marka' => [
             'tablo' => 'markalar', 'baslik' => 'Marka', 'sira' => 't.ad',
             'alanlar' => ['ad' => ['Marka Adı', 'text', true]],
-            'ek' => '(SELECT COUNT(*) FROM seriler s WHERE s.marka_id = t.id) AS alt_sayi',
-        ],
-        'seri' => [
-            'tablo' => 'seriler', 'baslik' => 'Seri', 'sira' => 't.ad', 'ust' => ['marka_id', 'markalar'],
-            'alanlar' => ['ad' => ['Seri Adı', 'text', true]],
-            'ek' => '(SELECT COUNT(*) FROM modeller m WHERE m.seri_id = t.id) AS alt_sayi',
+            'ek' => '(SELECT COUNT(*) FROM modeller mo WHERE mo.marka_id = t.id) AS alt_sayi',
         ],
         'model' => [
-            'tablo' => 'modeller', 'baslik' => 'Model', 'sira' => 't.ad', 'ust' => ['seri_id', 'seriler'],
+            'tablo' => 'modeller', 'baslik' => 'Model', 'sira' => 't.ad', 'ust' => ['marka_id', 'markalar'],
             'alanlar' => ['ad' => ['Model Adı', 'text', true]],
-            'ek' => '(SELECT COUNT(*) FROM araclar a WHERE a.model_id = t.id) AS alt_sayi',
+            'ek' => '(SELECT COUNT(*) FROM seriler s WHERE s.model_id = t.id) AS alt_sayi',
+        ],
+        'seri' => [
+            'tablo' => 'seriler', 'baslik' => 'Seri', 'sira' => 't.ad', 'ust' => ['model_id', 'modeller'],
+            'alanlar' => ['ad' => ['Seri Adı', 'text', true]],
+            'ek' => '(SELECT COUNT(*) FROM araclar a WHERE a.seri_id = t.id) AS alt_sayi',
         ],
     ];
 
     /** Silinmeden önce alt kaydı olmaması gereken tipler. */
-    private const ALT_KAYIT = ['marka' => ['seriler', 'marka_id', 'Önce markanın serilerini silin.'], 'seri' => ['modeller', 'seri_id', 'Önce serinin modellerini silin.']];
+    private const ALT_KAYIT = ['marka' => ['modeller', 'marka_id', 'Önce markanın modellerini silin.'], 'model' => ['seriler', 'model_id', 'Önce modelin serilerini silin.']];
 
     public static function alanlar(): array
     {
@@ -156,6 +156,94 @@ final class TanimlamaController extends Controller
             'admin' => true,
             'sekme' => $sekme,
         ]);
+    }
+
+    /** Mevcut marka, model ve seriyi Excel olarak indirir. */
+    public function markaModelDisa(): void
+    {
+        $rows = Database::fetchAll(
+            'SELECT mk.ad AS marka, mo.ad AS model, COALESCE(s.ad, \'\') AS seri
+             FROM modeller mo
+             JOIN markalar mk ON mk.id = mo.marka_id
+             LEFT JOIN seriler s ON s.model_id = mo.id
+             ORDER BY mk.ad, mo.ad, s.ad'
+        );
+        \App\Core\Excel::downloadXlsx('Marka_Model_Seri', [
+            'Marka Model Seri' => [
+                'headers' => ['marka' => 'Marka', 'model' => 'Model', 'seri' => 'Seri'],
+                'rows' => $rows,
+            ],
+        ]);
+    }
+
+    /** Excel’deki marka / model / seri satırlarını ilgili kataloga ekler. Var olan adlar tekrar yazılmaz. */
+    public function markaModelIce(): void
+    {
+        $this->ajax(function () {
+            if (!Auth::isAdmin()) {
+                throw new RuntimeException('Bu tanımı yalnızca yönetici değiştirebilir.');
+            }
+            $file = $_FILES['import_file'] ?? null;
+            if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+                throw new RuntimeException('Lütfen bir Excel dosyası seçiniz.');
+            }
+            $ext = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, ['xlsx', 'xls', 'csv'], true)) {
+                throw new RuntimeException('Dosya XLSX veya CSV olmalıdır.');
+            }
+            $satirlar = \App\Core\Excel::read($file['tmp_name'], $file['name']);
+            if (!$satirlar) {
+                throw new RuntimeException('Aktarılacak satır bulunamadı. Sütunlar: Marka, Model, Seri.');
+            }
+            $yeni = ['marka' => 0, 'model' => 0, 'seri' => 0];
+            $islenen = 0;
+            foreach ($satirlar as $i => $s) {
+                $marka = trim((string) ($s['marka'] ?? ''));
+                $model = trim((string) ($s['model'] ?? ''));
+                $seri = trim((string) ($s['seri'] ?? ''));
+                if ($marka === '' && $model === '' && $seri === '') {
+                    continue;
+                }
+                if ($marka === '' || $model === '') {
+                    throw new RuntimeException('Satır ' . ($i + 2) . ': Marka ve model birlikte dolu olmalıdır.');
+                }
+                $markaId = $this->katalogBulVeyaEkle('markalar', 'ad', $marka, [], $yeni, 'marka');
+                $modelId = $this->katalogBulVeyaEkle('modeller', 'ad', $model, ['marka_id' => $markaId], $yeni, 'model');
+                if ($seri !== '') {
+                    $this->katalogBulVeyaEkle('seriler', 'ad', $seri, ['model_id' => $modelId], $yeni, 'seri');
+                }
+                $islenen++;
+            }
+            if ($islenen === 0) {
+                throw new RuntimeException('Aktarılacak satır bulunamadı. Sütunlar: Marka, Model, Seri.');
+            }
+            Log::islem('tanim', "Marka/model/seri Excel: {$islenen} satır");
+            $this->ok("{$islenen} satır işlendi. Yeni marka {$yeni['marka']}, model {$yeni['model']}, seri {$yeni['seri']}.");
+        });
+    }
+
+    /** @param array<string,int> $yeni */
+    private function katalogBulVeyaEkle(string $tablo, string $adAlan, string $ad, array $ust, array &$yeni, string $sayac): int
+    {
+        $kosul = "lower({$adAlan}) = lower(:ad)";
+        $params = ['ad' => $ad];
+        foreach ($ust as $alan => $deger) {
+            $kosul .= " AND {$alan} = :{$alan}";
+            $params[$alan] = $deger;
+        }
+        $var = Database::fetch("SELECT id FROM {$tablo} WHERE {$kosul}", $params);
+        if ($var) {
+            return (int) $var['id'];
+        }
+        $cols = array_merge(array_keys($ust), [$adAlan]);
+        $paramsInsert = $ust + [$adAlan => $ad];
+        $id = (int) Database::fetch(
+            "INSERT INTO {$tablo} (" . implode(', ', $cols) . ') VALUES (:' . implode(', :', $cols) . ') RETURNING id',
+            $paramsInsert
+        )['id'];
+        $yeni[$sayac]++;
+
+        return $id;
     }
 
     public function liste(string $tip): void
@@ -316,7 +404,7 @@ final class TanimlamaController extends Controller
             $hizmetId = (int) $hizmetId;
             $anahtar = $bayiId . ':' . $hizmetId;
             if (isset($gelen[$anahtar])) {
-                throw new RuntimeException('Aynı otopark ve hizmet için birden fazla fiyat satırı var.');
+                throw new RuntimeException($this->hizmetCiftiUyarisi($bayiId, $hizmetId));
             }
             if (!Database::fetch('SELECT 1 FROM maliyet_tipleri WHERE id = :id AND aktif', ['id' => $hizmetId])) {
                 throw new RuntimeException('Seçilen hizmet bulunamadı veya pasif.');
@@ -324,14 +412,16 @@ final class TanimlamaController extends Controller
             if (!Database::fetch('SELECT 1 FROM bayiler WHERE id = :id AND aktif', ['id' => $bayiId])) {
                 throw new RuntimeException('Seçilen otopark bulunamadı veya pasif.');
             }
-            $gelen[$anahtar] = ['b' => $bayiId, 't' => $hizmetId];
+            $gelen[$anahtar] = ['b' => $bayiId, 't' => $hizmetId, 'musteri' => $musteriFiyat, 'bayi' => $bayiFiyat];
+        }
+        foreach ($gelen as $satir) {
             Database::query(
                 'INSERT INTO hizmet_fiyatlari (musteri_id, bayi_id, maliyet_tipi_id, tutar, musteri_fiyat, bayi_fiyat, updated_at)
                  VALUES (:m, :b, :t, :u, :u, :bf, NOW())
                  ON CONFLICT (musteri_id, bayi_id, maliyet_tipi_id)
                  DO UPDATE SET tutar = EXCLUDED.tutar, musteri_fiyat = EXCLUDED.musteri_fiyat,
                                bayi_fiyat = EXCLUDED.bayi_fiyat, updated_at = NOW()',
-                ['m' => $musteriId, 'b' => $bayiId, 't' => $hizmetId, 'u' => $musteriFiyat, 'bf' => $bayiFiyat]
+                ['m' => $musteriId, 'b' => $satir['b'], 't' => $satir['t'], 'u' => $satir['musteri'], 'bf' => $satir['bayi']]
             );
         }
         if ($gelen) {
@@ -369,7 +459,8 @@ final class TanimlamaController extends Controller
             }
             $bayiId = (int) $bayiId;
             if (isset($gelen[$bayiId])) {
-                throw new RuntimeException('Aynı otopark için birden fazla satır var.');
+                $ad = Database::fetch('SELECT ad FROM bayiler WHERE id = :id', ['id' => $bayiId]);
+                throw new RuntimeException(($ad['ad'] ?? 'Bu otopark') . ' için günlük ücret daha önce eklenmiş.');
             }
             if (!Database::fetch('SELECT 1 FROM bayiler WHERE id = :id AND aktif', ['id' => $bayiId])) {
                 throw new RuntimeException('Seçilen otopark bulunamadı veya pasif.');
@@ -409,6 +500,19 @@ final class TanimlamaController extends Controller
             }
             DepolamaFiyatGecmisi::kaydet($bayiId, $musteriId, null, (float) $musteriFiyat, null, (float) $bayiFiyat);
         }
+    }
+
+    private function hizmetCiftiUyarisi(int $bayiId, int $hizmetId): string
+    {
+        $ad = Database::fetch(
+            'SELECT b.ad AS bayi, m.ad AS hizmet
+             FROM bayiler b
+             CROSS JOIN maliyet_tipleri m
+             WHERE b.id = :b AND m.id = :t',
+            ['b' => $bayiId, 't' => $hizmetId]
+        );
+
+        return ($ad['bayi'] ?? 'Otopark') . ' için ' . ($ad['hizmet'] ?? 'hizmet') . ' daha önce eklenmiş.';
     }
 
     private function dogrula(string $tip, array $data, ?int $id): void

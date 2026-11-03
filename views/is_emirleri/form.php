@@ -54,7 +54,7 @@ $aracDurumlari = array_slice(Tanim::IS_EMRI_DURUM, 0, 4, true);
                         <?php foreach ($araclar as $a): ?>
                             <tr class="row-item">
                                 <td>
-                                    <select name="arac_id[]" class="form-select arac-select"><option value="<?= $a['arac_id'] ?>" selected><?= e($a['sase'] . ' — ' . ($a['plaka'] ?: '-') . ' — ' . trim(($a['marka'] ?? '') . ' ' . ($a['seri'] ?? ''))) ?></option></select>
+                                    <select name="arac_id[]" class="form-select arac-select"><option value="<?= $a['arac_id'] ?>" selected><?= e($a['sase'] . ' — ' . ($a['plaka'] ?: '-') . ' — ' . trim(($a['marka'] ?? '') . ' ' . ($a['model'] ?? '') . (!empty($a['seri']) ? ' / ' . $a['seri'] : ''))) ?></option></select>
                                     <?php if ($a['maliyet_yazildi']): ?><div class="small text-success mt-1"><i class="mdi mdi-check-circle"></i> Maliyet yazıldı</div><?php endif; ?>
                                 </td>
                                 <td><select name="a_durum[]" class="form-select"><?= Tanim::options($aracDurumlari, $a['durum']) ?></select></td>

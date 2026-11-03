@@ -39,7 +39,7 @@ $adminFiyat = Auth::isAdmin();
         </div>
         <div class="table-responsive">
             <table id="liste" class="table table-hover w-100">
-                <thead><tr><th>İşlem Tarihi</th><th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka / Seri</th><th>Lokasyon</th><th>Hizmet</th><th>Açıklama</th><th>Fatura No</th><?php if ($adminFiyat): ?><th class="text-end">Bayi</th><th class="text-end">Müşteri</th><th class="text-end">Kâr</th><?php elseif ($fiyat || $maske): ?><th class="text-end"><?= $maske ? 'Bayi tutarı' : 'Müşteri tutarı' ?></th><?php endif; ?></tr></thead>
+                <thead><tr><th>İşlem Tarihi</th><th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka / Model / Seri</th><th>Lokasyon</th><th>Hizmet</th><th>Açıklama</th><th>Fatura No</th><?php if ($adminFiyat): ?><th class="text-end">Bayi</th><th class="text-end">Müşteri</th><th class="text-end">Kâr</th><?php elseif ($fiyat || $maske): ?><th class="text-end"><?= $maske ? 'Bayi tutarı' : 'Müşteri tutarı' ?></th><?php endif; ?></tr></thead>
             </table>
         </div>
     </div>
@@ -65,7 +65,7 @@ $(function () {
         { data: 'sase', render: (v, _, r) => `<a href="/arac_yonetimi/duzenle/${r.arac_id}" class="fw-semibold">${App.esc(v)}</a>` },
         { data: 'plaka', render: (v) => App.esc(v || '-') },
         { data: 'firma', render: (v) => App.esc(v || '-') },
-        { data: 'marka', render: (v, _, r) => App.esc([v, r.seri].filter(Boolean).join(' ') || '-') },
+        { data: 'marka', render: (v, _, r) => App.esc([v, r.model, r.seri].filter(Boolean).join(' ') || '-') },
         { data: 'lokasyon', render: (v) => App.esc(v || '-') },
         { data: 'maliyet_tipi', render: (v, _, r) => App.esc(v) + (r.cikis_sonrasi ? '<div><span class="badge bg-warning text-dark">Çıkış sonrası eklendi</span></div>' : '') },
         { data: 'aciklama', render: (v, _, r) => (r.cikis_sonrasi && v ? '<i class="mdi mdi-note-text-outline text-warning me-1"></i>' : '') + App.esc(v || '-') },

@@ -56,14 +56,16 @@ final class Tanim
         return self::$cache[$anahtar] = array_column(Database::fetchAll($sql), 'ad', 'id');
     }
 
-    public static function seriler(int $markaId): array
+    /** Markanın modelleri. */
+    public static function modeller(int $markaId): array
     {
-        return array_column(Database::fetchAll('SELECT id, ad FROM seriler WHERE marka_id = :m ORDER BY ad', ['m' => $markaId]), 'ad', 'id');
+        return array_column(Database::fetchAll('SELECT id, ad FROM modeller WHERE marka_id = :m ORDER BY ad', ['m' => $markaId]), 'ad', 'id');
     }
 
-    public static function modeller(int $seriId): array
+    /** Modelin serileri. */
+    public static function seriler(int $modelId): array
     {
-        return array_column(Database::fetchAll('SELECT id, ad FROM modeller WHERE seri_id = :s ORDER BY ad', ['s' => $seriId]), 'ad', 'id');
+        return array_column(Database::fetchAll('SELECT id, ad FROM seriler WHERE model_id = :m ORDER BY ad', ['m' => $modelId]), 'ad', 'id');
     }
 
     public static function donanimGruplari(): array

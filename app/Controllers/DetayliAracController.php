@@ -124,7 +124,7 @@ final class DetayliAracController extends Controller
             $eksAlt = 'hasar';
         }
         $markaId = (int) ($row['veri']['marka_id'] ?? 0);
-        $seriId = (int) ($row['veri']['seri_id'] ?? 0);
+        $modelId = (int) ($row['veri']['model_id'] ?? 0);
         $eksBaslik = '';
         foreach (DetayliAracStore::ekspertizAdimlari() as $ea) {
             if ($ea['kod'] === $eksAlt) {
@@ -171,8 +171,8 @@ final class DetayliAracController extends Controller
             'musteriler' => Tanim::liste('musteriler'),
             'bayiler' => Tanim::liste('bayiler'),
             'markalar' => Tanim::liste('markalar'),
-            'seriler' => $markaId ? Tanim::seriler($markaId) : [],
-            'modeller' => $seriId ? Tanim::modeller($seriId) : [],
+            'modeller' => $markaId ? Tanim::modeller($markaId) : [],
+            'seriler' => $modelId ? Tanim::seriler($modelId) : [],
             'aracTipleri' => Tanim::liste('arac_tipleri'),
             'kasaTipleri' => Tanim::liste('kasa_tipleri'),
             'renkler' => Tanim::liste('renkler'),
@@ -247,12 +247,12 @@ final class DetayliAracController extends Controller
                 $plaka = Request::str('plaka');
                 $aracTipi = Request::int('arac_tipi_id');
                 $markaId = Request::int('marka_id');
-                $seriId = Request::int('seri_id');
+                $modelId = Request::int('model_id');
                 if (!$aracTipi) {
                     throw new RuntimeException('Araç tipi seçilmelidir.');
                 }
-                if (!$markaId || !$seriId) {
-                    throw new RuntimeException('Marka ve seri seçilmelidir.');
+                if (!$markaId || !$modelId) {
+                    throw new RuntimeException('Marka ve model seçilmelidir.');
                 }
 
                 $lastikler = [];
@@ -285,8 +285,8 @@ final class DetayliAracController extends Controller
                     'plaka' => AracService::normalizePlaka($plaka) ?? (AracService::normalizePlaka($row['veri']['plaka'] ?? null) ?? ''),
                     'arac_tipi_id' => $aracTipi,
                     'marka_id' => $markaId,
-                    'seri_id' => $seriId,
-                    'model_id' => Request::int('model_id') ?: null,
+                    'model_id' => $modelId,
+                    'seri_id' => Request::int('seri_id') ?: null,
                     'model_yili_id' => Request::int('model_yili_id') ?: null,
                     'kasa_tipi_id' => Request::int('kasa_tipi_id') ?: null,
                     'renk_id' => Request::int('renk_id') ?: null,

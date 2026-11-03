@@ -108,17 +108,17 @@ final class AracService
 
     public static function markaSeriModelKontrol(array $arac): void
     {
-        if (!empty($arac['seri_id']) && !Database::fetch(
-            'SELECT 1 FROM seriler WHERE id = :s AND (:m1::int IS NULL OR marka_id = :m2::int)',
-            ['s' => $arac['seri_id'], 'm1' => ($arac['marka_id'] ?? null) ?: null, 'm2' => ($arac['marka_id'] ?? null) ?: null]
-        )) {
-            throw new RuntimeException('Seçilen seri bu markaya ait değil.');
-        }
         if (!empty($arac['model_id']) && !Database::fetch(
-            'SELECT 1 FROM modeller WHERE id = :o AND (:s1::int IS NULL OR seri_id = :s2::int)',
-            ['o' => $arac['model_id'], 's1' => ($arac['seri_id'] ?? null) ?: null, 's2' => ($arac['seri_id'] ?? null) ?: null]
+            'SELECT 1 FROM modeller WHERE id = :o AND (:m1::int IS NULL OR marka_id = :m2::int)',
+            ['o' => $arac['model_id'], 'm1' => ($arac['marka_id'] ?? null) ?: null, 'm2' => ($arac['marka_id'] ?? null) ?: null]
         )) {
-            throw new RuntimeException('Seçilen model bu seriye ait değil.');
+            throw new RuntimeException('Seçilen model bu markaya ait değil.');
+        }
+        if (!empty($arac['seri_id']) && !Database::fetch(
+            'SELECT 1 FROM seriler WHERE id = :s AND (:o1::int IS NULL OR model_id = :o2::int)',
+            ['s' => $arac['seri_id'], 'o1' => ($arac['model_id'] ?? null) ?: null, 'o2' => ($arac['model_id'] ?? null) ?: null]
+        )) {
+            throw new RuntimeException('Seçilen seri bu modele ait değil.');
         }
     }
 

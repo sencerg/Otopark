@@ -157,15 +157,15 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label required">Seri</label>
-                                <select name="seri_id" class="form-select select2" required>
-                                    <?= !empty($seriler) ? Tanim::options($seriler, $val('seri_id')) : '<option value="">Önce marka seçiniz</option>' ?>
+                                <label class="form-label required">Model</label>
+                                <select name="model_id" class="form-select select2" required>
+                                    <?= !empty($modeller) ? Tanim::options($modeller, $val('model_id')) : '<option value="">Önce marka seçiniz</option>' ?>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Model</label>
-                                <select name="model_id" class="form-select select2">
-                                    <?= !empty($modeller) ? Tanim::options($modeller, $val('model_id')) : '<option value="">Önce seri seçiniz</option>' ?>
+                                <label class="form-label">Seri</label>
+                                <select name="seri_id" class="form-select select2">
+                                    <?= !empty($seriler) ? Tanim::options($seriler, $val('seri_id')) : '<option value="">Önce model seçiniz</option>' ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -695,7 +695,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                     $fotoSayisi++;
                 }
             }
-            $markaSeri = trim(($markalar[$v['marka_id'] ?? 0] ?? '') . ' ' . ($seriler[$v['seri_id'] ?? 0] ?? ''));
+            $markaSeri = trim(($markalar[$v['marka_id'] ?? 0] ?? '') . ' ' . ($modeller[$v['model_id'] ?? 0] ?? '') . ((string) ($seriler[$v['seri_id'] ?? 0] ?? '') !== '' ? ' / ' . $seriler[$v['seri_id']] : ''));
             ?>
             <div class="row g-3 mb-3">
                 <div class="col-lg-4">
@@ -740,7 +740,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                             <div class="detail-grid mb-3">
                                 <div><div class="label">Şasi</div><div class="value"><?= e($v['sase'] ?? '—') ?></div></div>
                                 <div><div class="label">Plaka</div><div class="value"><?= e($v['plaka'] ?: '—') ?></div></div>
-                                <div><div class="label">Marka / Seri</div><div class="value"><?= e($markaSeri !== '' ? $markaSeri : '—') ?></div></div>
+                                <div><div class="label">Marka / Model / Seri</div><div class="value"><?= e($markaSeri !== '' ? $markaSeri : '—') ?></div></div>
                                 <div><div class="label">KM</div><div class="value"><?= e(isset($v['km']) && $v['km'] !== '' && $v['km'] !== null ? (string) $v['km'] : '—') ?></div></div>
                             </div>
 

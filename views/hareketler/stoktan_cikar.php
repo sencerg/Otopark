@@ -26,7 +26,7 @@ $simdiSaat = date('H:i');
                     <div class="detail-grid">
                         <div><div class="label">Şasi</div><div class="value"><?= e($arac['sase']) ?></div></div>
                         <div><div class="label">Plaka</div><div class="value"><?= e($arac['plaka'] ?: '-') ?></div></div>
-                        <div><div class="label">Marka / Seri</div><div class="value"><?= e(trim(($arac['marka'] ?? '') . ' ' . ($arac['seri'] ?? '')) ?: '-') ?></div></div>
+                        <div><div class="label">Marka / Model</div><div class="value"><?= e(trim(($arac['marka'] ?? '') . ' ' . ($arac['model'] ?? '') . (!empty($arac['seri']) ? ' / ' . $arac['seri'] : '')) ?: '-') ?></div></div>
                         <div><div class="label">Müşteri</div><div class="value"><?= e($arac['musteri'] ?? '-') ?></div></div>
                         <div><div class="label">Lokasyon</div><div class="value"><?= e($arac['bayi'] ?? '-') ?> <?= $arac['lokasyon_detay'] ? '/ ' . e($arac['lokasyon_detay']) : '' ?></div></div>
                         <div><div class="label">Stoğa Giriş</div><div class="value"><?= date('d.m.Y H:i', strtotime($arac['stoga_giris_tarihi'])) ?></div></div>

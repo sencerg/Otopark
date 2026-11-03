@@ -34,8 +34,8 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                     <div class="form-section">Detay Bilgiler</div>
                     <div class="row g-3">
                         <div class="col-md-4"><label class="form-label">Marka</label><select name="marka_id" class="form-select select2"><?= Tanim::options(Tanim::liste('markalar'), $h['marka_id']) ?></select></div>
-                        <div class="col-md-4"><label class="form-label">Seri</label><select name="seri_id" class="form-select select2"><?= Tanim::options($h['marka_id'] ? Tanim::seriler((int) $h['marka_id']) : [], $h['seri_id']) ?></select></div>
-                        <div class="col-md-4"><label class="form-label">Model</label><select name="model_id" class="form-select select2"><?= Tanim::options($h['seri_id'] ? Tanim::modeller((int) $h['seri_id']) : [], $h['model_id']) ?></select></div>
+                        <div class="col-md-4"><label class="form-label">Model</label><select name="model_id" class="form-select select2"><?= Tanim::options($h['marka_id'] ? Tanim::modeller((int) $h['marka_id']) : [], $h['model_id']) ?></select></div>
+                        <div class="col-md-4"><label class="form-label">Seri</label><select name="seri_id" class="form-select select2"><?= Tanim::options($h['model_id'] ? Tanim::seriler((int) $h['model_id']) : [], $h['seri_id']) ?></select></div>
                         <div class="col-md-3"><label class="form-label">Model Yılı</label><select name="yil" class="form-select"><?= Tanim::options(Tanim::liste('model_yillari'), $h['model_yili_id']) ?></select></div>
                         <div class="col-md-3"><label class="form-label">Araç Durumu</label><select name="arac_durumu" class="form-select"><?= Tanim::options(Tanim::ARAC_DURUMU, $h['arac_durumu']) ?></select></div>
                         <div class="col-md-3"><label class="form-label">Araç Tipi</label><select name="arac_tipi" class="form-select"><?= Tanim::options(Tanim::liste('arac_tipleri'), $h['arac_tipi_id']) ?></select></div>

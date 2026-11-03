@@ -124,6 +124,8 @@ $router->post('/arac_yonetimi/tanimlar/{tip}/sil/{id}', [TanimController::class,
 
 // Tanımlamalar (müşteri, otopark, hizmet, marka/seri/model)
 $router->get('/tanimlamalar', [TanimlamaController::class, 'index'], $staff);
+$router->get('/tanimlamalar/marka-model/excel', [TanimlamaController::class, 'markaModelDisa'], $staff);
+$router->post('/tanimlamalar/marka-model/ice', [TanimlamaController::class, 'markaModelIce'], $staff);
 $router->get('/tanimlamalar/hizmet_fiyat/liste', [TanimlamaController::class, 'fiyatListe'], $staff);
 $router->get('/tanimlamalar/musteri/yeni', [TanimlamaController::class, 'musteriForm'], $staff);
 $router->get('/tanimlamalar/{tip}/liste', [TanimlamaController::class, 'liste'], $staff);

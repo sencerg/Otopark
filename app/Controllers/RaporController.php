@@ -54,10 +54,11 @@ final class RaporController extends Controller
              LEFT JOIN musteriler mu ON mu.id = d.musteri_id
              LEFT JOIN bayiler b ON b.id = d.bayi_id
              LEFT JOIN markalar m ON m.id = a.marka_id
+             LEFT JOIN modeller mo ON mo.id = a.model_id
              LEFT JOIN seriler s ON s.id = a.seri_id
              LEFT JOIN arac_tipleri at ON at.id = a.arac_tipi_id',
             [
-                'id' => 'd.giris_hareket_id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad',
+                'id' => 'd.giris_hareket_id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'model' => 'mo.ad', 'seri' => 's.ad',
                 'arac_tipi' => 'at.ad', 'lokasyon' => 'b.ad',
                 'bayi_id' => 'd.bayi_id', 'musteri_id' => 'd.musteri_id', 'arac_tipi_id' => 'a.arac_tipi_id',
                 'dep_bas' => 'd.dep_bas', 'dep_bit' => 'd.dep_bit',
@@ -129,7 +130,7 @@ final class RaporController extends Controller
         };
         if (Request::input('export')) {
             $kolonlar = [
-                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'arac_tipi' => 'Araç Tipi', 'lokasyon' => 'Lokasyon',
+                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'model' => 'Model', 'seri' => 'Seri', 'arac_tipi' => 'Araç Tipi', 'lokasyon' => 'Lokasyon',
                 'giris_tarihi' => 'Giriş Tarihi', 'cikis_tarihi' => 'Çıkış Tarihi', 'donem_bas' => 'Dönem Başı', 'donem_bit' => 'Dönem Sonu',
                 'gun' => 'Gün',
             ];
@@ -190,7 +191,7 @@ final class RaporController extends Controller
         };
         if (Request::input('export')) {
             $kolon = [
-                'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri',
+                'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'model' => 'Model', 'seri' => 'Seri',
                 'lokasyon' => 'Lokasyon', 'maliyet_tipi' => 'Hizmet', 'aciklama' => 'Açıklama', 'fatura_no' => 'Fatura No',
                 'cikis_sonrasi_ad' => 'Çıkış Sonrası Eklendi',
             ];
@@ -228,13 +229,14 @@ final class RaporController extends Controller
                 $p['b'] = $bayiId;
             }
             $satirlar = Database::fetchAll(
-                'SELECT a.sase, a.plaka, mu.ad AS firma, m.ad AS marka, s.ad AS seri, b.ad AS lokasyon,
+                'SELECT a.sase, a.plaka, mu.ad AS firma, m.ad AS marka, mo.ad AS model, s.ad AS seri, b.ad AS lokasyon,
                         a.lokasyon_detay, to_char(a.stoga_giris_tarihi, \'DD.MM.YYYY\') AS giris,
                         CASE WHEN a.stoga_giris_tarihi IS NULL THEN NULL
                              ELSE (CURRENT_DATE - a.stoga_giris_tarihi::date + 1) END AS gun
                  FROM araclar a
                  LEFT JOIN musteriler mu ON mu.id = a.musteri_id
                  LEFT JOIN markalar m ON m.id = a.marka_id
+                 LEFT JOIN modeller mo ON mo.id = a.model_id
                  LEFT JOIN seriler s ON s.id = a.seri_id
                  LEFT JOIN bayiler b ON b.id = a.bayi_id
                  WHERE ' . implode(' AND ', $kosul) . '
@@ -247,7 +249,7 @@ final class RaporController extends Controller
 
             if (Request::input('export')) {
                 Excel::download('stok-ozet-' . date('Y-m-d'), [
-                    'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri',
+                    'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'model' => 'Model', 'seri' => 'Seri',
                     'lokasyon' => 'Lokasyon', 'lokasyon_detay' => 'Lokasyon Detay', 'giris' => 'Giriş', 'gun' => 'Stok Günü',
                 ], $satirlar);
             }
@@ -267,7 +269,7 @@ final class RaporController extends Controller
             ],
             'alanlar' => ['musteri', 'lokasyon'],
             'kolonlar' => [
-                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri',
+                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'model' => 'Model', 'seri' => 'Seri',
                 'lokasyon' => 'Lokasyon', 'lokasyon_detay' => 'Detay', 'giris' => 'Giriş', 'gun' => 'Gün',
             ],
         ]);

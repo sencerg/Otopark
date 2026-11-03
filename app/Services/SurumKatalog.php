@@ -31,6 +31,25 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.57',
+                'tarih' => '2026-11-03 17:10',
+                'baslik' => 'Marka, model ve seri sırası',
+                'maddeler' => [
+                    'Katalog sırası marka, model, seridir. Eski seri adları model, eski model adları seri oldu; araç kayıtları aynı satırlara bağlı kaldı.',
+                    'Tanımlamalarda Excel ile marka, model ve seri indirilir ve yüklenir. Elle ekleme durur. Dosyada olmayan kayıtlar silinmez.',
+                    'Araç listeleri, stok şablonu, toplu giriş, hareket, rapor, sayım ve müşteri ekranı aynı sırayı kullanır. Model zorunlu, seri boş bırakılabilir.',
+                ],
+            ],
+            [
+                'surum' => 'v0.56',
+                'tarih' => '2026-11-03 16:40',
+                'baslik' => 'Tekrar girilen firma fiyatı uyarısı',
+                'maddeler' => [
+                    'Firmaya özel hizmette aynı otopark ve hizmet yeniden seçilirse hangi kaydın olduğu söylenir, ikinci satır yazılmaz.',
+                    'Aynı firma ve otopark için günlük ücret daha önce varsa kayıt durur ve otopark adı gösterilir.',
+                ],
+            ],
+            [
                 'surum' => 'v0.54',
                 'tarih' => '2026-11-03 16:10',
                 'baslik' => 'Müşteri fiyatı ve bayi fiyatı',

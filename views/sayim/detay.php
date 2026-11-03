@@ -55,19 +55,19 @@ $headerActions = '<a href="/sayim_kayitlari/excel/' . $s['id'] . '" class="btn b
     <div class="card-body tab-content">
         <div class="tab-pane fade show active" id="tab-okutulan">
             <div class="table-responsive"><table class="table table-hover align-middle mb-0">
-                <thead><tr><th>Şasi</th><th>Plaka</th><th>Marka</th><th>Seri</th><th>Okutan</th><th>Okutma Tarihi</th><th>Stoğa Giriş</th><th>Durum</th><?= $devam ? '<th></th>' : '' ?></tr></thead>
+                <thead><tr><th>Şasi</th><th>Plaka</th><th>Marka</th><th>Model</th><th>Okutan</th><th>Okutma Tarihi</th><th>Stoğa Giriş</th><th>Durum</th><?= $devam ? '<th></th>' : '' ?></tr></thead>
                 <tbody id="t-okutulan"></tbody>
             </table></div>
         </div>
         <div class="tab-pane fade" id="tab-disarida">
             <div class="table-responsive"><table class="table table-hover align-middle mb-0">
-                <thead><tr><th>Şasi</th><th>Okutan</th><th>Okutma Tarihi</th><th>Sistemdeki Durumu</th><th>Marka</th><th>Seri</th><?= $devam ? '<th>İşlem</th>' : '' ?></tr></thead>
+                <thead><tr><th>Şasi</th><th>Okutan</th><th>Okutma Tarihi</th><th>Sistemdeki Durumu</th><th>Marka</th><th>Model</th><?= $devam ? '<th>İşlem</th>' : '' ?></tr></thead>
                 <tbody id="t-disarida"></tbody>
             </table></div>
         </div>
         <div class="tab-pane fade" id="tab-okutulmayan">
             <div class="table-responsive"><table class="table table-hover align-middle mb-0">
-                <thead><tr><th>Şasi</th><th>Plaka</th><th>Marka</th><th>Seri</th><th>Lokasyon Detay</th><th>Stoğa Giriş</th><th>Durum</th></tr></thead>
+                <thead><tr><th>Şasi</th><th>Plaka</th><th>Marka</th><th>Model</th><th>Lokasyon Detay</th><th>Stoğa Giriş</th><th>Durum</th></tr></thead>
                 <tbody id="t-okutulmayan"></tbody>
             </table></div>
         </div>
@@ -83,17 +83,17 @@ $(function () {
 
     function ciz(d) {
         const okutulan = d.okutulan.map((r) => `<tr class="${r.sonuc == 3 ? 'table-info' : ''}">
-            <td class="fw-semibold">${App.esc(r.sase)}</td><td>${App.esc(r.plaka || '-')}</td><td>${App.esc(r.marka || '-')}</td><td>${App.esc(r.seri || '-')}</td>
+            <td class="fw-semibold">${App.esc(r.sase)}</td><td>${App.esc(r.plaka || '-')}</td><td>${App.esc(r.marka || '-')}</td><td>${App.esc(r.model || '-')}</td>
             <td>${App.esc(r.okutan || '-')}</td><td>${r.okutma_tarihi || '-'}</td><td>${r.stoga_giris || '-'}</td>
             <td>${App.badge(r.sonuc_ad, r.sonuc == 3 ? 'info' : 'success')}</td>${sil(r)}</tr>`);
         const disarida = d.disarida.map((r) => `<tr>
             <td class="fw-semibold">${App.esc(r.sase)}</td><td>${App.esc(r.okutan || '-')}</td><td>${r.okutma_tarihi || '-'}</td>
-            <td>${App.badge(r.sistem_durumu, 'danger')}</td><td>${App.esc(r.marka || '-')}</td><td>${App.esc(r.seri || '-')}</td>
+            <td>${App.badge(r.sistem_durumu, 'danger')}</td><td>${App.esc(r.marka || '-')}</td><td>${App.esc(r.model || '-')}</td>
             ${DEVAM ? `<td class="text-nowrap"><button class="btn btn-sm btn-primary stoga-al" data-sase="${App.esc(r.sase)}"><i class="mdi mdi-car-arrow-right me-1"></i>Stoğa Al</button>
                 <button class="btn btn-sm btn-light text-danger okutma-sil" data-id="${r.id}" data-sase="${App.esc(r.sase)}" title="Okutmayı sil"><i class="mdi mdi-delete-outline"></i></button></td>` : ''}</tr>`);
         const okutulmayan = d.okutulmayan.map((r) => `<tr>
             <td class="fw-semibold">${r.arac_id ? `<a href="/arac_yonetimi/duzenle/${r.arac_id}">${App.esc(r.sase)}</a>` : App.esc(r.sase)}</td>
-            <td>${App.esc(r.plaka || '-')}</td><td>${App.esc(r.marka || '-')}</td><td>${App.esc(r.seri || '-')}</td>
+            <td>${App.esc(r.plaka || '-')}</td><td>${App.esc(r.marka || '-')}</td><td>${App.esc(r.model || '-')}</td>
             <td>${App.esc(r.lokasyon_detay || '-')}</td><td>${r.stoga_giris || '-'}</td><td>${App.badge(r.sonuc_ad, 'warning')}</td></tr>`);
 
         $('#t-okutulan').html(okutulan.join('') || bos(9, 'Henüz araç okutulmadı.'));

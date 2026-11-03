@@ -31,7 +31,7 @@ final class HareketController extends Controller
 
     private function ortakFiltreler(DataTable $dt, string $tarihAlani): void
     {
-        $map = ['marka_id' => 'a.marka_id', 'seri_id' => 'a.seri_id', 'musteri_id' => 'a.musteri_id', 'arac_tipi_id' => 'a.arac_tipi_id', 'lokasyon_turu' => 'a.lokasyon_turu', 'bayi_id' => 'a.bayi_id'];
+        $map = ['marka_id' => 'a.marka_id', 'model_id' => 'a.model_id', 'seri_id' => 'a.seri_id', 'musteri_id' => 'a.musteri_id', 'arac_tipi_id' => 'a.arac_tipi_id', 'lokasyon_turu' => 'a.lokasyon_turu', 'bayi_id' => 'a.bayi_id'];
         foreach ($map as $key => $col) {
             if ($v = Request::int($key)) {
                 $dt->where("{$col} = :f_{$key}", ["f_{$key}" => $v]);
@@ -58,13 +58,14 @@ final class HareketController extends Controller
             'araclar a
              LEFT JOIN musteriler mu ON mu.id = a.musteri_id
              LEFT JOIN markalar m ON m.id = a.marka_id
+             LEFT JOIN modeller mo ON mo.id = a.model_id
              LEFT JOIN seriler s ON s.id = a.seri_id
              LEFT JOIN bayiler b ON b.id = a.bayi_id
              LEFT JOIN arac_tipleri at ON at.id = a.arac_tipi_id
              LEFT JOIN LATERAL (SELECT h.id FROM arac_hareketleri h WHERE h.arac_id = a.id AND h.hareket_tipi = 1 ORDER BY h.hareket_tarihi DESC LIMIT 1) sh ON TRUE',
             [
                 'id' => 'a.id', 'hareket_id' => 'sh.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad',
-                'seri' => 's.ad', 'lokasyon' => 'b.ad', 'lokasyon_detay' => 'a.lokasyon_detay', 'arac_tipi' => 'at.ad',
+                'model' => 'mo.ad', 'seri' => 's.ad', 'lokasyon' => 'b.ad', 'lokasyon_detay' => 'a.lokasyon_detay', 'arac_tipi' => 'at.ad',
                 'giris_tarihi' => "to_char(a.stoga_giris_tarihi, 'DD.MM.YYYY HH24:MI')", 'giris_tarihi_sort' => 'a.stoga_giris_tarihi',
                 'depolama_suresi' => '(CURRENT_DATE - a.stoga_giris_tarihi::date + 1)', 'etiket_fiyati' => 'a.etiket_fiyati',
             ],
@@ -77,7 +78,7 @@ final class HareketController extends Controller
 
         if (Request::input('export')) {
             Excel::download('stoktaki-araclar', [
-                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'arac_tipi' => 'Araç Tipi',
+                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'model' => 'Model', 'seri' => 'Seri', 'arac_tipi' => 'Araç Tipi',
                 'lokasyon' => 'Lokasyon', 'lokasyon_detay' => 'Lokasyon Detay', 'giris_tarihi' => 'Giriş Tarihi', 'depolama_suresi' => 'Depolama Süresi (Gün)',
             ], $dt->all());
         }
@@ -91,6 +92,7 @@ final class HareketController extends Controller
              JOIN araclar a ON a.id = h.arac_id
              LEFT JOIN musteriler mu ON mu.id = h.musteri_id
              LEFT JOIN markalar m ON m.id = a.marka_id
+             LEFT JOIN modeller mo ON mo.id = a.model_id
              LEFT JOIN seriler s ON s.id = a.seri_id
              LEFT JOIN bayiler b ON b.id = h.bayi_id
              LEFT JOIN hareket_nedenleri hn ON hn.id = h.hareket_nedeni_id
@@ -107,7 +109,7 @@ final class HareketController extends Controller
                 'hizmet_tutari' => 'COALESCE(hz.tutar, 0)', 'bayi_hizmet' => 'COALESCE(hz.bayi_tutar, 0)',
                 'sonradan_adet' => 'COALESCE(hz.sonradan, 0)', 'sonradan_tutar' => 'COALESCE(hz.sonradan_tutar, 0)',
                 'sonradan_bayi' => 'COALESCE(hz.sonradan_bayi, 0)',
-                'id' => 'h.id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad',
+                'id' => 'h.id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'model' => 'mo.ad', 'seri' => 's.ad',
                 'lokasyon' => 'b.ad', 'hareket_nedeni' => 'hn.ad',
                 'hareket_tarihi' => "to_char(h.hareket_tarihi, 'DD.MM.YYYY HH24:MI')", 'hareket_tarihi_sort' => 'h.hareket_tarihi',
                 'depolama_suresi' => '(h.hareket_tarihi::date - gh.hareket_tarihi::date + 1)',
@@ -145,14 +147,14 @@ final class HareketController extends Controller
         };
         if (Request::input('export')) {
             $kolonlar = [
-                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
+                'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'model' => 'Model', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
                 'hareket_nedeni' => 'Hareket Nedeni', 'hareket_tarihi' => 'Hareket Tarihi', 'depolama_suresi' => 'Depolama Süresi (Gün)',
                 'teslim_alan' => 'Teslim Alan',
                 'hizmet_tutari' => $maske ? 'Bayi hizmet tutarı' : 'Müşteri hizmet tutarı',
             ];
             if ($admin) {
                 $kolonlar = [
-                    'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
+                    'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'model' => 'Model', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
                     'hareket_nedeni' => 'Hareket Nedeni', 'hareket_tarihi' => 'Hareket Tarihi', 'depolama_suresi' => 'Depolama Süresi (Gün)',
                     'teslim_alan' => 'Teslim Alan',
                     'bayi_hizmet' => 'Bayi hizmet tutarı',
@@ -384,8 +386,8 @@ final class HareketController extends Controller
                 ['a' => $arac['id'], 'g' => $konaklama['giris_tarihi']]
             ) : [],
             'arac' => Database::fetch(
-                'SELECT a.*, m.ad AS marka, s.ad AS seri, mu.ad AS musteri, b.ad AS bayi FROM araclar a
-                 LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN seriler s ON s.id = a.seri_id
+                'SELECT a.*, m.ad AS marka, mo.ad AS model, s.ad AS seri, mu.ad AS musteri, b.ad AS bayi FROM araclar a
+                 LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN modeller mo ON mo.id = a.model_id LEFT JOIN seriler s ON s.id = a.seri_id
                  LEFT JOIN musteriler mu ON mu.id = a.musteri_id LEFT JOIN bayiler b ON b.id = a.bayi_id WHERE a.id = :id',
                 ['id' => $arac['id']]
             ),

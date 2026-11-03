@@ -18,7 +18,7 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 
             <div class="qr-label">
                 <div class="qr" data-qr="<?= e($baseUrl . '/arac_yonetimi/duzenle/' . $a['id']) ?>"></div>
                 <div class="sase"><?= e($a['sase']) ?></div>
-                <div class="meta"><?= e($a['plaka'] ?: '') ?> <?= e(trim(($a['marka'] ?? '') . ' ' . ($a['seri'] ?? ''))) ?></div>
+                <div class="meta"><?= e($a['plaka'] ?: '') ?> <?= e(trim(($a['marka'] ?? '') . ' ' . ($a['model'] ?? '') . (!empty($a['seri']) ? ' / ' . $a['seri'] : ''))) ?></div>
                 <div class="meta"><?= e($a['musteri'] ?: '') ?><?= $a['lokasyon_detay'] ? ' · ' . e($a['lokasyon_detay']) : '' ?></div>
             </div>
         <?php endforeach; ?>

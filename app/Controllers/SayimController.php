@@ -167,7 +167,7 @@ final class SayimController extends Controller
                     to_char(o.okutma_tarihi, 'DD.MM.YYYY HH24:MI') AS okutma_tarihi,
                     CASE WHEN {$gorunur} THEN a.plaka END AS plaka,
                     CASE WHEN {$gorunur} THEN m.ad END AS marka,
-                    CASE WHEN {$gorunur} THEN sr.ad END AS seri,
+                    CASE WHEN {$gorunur} THEN mo.ad END AS model,
                     CASE WHEN {$gorunur} THEN to_char(a.stoga_giris_tarihi, 'DD.MM.YYYY HH24:MI') END AS stoga_giris,
                     CASE WHEN a.id IS NULL THEN 'Sistemde kayıtlı değil'
                          WHEN a.bayi_id = :bayi AND a.stokta THEN 'Şu an bu lokasyonun stoğunda'
@@ -176,7 +176,7 @@ final class SayimController extends Controller
                          ELSE 'Başka lokasyonda kayıtlı' END AS sistem_durumu
              FROM sayim_okutmalari o
              LEFT JOIN araclar a ON a.id = o.arac_id
-             LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN seriler sr ON sr.id = a.seri_id
+             LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN modeller mo ON mo.id = a.model_id
              LEFT JOIN bayiler b ON b.id = a.bayi_id
              LEFT JOIN users u ON u.id = o.okutan_id
              WHERE o.sayim_id = :id
@@ -196,10 +196,10 @@ final class SayimController extends Controller
 
         if ((int) $s['durum'] === self::DEVAM) {
             $sonuc['okutulmayan'] = Database::fetchAll(
-                "SELECT a.id AS arac_id, a.sase, a.plaka, m.ad AS marka, sr.ad AS seri, a.lokasyon_detay,
+                "SELECT a.id AS arac_id, a.sase, a.plaka, m.ad AS marka, mo.ad AS model, a.lokasyon_detay,
                         to_char(a.stoga_giris_tarihi, 'DD.MM.YYYY HH24:MI') AS stoga_giris, 'Henüz Okutulmadı' AS sonuc_ad
                  FROM sayimlar s JOIN araclar a ON " . self::OKUTULMAYAN_KOSUL . '
-                 LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN seriler sr ON sr.id = a.seri_id
+                 LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN modeller mo ON mo.id = a.model_id
                  WHERE s.id = :id ORDER BY a.stoga_giris_tarihi DESC NULLS LAST',
                 ['id' => $s['id']]
             );
@@ -310,7 +310,7 @@ final class SayimController extends Controller
             }
         }
         Excel::download('sayim-' . $s['kod'], [
-            'liste' => 'Liste', 'sase' => 'Şasi', 'plaka' => 'Plaka', 'marka' => 'Marka', 'seri' => 'Seri', 'sonuc_ad' => 'Durum',
+            'liste' => 'Liste', 'sase' => 'Şasi', 'plaka' => 'Plaka', 'marka' => 'Marka', 'model' => 'Model', 'sonuc_ad' => 'Durum',
             'sistem_durumu' => 'Sistemdeki Durumu', 'stoga_giris' => 'Stoğa Giriş', 'okutan' => 'Okutan', 'okutma_tarihi' => 'Okutma Tarihi',
         ], $satirlar);
     }

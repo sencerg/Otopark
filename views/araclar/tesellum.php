@@ -22,7 +22,7 @@ $cikis = $h && (int) $h['hareket_tipi'] === 2;
     <div class="doc-title">ARAÇ BİLGİLERİ</div>
     <table class="doc">
         <tr><th>Şasi No</th><td><?= e($arac['sase']) ?></td><th>Plaka</th><td><?= e($arac['plaka'] ?: '-') ?></td></tr>
-        <tr><th>Marka / Seri</th><td><?= e(trim(($arac['marka'] ?? '') . ' ' . ($arac['seri'] ?? ''))) ?: '-' ?></td><th>Model</th><td><?= e($arac['model'] ?: '-') ?></td></tr>
+        <tr><th>Marka / Model</th><td><?= e(trim(($arac['marka'] ?? '') . ' ' . ($arac['model'] ?? ''))) ?: '-' ?></td><th>Seri</th><td><?= e($arac['seri'] ?: '-') ?></td></tr>
         <tr><th>Model Yılı</th><td><?= e($arac['yil'] ?: '-') ?></td><th>Renk</th><td><?= e($arac['renk'] ?: '-') ?></td></tr>
         <tr><th>Araç Tipi</th><td><?= e($arac['arac_tipi'] ?: '-') ?></td><th>Yakıt / Vites</th><td><?= e(trim(($arac['yakit_tipi'] ?? '') . ' / ' . ($arac['vites_tipi'] ?? ''), ' /')) ?: '-' ?></td></tr>
         <tr><th>KM</th><td><?= $h && $h['km'] !== null ? number_format((int) $h['km'], 0, ',', '.') : ($arac['km'] !== null ? number_format((int) $arac['km'], 0, ',', '.') : '-') ?></td><th>Yakıt Durumu</th><td><?= e(($h['yakit_durumu'] ?? $arac['yakit_durumu']) !== null ? '%' . ($h['yakit_durumu'] ?? $arac['yakit_durumu']) : '-') ?></td></tr>

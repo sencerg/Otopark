@@ -15,7 +15,7 @@ $oldList = fn (string $key, array $default) => isset($_SESSION['_old'][$key]) ? 
 $envanter = $oldList('arac_envanterleri', $envanter);
 $donanim = $oldList('arac_donanimlari', $donanim);
 $markaId = $v('marka_id');
-$seriId = $v('seri_id');
+$modelId = $v('model_id');
 $fg = Auth::fiyatGorebilir();
 
 if (!$yeni) {
@@ -62,8 +62,8 @@ if (!$yeni) {
                     <div class="form-section">Detay Bilgiler</div>
                     <div class="row g-3">
                         <div class="col-md-4"><label class="form-label required">Marka</label><select name="marka_id" class="form-select select2" required><?= Tanim::options(Tanim::liste('markalar'), $markaId) ?></select></div>
-                        <div class="col-md-4"><label class="form-label required">Seri</label><select name="seri_id" class="form-select select2" required><?= $markaId ? Tanim::options(Tanim::seriler((int) $markaId), $seriId) : '<option value="">Önce Marka Seçiniz</option>' ?></select></div>
-                        <div class="col-md-4"><label class="form-label">Model</label><select name="model_id" class="form-select select2"><?= $seriId ? Tanim::options(Tanim::modeller((int) $seriId), $v('model_id')) : '<option value="">Önce Seri Seçiniz</option>' ?></select></div>
+                        <div class="col-md-4"><label class="form-label required">Model</label><select name="model_id" class="form-select select2" required><?= $markaId ? Tanim::options(Tanim::modeller((int) $markaId), $modelId) : '<option value="">Önce Marka Seçiniz</option>' ?></select></div>
+                        <div class="col-md-4"><label class="form-label">Seri</label><select name="seri_id" class="form-select select2"><?= $modelId ? Tanim::options(Tanim::seriler((int) $modelId), $v('seri_id')) : '<option value="">Önce Model Seçiniz</option>' ?></select></div>
                         <div class="col-md-3"><label class="form-label">Model Yılı</label><select name="yil" class="form-select"><?= Tanim::options(Tanim::liste('model_yillari'), $v('yil', 'model_yili_id')) ?></select></div>
                         <div class="col-md-3"><label class="form-label">Renk</label><select name="renk" class="form-select select2"><?= Tanim::options(Tanim::liste('renkler'), $v('renk', 'renk_id')) ?></select></div>
                         <div class="col-md-3"><label class="form-label">Yakıt Tipi</label><select name="yakit_tipi" class="form-select"><?= Tanim::options(Tanim::liste('yakit_tipleri'), $v('yakit_tipi', 'yakit_tipi_id')) ?></select></div>

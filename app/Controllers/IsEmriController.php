@@ -124,10 +124,10 @@ final class IsEmriController extends Controller
         $this->view('is_emirleri/form', [
             'pageTitle' => 'İş Emri Düzenle', 'ie' => $ie, 'kod' => $ie['kod'],
             'araclar' => Database::fetchAll(
-                'SELECT x.arac_id, x.durum, a.sase, a.plaka, b.ad AS bayi, m.ad AS marka, s.ad AS seri,
+                'SELECT x.arac_id, x.durum, a.sase, a.plaka, b.ad AS bayi, m.ad AS marka, mo.ad AS model, s.ad AS seri,
                         EXISTS (SELECT 1 FROM arac_ekstreleri e WHERE e.is_emri_id = x.is_emri_id AND e.arac_id = x.arac_id) AS maliyet_yazildi
                  FROM is_emri_araclari x JOIN araclar a ON a.id = x.arac_id
-                 LEFT JOIN bayiler b ON b.id = a.bayi_id LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN seriler s ON s.id = a.seri_id
+                 LEFT JOIN bayiler b ON b.id = a.bayi_id LEFT JOIN markalar m ON m.id = a.marka_id LEFT JOIN modeller mo ON mo.id = a.model_id LEFT JOIN seriler s ON s.id = a.seri_id
                  WHERE x.is_emri_id = :id AND ' . Auth::bayiKosulu('a.bayi_id') . ' ORDER BY x.id',
                 ['id' => $id]
             ),

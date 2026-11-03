@@ -307,17 +307,6 @@ $(function () {
         return String(bayiId || '') + ':' + String(hizmetId || '');
     }
 
-    function kullanilanCiftler(haricTr) {
-        const ids = new Set();
-        $tbody.find('[data-fiyat-satir]').each(function () {
-            if (this === haricTr) return;
-            const b = $(this).find('[name="fiyat_bayi_id[]"]').val();
-            const h = $(this).find('[name="fiyat_hizmet_id[]"]').val();
-            if (b && h) ids.add(ciftAnahtar(b, h));
-        });
-        return ids;
-    }
-
     function bayiOptionDoldur(select, seciliId) {
         const $sel = $(select);
         const mevcut = seciliId || $sel.val() || '';
@@ -332,15 +321,12 @@ $(function () {
         if (mevcut) $sel.val(mevcut);
     }
 
-    function hizmetOptionDoldur(select, seciliId, bayiId, haricTr) {
-        const kullanilan = kullanilanCiftler(haricTr);
+    function hizmetOptionDoldur(select, seciliId) {
         const $sel = $(select);
         const mevcut = seciliId || $sel.val() || '';
         $sel.empty().append('<option value="">Hizmet seçiniz</option>');
         HIZMETLER.forEach((h) => {
             const id = String(h.id);
-            const key = ciftAnahtar(bayiId, id);
-            if (bayiId && kullanilan.has(key) && id !== String(mevcut)) return;
             const $opt = $('<option></option>').val(id).text(h.ad);
             if (id === String(mevcut)) $opt.prop('selected', true);
             $sel.append($opt);
@@ -348,11 +334,21 @@ $(function () {
         if (mevcut) $sel.val(mevcut);
     }
 
+    function ciftUyari(bayiAd, hizmetAd) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Daha önce eklenmiş',
+            text: bayiAd + ' için ' + hizmetAd + ' daha önce eklenmiş.',
+            confirmButtonText: 'Tamam',
+            confirmButtonColor: '#1d4ed8',
+        });
+    }
+
     function satirYenile($tr) {
         const bayiSel = $tr.find('[name="fiyat_bayi_id[]"]')[0];
         const hizmetSel = $tr.find('[name="fiyat_hizmet_id[]"]')[0];
         bayiOptionDoldur(bayiSel, bayiSel.value);
-        hizmetOptionDoldur(hizmetSel, hizmetSel.value, bayiSel.value, $tr[0]);
+        hizmetOptionDoldur(hizmetSel, hizmetSel.value);
     }
 
     function tumSelectleriYenile() {
@@ -369,7 +365,7 @@ $(function () {
         $tbody.append(node);
         const $tr = $tbody.find('[data-fiyat-satir]').last();
         bayiOptionDoldur($tr.find('[name="fiyat_bayi_id[]"]')[0], bayiId || '');
-        hizmetOptionDoldur($tr.find('[name="fiyat_hizmet_id[]"]')[0], hizmetId || '', bayiId || '', $tr[0]);
+        hizmetOptionDoldur($tr.find('[name="fiyat_hizmet_id[]"]')[0], hizmetId || '');
         if (tutar !== undefined && tutar !== null && tutar !== '') {
             $tr.find('[name="fiyat_musteri[]"], [name="fiyat_bayi[]"]').val(tutar);
         }
@@ -402,7 +398,60 @@ $(function () {
     });
 
     $(document).on('change', '#tablo-fiyat select[name="fiyat_bayi_id[]"], #tablo-fiyat select[name="fiyat_hizmet_id[]"]', function () {
-        tumSelectleriYenile();
+        const $tr = $(this).closest('tr');
+        const bayiId = $tr.find('[name="fiyat_bayi_id[]"]').val();
+        const hizmetId = $tr.find('[name="fiyat_hizmet_id[]"]').val();
+        if (!bayiId || !hizmetId) return;
+        const key = ciftAnahtar(bayiId, hizmetId);
+        let tekrar = false;
+        $tbody.find('[data-fiyat-satir]').each(function () {
+            if (this === $tr[0]) return;
+            const b = $(this).find('[name="fiyat_bayi_id[]"]').val();
+            const h = $(this).find('[name="fiyat_hizmet_id[]"]').val();
+            if (b && h && ciftAnahtar(b, h) === key) tekrar = true;
+        });
+        if (!tekrar) return;
+        const bayiAd = $tr.find('[name="fiyat_bayi_id[]"] option:selected').text().trim();
+        const hizmetAd = $tr.find('[name="fiyat_hizmet_id[]"] option:selected').text().trim();
+        $(this).val('');
+        ciftUyari(bayiAd, hizmetAd);
+    });
+
+    $('#form-fiyat').on('submit', function (e) {
+        const gorulen = new Set();
+        let mesaj = '';
+        $tbody.find('[data-fiyat-satir]').each(function () {
+            const b = $(this).find('[name="fiyat_bayi_id[]"]').val();
+            const h = $(this).find('[name="fiyat_hizmet_id[]"]').val();
+            if (!b || !h) return;
+            const key = ciftAnahtar(b, h);
+            if (gorulen.has(key)) {
+                const bayiAd = $(this).find('[name="fiyat_bayi_id[]"] option:selected').text().trim();
+                const hizmetAd = $(this).find('[name="fiyat_hizmet_id[]"] option:selected').text().trim();
+                mesaj = bayiAd + ' için ' + hizmetAd + ' daha önce eklenmiş.';
+            }
+            gorulen.add(key);
+        });
+        if (!mesaj) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        Swal.fire({ icon: 'warning', title: 'Daha önce eklenmiş', text: mesaj, confirmButtonText: 'Tamam', confirmButtonColor: '#1d4ed8' });
+    });
+
+    $(document).on('input', '#tablo-otopark input[type=number]', function () {
+        const $tr = $(this).closest('tr');
+        if ($tr.data('otopark-uyari')) return;
+        const onceden = $tr.find('input[type=number]').toArray().some((el) => el.defaultValue !== '');
+        if (!onceden) return;
+        $tr.data('otopark-uyari', 1);
+        const ad = $tr.find('td').first().text().trim();
+        Swal.fire({
+            icon: 'warning',
+            title: 'Daha önce eklenmiş',
+            text: ad + ' için günlük ücret daha önce eklenmiş. Kaydederseniz bu ücret güncellenir.',
+            confirmButtonText: 'Tamam',
+            confirmButtonColor: '#1d4ed8',
+        });
     });
 });
 </script>

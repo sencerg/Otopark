@@ -6,7 +6,7 @@ $sekmeler = [
     'lokasyon' => ['Otoparklar (Lokasyonlar)', 'mdi-parking'],
     'hizmet' => ['Hizmetler', 'mdi-cash-register'],
     'personel' => ['Personel', 'mdi-account-hard-hat'],
-    'arac' => ['Marka / Seri / Model', 'mdi-car-info'],
+    'arac' => ['Marka / Model / Seri', 'mdi-car-info'],
 ];
 $aciklama = [
     'musteri' => 'Araç girişinde seçilen firmalar. Firmaya özel otopark ve hizmet ücretleri müşteri kartındaki ilgili sekmelerden yönetilir. Pasif müşteri yeni girişlerde listelenmez.',
@@ -45,8 +45,23 @@ $aciklama = [
     <?php $ilk = false; endforeach; ?>
 
     <div class="tab-pane fade" id="sekme-arac">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="alert alert-info py-2 small mb-0 flex-grow-1"><i class="mdi mdi-information-outline me-1"></i>
+                Sıra marka, model, seridir. Elle ekleme durur. Excel mevcut listeyi indirir; yüklenen satırlar aynı ada sahipse yeniden yazılmaz, yoksa ilgili marka, model veya seriye eklenir.
+            </div>
+            <?php if ($admin): ?>
+            <div class="d-flex gap-2">
+                <a class="btn btn-success btn-sm" href="/tanimlamalar/marka-model/excel"><i class="mdi mdi-microsoft-excel me-1"></i>Excel indir</a>
+                <form class="d-flex gap-2" id="form-marka-excel" enctype="multipart/form-data">
+                    <?= Csrf::field() ?>
+                    <input type="file" name="import_file" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" required>
+                    <button class="btn btn-primary btn-sm text-nowrap" type="submit"><i class="mdi mdi-upload me-1"></i>İçe aktar</button>
+                </form>
+            </div>
+            <?php endif; ?>
+        </div>
         <div class="row g-3">
-            <?php foreach (['marka' => 'Markalar', 'seri' => 'Seriler', 'model' => 'Modeller'] as $kod => $ad): ?>
+            <?php foreach (['marka' => 'Markalar', 'model' => 'Modeller', 'seri' => 'Seriler'] as $kod => $ad): ?>
                 <div class="col-lg-4">
                     <div class="card h-100">
                         <div class="card-header"><h5><?= $ad ?> <span class="text-muted small" data-ust-ad="<?= $kod ?>"></span></h5></div>
@@ -57,7 +72,7 @@ $aciklama = [
                             </form>
                             <input type="search" class="form-control form-control-sm mb-2" placeholder="Ara..." data-ara="<?= $kod ?>">
                             <div class="list-group tanim-liste" id="liste-<?= $kod ?>" style="max-height: 60vh; overflow-y: auto;">
-                                <?php if ($kod !== 'marka'): ?><div class="text-muted small p-2">Önce <?= $kod === 'seri' ? 'marka' : 'seri' ?> seçin.</div><?php endif; ?>
+                                <?php if ($kod !== 'marka'): ?><div class="text-muted small p-2">Önce <?= $kod === 'model' ? 'marka' : 'model' ?> seçin.</div><?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -112,7 +127,7 @@ $(function () {
     const TIPLER = <?= json_encode($tipler, JSON_UNESCAPED_UNICODE) ?>;
     const yazabilir = (tip) => !TIPLER[tip].admin || ADMIN;
     const veri = {};
-    const secili = { marka: null, seri: null };
+    const secili = { marka: null, model: null };
     const durum = (v) => v ? App.badge('Aktif', 'success') : App.badge('Pasif', 'secondary');
 
     const islem = (tip, id) => {
@@ -174,7 +189,7 @@ $(function () {
     function listeCiz(tip) {
         const q = ($(`[data-ara="${tip}"]`).val() || '').toLocaleLowerCase('tr');
         const rows = (veri[tip] || []).filter((r) => !q || r.ad.toLocaleLowerCase('tr').includes(q));
-        const altAd = { marka: 'seri', seri: 'model', model: 'araç' }[tip];
+        const altAd = { marka: 'model', model: 'seri', seri: 'araç' }[tip];
         $('#liste-' + tip).html(rows.length ? rows.map((r) => `
             <div class="list-group-item list-group-item-action d-flex align-items-center gap-2 ${secili[tip] === r.id ? 'active' : ''}" data-sec="${tip}" data-id="${r.id}" role="button">
                 <span class="flex-grow-1">${App.esc(r.ad)}</span>
@@ -185,7 +200,7 @@ $(function () {
     }
 
     function yukle(tip) {
-        const ust = tip === 'seri' ? secili.marka : tip === 'model' ? secili.seri : null;
+        const ust = tip === 'model' ? secili.marka : tip === 'seri' ? secili.model : null;
         return $.getJSON(`/tanimlamalar/${tip}/liste`, ust ? { ust_id: ust } : {}).done((r) => {
             veri[tip] = r.data;
             if (KOLONLAR[tip]) tabloCiz(tip); else listeCiz(tip);
@@ -195,11 +210,11 @@ $(function () {
     }
 
     function altlariSifirla(tip) {
-        const altlar = tip === 'marka' ? ['seri', 'model'] : tip === 'seri' ? ['model'] : [];
+        const altlar = tip === 'marka' ? ['model', 'seri'] : tip === 'model' ? ['seri'] : [];
         altlar.forEach((a) => {
-            if (a === 'model' || tip === 'marka') secili[a] = null;
+            if (a === 'seri' || tip === 'marka') secili[a] = null;
             veri[a] = [];
-            $('#liste-' + a).html(`<div class="text-muted small p-2">Önce ${a === 'seri' ? 'marka' : 'seri'} seçin.</div>`);
+            $('#liste-' + a).html(`<div class="text-muted small p-2">Önce ${a === 'model' ? 'marka' : 'model'} seçin.</div>`);
             $(`[data-hizli-ekle="${a}"]`).find('input, button').prop('disabled', true);
             $(`[data-ust-ad="${a}"]`).text('');
         });
@@ -242,24 +257,24 @@ $(function () {
 
     $(document).on('click', '[data-sec]', function () {
         const tip = this.dataset.sec;
-        if (tip === 'model') return;
+        if (tip === 'seri') return;
         secili[tip] = Number(this.dataset.id);
         altlariSifirla(tip);
-        const alt = tip === 'marka' ? 'seri' : 'model';
+        const alt = tip === 'marka' ? 'model' : 'seri';
         const ad = veri[tip].find((r) => r.id === secili[tip])?.ad || '';
-        $(`[data-ust-ad="${alt}"]`).text('— ' + (tip === 'seri' ? (veri.marka.find((r) => r.id === secili.marka)?.ad + ' / ') : '') + ad);
+        $(`[data-ust-ad="${alt}"]`).text('— ' + (tip === 'model' ? (veri.marka.find((r) => r.id === secili.marka)?.ad + ' / ') : '') + ad);
         $(`[data-hizli-ekle="${alt}"]`).find('input, button').prop('disabled', false);
         listeCiz(tip);
         yukle(alt);
     });
-    const ustParam = (tip) => tip === 'seri' ? { marka_id: secili.marka } : tip === 'model' ? { seri_id: secili.seri } : {};
+    const ustParam = (tip) => tip === 'model' ? { marka_id: secili.marka } : tip === 'seri' ? { model_id: secili.model } : {};
     $('[data-hizli-ekle]').on('submit', function (e) {
         e.preventDefault();
         const tip = this.dataset.hizliEkle, $in = $(this).find('input');
         $.post(`/tanimlamalar/${tip}/kaydet`, Object.assign({ ad: $in.val() }, ustParam(tip))).done((res) => {
             App.toast(res.message); $in.val('');
             yukle(tip);
-            if (tip !== 'marka') yukle(tip === 'seri' ? 'marka' : 'seri');
+            if (tip !== 'marka') yukle(tip === 'model' ? 'marka' : 'model');
         }).fail((x) => App.error(x.responseJSON?.message));
     });
     $(document).on('click', '[data-yeniden]', function (e) {
@@ -271,6 +286,24 @@ $(function () {
             $.post(`/tanimlamalar/${tip}/kaydet`, Object.assign({ id, ad: r.value }, ustParam(tip))).done((res) => { App.toast(res.message); yukle(tip); })
                 .fail((x) => App.error(x.responseJSON?.message));
         });
+    });
+
+    $('#form-marka-excel').on('submit', function (e) {
+        e.preventDefault();
+        const form = this;
+        const $btn = $(form).find('[type=submit]').prop('disabled', true);
+        $.ajax({ url: '/tanimlamalar/marka-model/ice', method: 'POST', data: new FormData(form), processData: false, contentType: false })
+            .done((res) => {
+                if (!res.success) { App.error(res.message); return; }
+                App.toast(res.message);
+                form.reset();
+                secili.marka = null;
+                secili.model = null;
+                altlariSifirla('marka');
+                yukle('marka');
+            })
+            .fail((x) => App.error(x.responseJSON?.message))
+            .always(() => $btn.prop('disabled', false));
     });
 
     if (location.hash && location.hash.startsWith('#sekme-')) {

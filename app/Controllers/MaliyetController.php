@@ -156,10 +156,11 @@ final class MaliyetController extends Controller
              LEFT JOIN musteriler mu ON mu.id = e.musteri_id
              LEFT JOIN bayiler b ON b.id = e.bayi_id
              LEFT JOIN markalar m ON m.id = a.marka_id
+             LEFT JOIN modeller mo ON mo.id = a.model_id
              LEFT JOIN seriler s ON s.id = a.seri_id
              LEFT JOIN users u ON u.id = e.kullanici_id',
             [
-                'id' => 'e.id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad',
+                'id' => 'e.id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'model' => 'mo.ad', 'seri' => 's.ad',
                 'lokasyon' => 'b.ad', 'maliyet_tipi' => 'mt.ad', 'tutar' => 'e.tutar', 'bayi_tutar' => 'COALESCE(e.bayi_tutar, e.tutar)', 'aciklama' => 'e.aciklama', 'fatura_no' => 'e.fatura_no',
                 'bayi_fiyat_degistirebilir' => 'mt.bayi_fiyat_degistirebilir',
                 'islem_tarihi' => "to_char(e.islem_tarihi, 'DD.MM.YYYY')", 'islem_tarihi_sort' => 'e.islem_tarihi',
@@ -171,7 +172,7 @@ final class MaliyetController extends Controller
             ['a.sase', 'a.plaka', 'mt.ad', 'mu.ad', 'e.aciklama', 'e.fatura_no', 'u.name'],
             'e.islem_tarihi DESC, e.id DESC'
         );
-        foreach (['musteri_id' => 'e.musteri_id', 'bayi_id' => 'e.bayi_id', 'maliyet_tipi_id' => 'e.maliyet_tipi_id', 'kullanici_id' => 'e.kullanici_id', 'marka_id' => 'a.marka_id', 'seri_id' => 'a.seri_id', 'arac_tipi_id' => 'a.arac_tipi_id'] as $key => $col) {
+        foreach (['musteri_id' => 'e.musteri_id', 'bayi_id' => 'e.bayi_id', 'maliyet_tipi_id' => 'e.maliyet_tipi_id', 'kullanici_id' => 'e.kullanici_id', 'marka_id' => 'a.marka_id', 'model_id' => 'a.model_id', 'seri_id' => 'a.seri_id', 'arac_tipi_id' => 'a.arac_tipi_id'] as $key => $col) {
             $ids = Request::ids($key);
             if ($ids) {
                 $dt->where("{$col} = ANY(:f_{$key}::int[])", ["f_{$key}" => '{' . implode(',', $ids) . '}']);

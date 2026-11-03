@@ -43,7 +43,7 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-primary"><i class
                 <thead>
                 <tr>
                     <th><input type="checkbox" class="form-check-input check-all"></th>
-                    <th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka</th><th>Seri</th><th>Lokasyon</th>
+                    <th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka</th><th>Model</th><th>Seri</th><th>Lokasyon</th>
                     <th>Durum</th><th>Giriş Tarihi</th><th>Çıkış Tarihi</th><th>Depolama Süresi</th><th>İşlem</th>
                 </tr>
                 </thead>
@@ -130,6 +130,7 @@ $(function () {
             { data: 'plaka', render: (v) => App.esc(v || '-') },
             { data: 'firma', render: (v) => App.esc(v || '-') },
             { data: 'marka', render: (v) => App.esc(v || '-') },
+            { data: 'model', render: (v) => App.esc(v || '-') },
             { data: 'seri', render: (v) => App.esc(v || '-') },
             { data: 'lokasyon', render: (v) => App.esc(v || '-') },
             { data: 'stokta', render: (v) => v ? App.badge('Stokta', 'success') : App.badge('Stoktan Çıktı', 'danger') },

@@ -35,7 +35,7 @@ use App\Core\Tanim;
         </div>
         <div class="table-responsive">
             <table id="liste" class="table table-hover w-100">
-                <thead><tr><th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka / Seri</th><th>Araç Tipi</th><th>Lokasyon</th><th>Giriş</th><th>Çıkış</th><th class="text-end">Gün</th><?php if (Auth::isAdmin()): ?><th class="text-end">Bayi tutarı</th><th class="text-end">Müşteri günlük</th><th class="text-end">Müşteri tutarı</th><th class="text-end">Kâr</th><?php elseif (Auth::fiyatGorebilir() || Auth::fiyatMaskeli()): ?><th class="text-end"><?= Auth::fiyatMaskeli() ? 'Bayi günlük' : 'Müşteri günlük' ?></th><th class="text-end"><?= Auth::fiyatMaskeli() ? 'Bayi tutarı' : 'Müşteri tutarı' ?></th><?php endif; ?></tr></thead>
+                <thead><tr><th>Şase</th><th>Plaka</th><th>Firma</th><th>Marka / Model / Seri</th><th>Araç Tipi</th><th>Lokasyon</th><th>Giriş</th><th>Çıkış</th><th class="text-end">Gün</th><?php if (Auth::isAdmin()): ?><th class="text-end">Bayi tutarı</th><th class="text-end">Müşteri günlük</th><th class="text-end">Müşteri tutarı</th><th class="text-end">Kâr</th><?php elseif (Auth::fiyatGorebilir() || Auth::fiyatMaskeli()): ?><th class="text-end"><?= Auth::fiyatMaskeli() ? 'Bayi günlük' : 'Müşteri günlük' ?></th><th class="text-end"><?= Auth::fiyatMaskeli() ? 'Bayi tutarı' : 'Müşteri tutarı' ?></th><?php endif; ?></tr></thead>
             </table>
         </div>
     </div>
@@ -51,7 +51,7 @@ $(function () {
         { data: 'sase', render: (v, _, r) => `<a href="/arac_yonetimi/duzenle/${r.arac_id}" class="fw-semibold">${App.esc(v)}</a>` },
         { data: 'plaka', render: (v) => App.esc(v || '-') },
         { data: 'firma', render: (v) => App.esc(v || '-') },
-        { data: 'marka', render: (v, _, r) => App.esc([v, r.seri].filter(Boolean).join(' ') || '-') },
+        { data: 'marka', render: (v, _, r) => App.esc([v, r.model, r.seri].filter(Boolean).join(' ') || '-') },
         { data: 'arac_tipi', render: (v) => App.esc(v || '-') },
         { data: 'lokasyon', render: (v) => App.esc(v || '-') },
         { data: 'giris_tarihi' },

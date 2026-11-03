@@ -8,7 +8,7 @@ use App\Core\Database;
 use App\Core\Tanim;
 use RuntimeException;
 
-/** Toplu Excel aktarımında ad → id eşleme (marka, seri, hizmet, tip vb.). */
+/** Toplu Excel aktarımında ad → id eşleme (marka, model, seri, hizmet, tip vb.). */
 final class TopluAktarim
 {
     /** @return array<string,int> lower(ad) => id */
@@ -87,25 +87,24 @@ final class TopluAktarim
         return (int) $row['id'];
     }
 
-    public static function seriId(int $markaId, string $seriAd): int
+    public static function modelId(int $markaId, string $modelAd): int
     {
-        $seriAd = trim($seriAd);
-        if ($seriAd === '' || $seriAd === '-') {
-            throw new RuntimeException('Seri boş olamaz.');
+        $modelAd = trim($modelAd);
+        if ($modelAd === '' || $modelAd === '-') {
+            throw new RuntimeException('Model boş olamaz.');
         }
         $row = Database::fetch(
-            'SELECT id FROM seriler WHERE marka_id = :m AND lower(ad) = lower(:a)',
-            ['m' => $markaId, 'a' => $seriAd]
+            'SELECT id FROM modeller WHERE marka_id = :m AND lower(ad) = lower(:a)',
+            ['m' => $markaId, 'a' => $modelAd]
         );
         if ($row) {
             return (int) $row['id'];
         }
 
-        // "Yeni Superb" / "New Octavia" → Superb / Octavia
-        $cleaned = trim(preg_replace('/^(yeni|new)\s+/iu', '', $seriAd) ?? $seriAd);
-        if ($cleaned !== '' && self::norm($cleaned) !== self::norm($seriAd)) {
+        $cleaned = trim(preg_replace('/^(yeni|new)\s+/iu', '', $modelAd) ?? $modelAd);
+        if ($cleaned !== '' && self::norm($cleaned) !== self::norm($modelAd)) {
             $row = Database::fetch(
-                'SELECT id FROM seriler WHERE marka_id = :m AND lower(ad) = lower(:a)',
+                'SELECT id FROM modeller WHERE marka_id = :m AND lower(ad) = lower(:a)',
                 ['m' => $markaId, 'a' => $cleaned]
             );
             if ($row) {
@@ -113,16 +112,33 @@ final class TopluAktarim
             }
         }
 
-        $adaylar = Database::fetchAll('SELECT id, ad FROM seriler WHERE marka_id = :m ORDER BY length(ad) DESC', ['m' => $markaId]);
-        $hedef = self::norm($cleaned !== '' ? $cleaned : $seriAd);
+        $adaylar = Database::fetchAll('SELECT id, ad FROM modeller WHERE marka_id = :m ORDER BY length(ad) DESC', ['m' => $markaId]);
+        $hedef = self::norm($cleaned !== '' ? $cleaned : $modelAd);
         foreach ($adaylar as $r) {
             $n = self::norm($r['ad']);
-            if ($n === $hedef || str_contains(self::norm($seriAd), $n) || str_contains($n, $hedef)) {
+            if ($n === $hedef || str_contains(self::norm($modelAd), $n) || str_contains($n, $hedef)) {
                 return (int) $r['id'];
             }
         }
 
-        throw new RuntimeException("Seri bu markada bulunamadı: {$seriAd}");
+        throw new RuntimeException("Model bu markada bulunamadı: {$modelAd}");
+    }
+
+    public static function seriId(int $modelId, string $seriAd): ?int
+    {
+        $seriAd = trim($seriAd);
+        if ($seriAd === '' || $seriAd === '-') {
+            return null;
+        }
+        $row = Database::fetch(
+            'SELECT id FROM seriler WHERE model_id = :m AND lower(ad) = lower(:a)',
+            ['m' => $modelId, 'a' => $seriAd]
+        );
+        if (!$row) {
+            throw new RuntimeException("Seri bu modelde bulunamadı: {$seriAd}");
+        }
+
+        return (int) $row['id'];
     }
 
     public static function parseTutar(?string $ham): float

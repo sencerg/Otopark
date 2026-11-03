@@ -86,12 +86,12 @@ $opt = static function (array $items, string $hepsi = 'Tümü'): string {
                 <select id="f-marka" class="form-select"><?= $opt($filtreler['markalar'], 'Tüm Markalar') ?></select>
             </div>
             <div>
-                <label class="form-label">Seri</label>
-                <select id="f-seri" class="form-select"><option value="">Tüm Seriler</option></select>
-            </div>
-            <div>
                 <label class="form-label">Model</label>
                 <select id="f-model" class="form-select"><?= $opt($filtreler['modeller'], 'Tüm Modeller') ?></select>
+            </div>
+            <div>
+                <label class="form-label">Seri</label>
+                <select id="f-seri" class="form-select"><option value="">Tüm Seriler</option></select>
             </div>
             <div>
                 <label class="form-label">Otopark</label>
@@ -124,7 +124,7 @@ $opt = static function (array $items, string $hepsi = 'Tümü'): string {
                 <thead>
                 <tr>
                     <th>Plaka / Şasi</th>
-                    <th>Marka / Seri / Model</th>
+                    <th>Marka / Model / Seri</th>
                     <th>Otopark</th>
                     <?php if ($tumuMod): ?><th>Durum</th><?php endif; ?>
                     <th>Giriş</th>
@@ -141,7 +141,7 @@ $opt = static function (array $items, string $hepsi = 'Tümü'): string {
                     <tr><td colspan="<?= $colspan ?>" class="text-center text-muted py-4">Kayıt yok.</td></tr>
                 <?php else: foreach ($araclar as $r):
                     $stokta = !empty($r['stokta']) || (($r['durum'] ?? '') === 'Stokta');
-                    $markaSeri = trim(($r['marka'] ?? '') . ' ' . ($r['seri'] ?? '') . (trim((string) ($r['model'] ?? '')) !== '' ? ' / ' . $r['model'] : ''));
+                    $markaSeri = trim(($r['marka'] ?? '') . ' ' . ($r['model'] ?? '') . (trim((string) ($r['seri'] ?? '')) !== '' ? ' / ' . $r['seri'] : ''));
                     ?>
                     <tr
                         data-marka="<?= e($r['marka'] ?? '') ?>"

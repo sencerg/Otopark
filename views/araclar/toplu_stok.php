@@ -41,7 +41,7 @@ $markaOptions = Tanim::options(Tanim::liste('markalar'));
                 <div class="card-body">
                     <input type="file" name="import_file" class="form-control" accept=".xlsx,.xls,.csv,.txt">
                     <div class="form-text">
-                        “Örnek Şablon İndir” ile XLSX alın. <b>MARKA</b> / <b>Seri</b> adları şablondaki “Araç Markaları” ve “Araç Serileri” sayfalarındaki sistem kayıtlarıyla aynı olmalıdır.
+                        “Örnek Şablon İndir” ile XLSX alın. <b>MARKA</b>, <b>Model</b> ve <b>Seri</b> adları şablondaki “Araç Markaları”, “Araç Modelleri” ve “Araç Serileri” sayfalarındaki kayıtlarla aynı olmalıdır. Seri boş bırakılabilir.
                         <b>Araç Tipi</b> ve <b>Araç Durumu</b> zorunlu değildir; boş bırakılabilir.
                         Dosya seçilirse aşağıdaki manuel satırlar dikkate alınmaz.
                     </div>
@@ -53,7 +53,7 @@ $markaOptions = Tanim::options(Tanim::liste('markalar'));
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-sm align-middle">
-                            <thead><tr><th>Şasi No</th><th>Plaka</th><th style="min-width:150px">Marka</th><th style="min-width:150px">Seri</th><th>Lokasyon Detay</th><th>Sevkiyat Kodu</th><th>İrsaliye Kodu</th><th></th></tr></thead>
+                            <thead><tr><th>Şasi No</th><th>Plaka</th><th style="min-width:150px">Marka</th><th style="min-width:150px">Model</th><th style="min-width:150px">Seri</th><th>Lokasyon Detay</th><th>Sevkiyat Kodu</th><th>İrsaliye Kodu</th><th></th></tr></thead>
                             <tbody id="stok-satirlari"></tbody>
                         </table>
                     </div>
@@ -62,7 +62,8 @@ $markaOptions = Tanim::options(Tanim::liste('markalar'));
                             <td><input type="text" name="satir[sase][]" class="form-control form-control-sm text-uppercase"></td>
                             <td><input type="text" name="satir[plaka][]" class="form-control form-control-sm text-uppercase"></td>
                             <td><select name="satir[marka_id][]" class="form-select form-select-sm satir-marka"><?= $markaOptions ?></select></td>
-                            <td><select name="satir[seri_id][]" class="form-select form-select-sm satir-seri"><option value="">Önce Marka</option></select></td>
+                            <td><select name="satir[model_id][]" class="form-select form-select-sm satir-model"><option value="">Önce Marka</option></select></td>
+                            <td><select name="satir[seri_id][]" class="form-select form-select-sm satir-seri"><option value="">Önce Model</option></select></td>
                             <td><input type="text" name="satir[lokasyon_detay][]" class="form-control form-control-sm"></td>
                             <td><input type="text" name="satir[sevkiyat_kodu][]" class="form-control form-control-sm"></td>
                             <td><input type="text" name="satir[irsaliye_kodu][]" class="form-control form-control-sm"></td>
@@ -83,14 +84,22 @@ $(function () {
     const tpl = $('#stok-satir-tpl').html();
     for (let i = 0; i < 3; i++) $tbody.append(tpl);
 
+    const secenek = (d, bos) => '<option value="">' + bos + '</option>' + Object.entries(d)
+        .sort((a, b) => a[1].localeCompare(b[1], 'tr'))
+        .map(([id, ad]) => `<option value="${id}">${App.esc(ad)}</option>`).join('');
     $tbody.on('change', '.satir-marka', function () {
-        const $seri = $(this).closest('tr').find('.satir-seri').html('<option value="">Yükleniyor...</option>');
-        if (!this.value) { $seri.html('<option value="">Önce Marka</option>'); return; }
-        $.getJSON('/api/seriler', { marka_id: this.value }, (d) => {
-            $seri.html('<option value="">Seçiniz</option>' + Object.entries(d)
-                .sort((a, b) => a[1].localeCompare(b[1], 'tr'))
-                .map(([id, ad]) => `<option value="${id}">${App.esc(ad)}</option>`).join(''));
-        });
+        const $tr = $(this).closest('tr');
+        const $model = $tr.find('.satir-model');
+        $tr.find('.satir-seri').html('<option value="">Önce Model</option>');
+        if (!this.value) { $model.html('<option value="">Önce Marka</option>'); return; }
+        $model.html('<option value="">Yükleniyor...</option>');
+        $.getJSON('/api/modeller', { marka_id: this.value }, (d) => $model.html(secenek(d, 'Seçiniz')));
+    });
+    $tbody.on('change', '.satir-model', function () {
+        const $seri = $(this).closest('tr').find('.satir-seri');
+        if (!this.value) { $seri.html('<option value="">Önce Model</option>'); return; }
+        $seri.html('<option value="">Yükleniyor...</option>');
+        $.getJSON('/api/seriler', { model_id: this.value }, (d) => $seri.html(secenek(d, 'Seçiniz')));
     });
 });
 </script>

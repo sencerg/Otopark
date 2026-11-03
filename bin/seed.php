@@ -36,12 +36,12 @@ Database::transaction(function () use ($t, $insertNames, $idMap) {
             continue;
         }
         foreach ($seriler as $seri) {
-            Database::query('INSERT INTO seriler (marka_id, ad) VALUES (:m, :a) ON CONFLICT DO NOTHING', ['m' => $markalar[$marka], 'a' => $seri]);
+            Database::query('INSERT INTO modeller (marka_id, ad) VALUES (:m, :a) ON CONFLICT DO NOTHING', ['m' => $markalar[$marka], 'a' => $seri]);
         }
     }
     // Referansta model listesi seri seçilince dinamik geliyor ve taranmadı; demo için genel paketler.
     foreach (['1.0 Benzin Manuel', '1.3 Benzin Otomatik', '1.5 Dizel Manuel', '1.5 Dizel Otomatik', 'Hibrit Otomatik', 'Elektrikli'] as $model) {
-        Database::query('INSERT INTO modeller (seri_id, ad) SELECT id, :a FROM seriler ON CONFLICT DO NOTHING', ['a' => $model]);
+        Database::query('INSERT INTO seriler (model_id, ad) SELECT id, :a FROM modeller ON CONFLICT DO NOTHING', ['a' => $model]);
     }
     foreach ($t['donanimlar'] as [$grup, $ad]) {
         Database::query('INSERT INTO donanimlar (grup, ad) VALUES (:g, :a) ON CONFLICT DO NOTHING', ['g' => $grup, 'a' => $ad]);
@@ -149,7 +149,7 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
         }
     }
 
-    $seriler = Database::fetchAll('SELECT s.id, s.marka_id, (SELECT array_to_string(array_agg(m.id), \',\') FROM modeller m WHERE m.seri_id = s.id) AS modeller FROM seriler s');
+    $seriler = Database::fetchAll('SELECT mo.id, mo.marka_id, (SELECT array_to_string(array_agg(s.id), \',\') FROM seriler s WHERE s.model_id = mo.id) AS seriler FROM modeller mo');
     $renkler = array_slice($ids('renkler'), 0, 19);
     $yillar = array_column(Database::fetchAll('SELECT id FROM model_yillari WHERE yil >= 2022'), 'id');
     $envanterler = $ids('envanterler');
@@ -182,8 +182,8 @@ Database::transaction(function () use ($pick, $ids, $idMap) {
                 :stokta, :giris, :cikis, :u) RETURNING id',
             [
                 'sase' => $sase, 'plaka' => $plaka, 'durum' => mt_rand(1, 10) <= 7 ? 1 : 2, 'tip' => mt_rand(1, 10) <= 8 ? 1 : 2,
-                'kasa' => mt_rand(1, 5), 'renk' => $pick($renkler), 'marka' => $seri['marka_id'], 'seri' => $seri['id'],
-                'model' => $seri['modeller'] ? $pick(explode(',', $seri['modeller'])) : null,
+                'kasa' => mt_rand(1, 5), 'renk' => $pick($renkler), 'marka' => $seri['marka_id'], 'model' => $seri['id'],
+                'seri' => $seri['seriler'] ? $pick(explode(',', $seri['seriler'])) : null,
                 'yil' => $pick($yillar), 'yakit' => mt_rand(1, 5), 'vites' => mt_rand(1, 2), 'km' => mt_rand(5, 60000),
                 'yd' => mt_rand(10, 100), 'm' => $mId, 'b' => $bId, 'lt' => mt_rand(1, 2), 'ld' => 'Blok ' . chr(65 + mt_rand(0, 4)) . '-' . mt_rand(1, 40),
                 'stokta' => $cikti ? 'false' : 'true', 'giris' => $giris->format('c'), 'cikis' => $cikis?->format('c'), 'u' => $admin,

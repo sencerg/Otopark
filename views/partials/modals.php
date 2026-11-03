@@ -24,8 +24,8 @@ $bayiler = Tanim::liste('bayiler');
                     <div class="col-md-4"><label class="form-label required">Plaka</label><input type="text" name="plaka" class="form-control text-uppercase" maxlength="20" required></div>
                     <div class="col-md-4"><label class="form-label required">Araç Tipi</label><select name="arac_tipi" class="form-select" required><?= Tanim::options(Tanim::liste('arac_tipleri')) ?></select></div>
                     <div class="col-md-4"><label class="form-label">Marka</label><select name="marka_id" class="form-select select2"><?= Tanim::options(Tanim::liste('markalar')) ?></select></div>
-                    <div class="col-md-4"><label class="form-label">Seri</label><select name="seri_id" class="form-select select2"><option value="">Önce Marka Seçiniz</option></select></div>
-                    <div class="col-md-4"><label class="form-label">Model</label><select name="model_id" class="form-select select2"><option value="">Önce Seri Seçiniz</option></select></div>
+                    <div class="col-md-4"><label class="form-label">Model</label><select name="model_id" class="form-select select2"><option value="">Önce Marka Seçiniz</option></select></div>
+                    <div class="col-md-4"><label class="form-label">Seri</label><select name="seri_id" class="form-select select2"><option value="">Önce Model Seçiniz</option></select></div>
                     <div class="col-md-3"><label class="form-label">Araç Durumu</label><select name="arac_durumu" class="form-select"><?= Tanim::options(Tanim::ARAC_DURUMU) ?></select></div>
                     <div class="col-md-3"><label class="form-label">KM</label><input type="number" name="km" class="form-control" min="0"></div>
                     <div class="col-md-3"><label class="form-label">Model Yılı</label><select name="yil" class="form-select"><?= Tanim::options(Tanim::liste('model_yillari')) ?></select></div>

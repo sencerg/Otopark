@@ -99,7 +99,7 @@
         });
     };
 
-    /* Marka → Seri → Model */
+    /* Marka → Model → Seri */
     function fillSelect($select, items, placeholder) {
         const current = $select.data('selected');
         $select.empty().append(new Option(placeholder, ''));
@@ -111,18 +111,19 @@
 
     $(document).on('change', 'select[name="marka_id"]', function () {
         const $scope = $(this).closest('form, .modal, .filter-scope');
-        const $seri = $scope.find('select[name="seri_id"]');
         const $model = $scope.find('select[name="model_id"]');
-        fillSelect($model, {}, 'Önce Seri Seçiniz');
-        if (!this.value) { fillSelect($seri, {}, 'Önce Marka Seçiniz'); return; }
-        $.getJSON('/api/seriler', { marka_id: this.value }, (d) => { fillSelect($seri, d, 'Seçiniz'); $seri.trigger('change'); });
+        const $seri = $scope.find('select[name="seri_id"]');
+        if ($seri.length) fillSelect($seri, {}, 'Önce Model Seçiniz');
+        if (!$model.length) return;
+        if (!this.value) { fillSelect($model, {}, 'Önce Marka Seçiniz'); return; }
+        $.getJSON('/api/modeller', { marka_id: this.value }, (d) => { fillSelect($model, d, 'Seçiniz'); $model.trigger('change'); });
     });
 
-    $(document).on('change', 'select[name="seri_id"]', function () {
-        const $model = $(this).closest('form, .modal, .filter-scope').find('select[name="model_id"]');
-        if (!$model.length) return;
-        if (!this.value) { fillSelect($model, {}, 'Önce Seri Seçiniz'); return; }
-        $.getJSON('/api/modeller', { seri_id: this.value }, (d) => fillSelect($model, d, 'Seçiniz'));
+    $(document).on('change', 'select[name="model_id"]', function () {
+        const $seri = $(this).closest('form, .modal, .filter-scope').find('select[name="seri_id"]');
+        if (!$seri.length) return;
+        if (!this.value) { fillSelect($seri, {}, 'Önce Model Seçiniz'); return; }
+        $.getJSON('/api/seriler', { model_id: this.value }, (d) => fillSelect($seri, d, 'Seçiniz'));
     });
 
     /* DataTables */

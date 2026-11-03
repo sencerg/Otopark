@@ -13,14 +13,14 @@ use App\Services\HizmetFiyat;
 
 final class ApiController extends Controller
 {
-    public function seriler(): void
-    {
-        View::json((object) Tanim::seriler(Request::int('marka_id') ?? 0));
-    }
-
     public function modeller(): void
     {
-        View::json((object) Tanim::modeller(Request::int('seri_id') ?? 0));
+        View::json((object) Tanim::modeller(Request::int('marka_id') ?? 0));
+    }
+
+    public function seriler(): void
+    {
+        View::json((object) Tanim::seriler(Request::int('model_id') ?? 0));
     }
 
     public function personeller(): void
@@ -46,9 +46,10 @@ final class ApiController extends Controller
 
         $stok = Request::input('stokta') === '1' ? ' AND a.stokta' : '';
         $rows = Database::fetchAll(
-            "SELECT a.id, a.sase, a.plaka, m.ad AS marka, s.ad AS seri, a.stokta
+            "SELECT a.id, a.sase, a.plaka, m.ad AS marka, mo.ad AS model, s.ad AS seri, a.stokta
              FROM araclar a
              LEFT JOIN markalar m ON m.id = a.marka_id
+             LEFT JOIN modeller mo ON mo.id = a.model_id
              LEFT JOIN seriler s ON s.id = a.seri_id
              WHERE (a.sase ILIKE :q OR a.plaka ILIKE :q
                 OR regexp_replace(upper(coalesce(a.plaka, '')), '[^0-9A-Z]', '', 'g') LIKE :n
@@ -62,7 +63,7 @@ final class ApiController extends Controller
             'id' => $r['id'],
             'sase' => $r['sase'],
             'plaka' => $r['plaka'] ?: '',
-            'text' => $r['sase'] . ' — ' . ($r['plaka'] ?: '-') . ' — ' . trim(($r['marka'] ?? '') . ' ' . ($r['seri'] ?? '')) . ($r['stokta'] ? '' : ' (stok dışı)'),
+            'text' => $r['sase'] . ' — ' . ($r['plaka'] ?: '-') . ' — ' . trim(($r['marka'] ?? '') . ' ' . ($r['model'] ?? '') . (!empty($r['seri']) ? ' / ' . $r['seri'] : '')) . ($r['stokta'] ? '' : ' (stok dışı)'),
         ], $rows)]);
     }
 

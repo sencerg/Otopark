@@ -79,7 +79,7 @@ $opt = static function (array $items, string $hepsi = 'Tümü'): string {
                         <td>
                             <strong><?= e($r['plaka'] ?: '—') ?></strong>
                             <div class="small text-muted font-monospace"><?= e($r['sase']) ?></div>
-                            <?php if (!empty($r['marka'])): ?><div class="small text-muted"><?= e(trim($r['marka'] . ' ' . ($r['seri'] ?? ''))) ?></div><?php endif; ?>
+                            <?php if (!empty($r['marka'])): ?><div class="small text-muted"><?= e(trim($r['marka'] . ' ' . ($r['model'] ?? '') . (!empty($r['seri']) ? ' / ' . $r['seri'] : ''))) ?></div><?php endif; ?>
                         </td>
                         <td><?= e($r['otopark'] ?? '—') ?></td>
                         <td class="small text-muted"><?= e($r['aciklama'] ?? '') ?></td>
