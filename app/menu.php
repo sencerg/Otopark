@@ -42,5 +42,6 @@ return [
     ]],
     ['title' => 'Tanımlamalar', 'icon' => 'mdi-cog-outline', 'url' => '/tanimlamalar', 'izin' => 'menu.tanimlamalar'],
     ['title' => 'Yetki Yönetimi', 'icon' => 'mdi-shield-account-outline', 'url' => '/yetki_yonetimi', 'izin' => 'menu.yetki'],
+    ['title' => 'Mesaj Merkezi', 'icon' => 'mdi-message-text-outline', 'url' => '/mesaj', 'izin' => 'menu.mesaj'],
     ['title' => 'Proje Notları', 'icon' => 'mdi-history', 'url' => '/surumler', 'izin' => 'menu.surumler'],
 ];

@@ -50,6 +50,7 @@ final class HesapController extends Controller
                 'email' => $mail,
                 'kullanici_adi' => $kullaniciAdi,
                 'telefon' => Request::str('telefon'),
+                'surum_eposta' => Request::bool('surum_eposta') ? 'true' : 'false',
             ];
 
             $sifre = is_string($_POST['sifre'] ?? null) ? $_POST['sifre'] : '';

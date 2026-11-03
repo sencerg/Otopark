@@ -677,6 +677,20 @@
 
     $(function () {
         App.initSelect2();
+        const zil = document.getElementById('bildirim-zil');
+        if (zil) {
+            const rozet = zil.querySelector('.bildirim-rozet');
+            const yenile = function () {
+                $.getJSON('/mesaj/ozet').done(function (r) {
+                    const n = Number(r.okunmamis || 0);
+                    if (!rozet) return;
+                    rozet.hidden = n < 1;
+                    rozet.textContent = n > 99 ? '99+' : String(n);
+                });
+            };
+            yenile();
+            setInterval(yenile, 60000);
+        }
         $('.modal').on('shown.bs.modal', function () { App.initSelect2(this); });
         document.querySelectorAll('[title]').forEach((el) => { if (el.closest('.table-actions')) new bootstrap.Tooltip(el); });
         $(document).on('draw.dt', () => document.querySelectorAll('.table-actions [title]').forEach((el) => bootstrap.Tooltip.getOrCreateInstance(el)));

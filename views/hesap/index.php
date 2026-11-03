@@ -27,6 +27,8 @@ $ad = implode(' ', $parca);
                         <div class="col-md-6"><label class="form-label required">Soyadı</label><input type="text" name="soyad" class="form-control" value="<?= old('soyad', $soyad) ?>" required></div>
                         <div class="col-md-6"><label class="form-label">Telefon</label><input type="text" name="telefon" class="form-control" value="<?= old('telefon', (string) $user['telefon']) ?>"></div>
                         <div class="col-md-6"><label class="form-label required">E-mail</label><input type="email" name="mail" class="form-control" value="<?= old('mail', $user['email']) ?>" required></div>
+                        <?php $epostaAcik = in_array($user['surum_eposta'] ?? true, [true, 1, '1', 't', 'true'], true); ?>
+                        <div class="col-12"><label class="form-check"><input class="form-check-input" type="checkbox" name="surum_eposta" value="1" <?= $epostaAcik ? 'checked' : '' ?>> Sürüm e-postası gelsin. Kapalıysa duyuru zilde durur, zorunlu duyuru dışında mektup gitmez.</label></div>
                         <div class="col-md-6"><label class="form-label">Lokasyon</label><input type="text" class="form-control" value="<?= e($user['bayi_adi'] ?? 'Tüm Lokasyonlar') ?>" disabled></div>
                     </div>
                 </div>

@@ -49,6 +49,9 @@ $brandParts = preg_split('/\s+/', trim($appName), 2) ?: ['Moex'];
                 <div class="elastic-menu" hidden></div>
             </form>
             <div class="topbar-actions">
+                <?php if (Auth::can('menu.mesaj')): ?>
+                <a href="/mesaj" class="topbar-btn position-relative" id="bildirim-zil" title="Bildirimler" aria-label="Bildirimler"><i class="mdi mdi-bell-outline"></i><span class="bildirim-rozet" hidden>0</span></a>
+                <?php endif; ?>
                 <?php if (Auth::can('menu.hizli_arac')): ?>
                 <button type="button" class="btn btn-sm btn-primary d-none d-md-inline-flex" data-bs-toggle="modal" data-bs-target="#hizli-arac-ekle-modal">
                     <i class="mdi mdi-car-arrow-right me-1"></i> Hızlı Araç Ekle

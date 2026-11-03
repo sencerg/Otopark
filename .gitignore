@@ -1,6 +1,8 @@
 # vendor commit edilir: canlıda SSH/composer olmadan XLSX (PhpSpreadsheet) çalışsın.
 # Yerelde güncellemek için: composer install
 .env
+/storage/mail/*
+!/storage/mail/.gitkeep
 /storage/logs/*
 !/storage/logs/.gitkeep
 /storage/vis/*

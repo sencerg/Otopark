@@ -67,6 +67,9 @@ $menu = require BASE_PATH . '/app/menu_musteri.php';
                 <span class="text-muted small"><?= e($user['musteri_adi'] ?? $user['name'] ?? '') ?></span>
             </div>
             <div class="topbar-actions">
+                <?php if (Auth::can('musteri.mesaj')): ?>
+                <a href="/mesaj" class="topbar-btn position-relative" id="bildirim-zil" title="Bildirimler" aria-label="Bildirimler"><i class="mdi mdi-bell-outline"></i><span class="bildirim-rozet" hidden>0</span></a>
+                <?php endif; ?>
                 <div class="dropdown theme-switch">
                     <button class="topbar-btn fs-4" data-bs-toggle="dropdown" type="button" title="Görünüm" aria-label="Görünüm">
                         <i class="mdi mdi-weather-sunny" data-mod-ikon></i>

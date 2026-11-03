@@ -91,6 +91,12 @@ final class Yetki
                 ],
             ],
             [
+                'grup' => 'Mesaj merkezi',
+                'izinler' => [
+                    ['kod' => 'menu.mesaj', 'ad' => 'Mesaj merkezi', 'aciklama' => 'Bildirim, duyuru ve Moex yazışması'],
+                ],
+            ],
+            [
                 'grup' => 'Proje Notları',
                 'izinler' => [
                     ['kod' => 'menu.surumler', 'ad' => 'Sürüm geçmişi', 'aciklama' => 'Menü: Proje Notları'],
@@ -105,6 +111,7 @@ final class Yetki
                     ['kod' => 'musteri.hizmetler', 'ad' => 'Portal — aldığım hizmetler'],
                     ['kod' => 'musteri.detay', 'ad' => 'Portal — araç detay'],
                     ['kod' => 'musteri.excel', 'ad' => 'Portal — Excel indir'],
+                    ['kod' => 'musteri.mesaj', 'ad' => 'Portal — mesajlar'],
                 ],
             ],
         ];
@@ -137,7 +144,7 @@ final class Yetki
                 'menu.stok', 'menu.cikis', 'menu.araclar',
                 'arac.goruntule', 'hareket.goruntule', 'hareket.stoktan_cikar',
                 'menu.is_takibi',
-                'menu.detayli_arac',
+                'menu.detayli_arac', 'menu.mesaj',
                 'menu.raporlar', 'menu.depolama_raporu', 'menu.stok_ozet_raporu', 'menu.giris_cikis_raporu',
             ],
             // Bayi / otopark: İK / destek / yetki yönetimi yok; detaylı araç ekleme sahada yapılır

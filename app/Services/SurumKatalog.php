@@ -31,6 +31,15 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.63',
+                'tarih' => '2026-11-03 23:20',
+                'baslik' => 'Mesaj merkezi ve sürüm duyurusu',
+                'maddeler' => [
+                    'Zil bildirimi, duyuru grupları ve sürüm mektubu aynı merkezden gider. Gönderim taslaktan elle yapılır.',
+                    'Bayi ve müşteri yalnız Moex ile yazar. Talepte durum, sorumlu, dosya ve şasi tutulur.',
+                ],
+            ],
+            [
                 'surum' => 'v0.62',
                 'tarih' => '2026-11-03 22:50',
                 'baslik' => 'Toplu stok girişinde yapıştırma',

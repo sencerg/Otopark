@@ -42,7 +42,7 @@ final class Auth
     {
         if (self::$user === null && isset($_SESSION['user_id'])) {
             self::$user = Database::fetch(
-                'SELECT u.id, u.name, u.email, u.kullanici_adi, u.role, u.bayi_id, u.musteri_id, u.telefon, u.resim, u.kullanici_grubu_id,
+                'SELECT u.id, u.name, u.email, u.kullanici_adi, u.role, u.bayi_id, u.musteri_id, u.telefon, u.resim, u.surum_eposta, u.kullanici_grubu_id,
                         u.yetki_profil_id, u.bayi_kapsam,
                         b.ad AS bayi_adi, g.ad AS grup_adi, m.ad AS musteri_adi, yp.ad AS yetki_profil_adi
                  FROM users u

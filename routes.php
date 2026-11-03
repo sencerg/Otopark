@@ -13,6 +13,7 @@ use App\Controllers\HesapController;
 use App\Controllers\IsEmriController;
 use App\Controllers\KarsilastirmaController;
 use App\Controllers\MaliyetController;
+use App\Controllers\MesajController;
 use App\Controllers\MusteriPortalController;
 use App\Controllers\RaporController;
 use App\Controllers\SayimController;
@@ -199,6 +200,21 @@ $router->get('/kullanici/hesabim', [HesapController::class, 'index'], $auth);
 $router->post('/kullanici/hesabim', [HesapController::class, 'update'], $auth);
 
 $router->get('/tema_onizleme', [TemaController::class, 'index'], $staff);
+
+// Mesaj merkezi: bildirim, duyuru, bayi/müşteri yazışması
+$router->get('/mesaj', [MesajController::class, 'index'], $auth);
+$router->get('/mesaj/ozet', [MesajController::class, 'ozet'], $auth);
+$router->post('/mesaj/okundu', [MesajController::class, 'okundu'], $auth);
+$router->get('/mesaj/yeni', [MesajController::class, 'yeni'], $auth);
+$router->post('/mesaj/ac', [MesajController::class, 'ac'], $auth);
+$router->get('/mesaj/duyuru', [MesajController::class, 'duyuru'], $auth);
+$router->post('/mesaj/duyuru', [MesajController::class, 'duyurGonder'], $auth);
+$router->get('/mesaj/gruplar', [MesajController::class, 'gruplar'], $auth);
+$router->post('/mesaj/grup', [MesajController::class, 'grupKaydet'], $auth);
+$router->post('/mesaj/grup_uyeleri', [MesajController::class, 'uyeleriKaydet'], $auth);
+$router->get('/mesaj/{id}', [MesajController::class, 'goster'], $auth);
+$router->post('/mesaj/{id}', [MesajController::class, 'yaz'], $auth);
+$router->post('/mesaj/{id}/durum', [MesajController::class, 'durum'], $auth);
 
 // Proje Notları = sürüm geçmişi
 $router->get('/surumler', [SurumController::class, 'index'], $staff);

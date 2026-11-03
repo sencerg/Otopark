@@ -1,4 +1,6 @@
 <?php
+use App\Core\Auth;
+
 $fmt = static function (string $iso): string {
     $dt = DateTimeImmutable::createFromFormat('Y-m-d H:i', $iso)
         ?: DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $iso);
@@ -18,6 +20,9 @@ $fmt = static function (string $iso): string {
         <div class="text-end">
             <span class="badge badge-soft-primary fs-6 px-3 py-2"><?= e($guncel['surum']) ?></span>
             <div class="small text-muted mt-1">Güncel · <?= e($fmt($guncel['tarih'])) ?></div>
+            <?php if (Auth::isAdmin()): ?>
+                <div class="mt-2"><a class="btn btn-sm btn-outline-primary" href="/mesaj/duyuru?surum=<?= e($guncel['surum']) ?>">Bu sürümü duyur</a></div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>
