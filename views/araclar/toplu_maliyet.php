@@ -1,11 +1,9 @@
 <?php
 use App\Core\Auth;
 use App\Core\Csrf;
-use App\Core\Tanim;
 
 $secili = $secili ?? [];
 $yapiskan = $yapiskan ?? '';
-$musteriId = (int) ($musteriId ?? 0);
 $hizmetIds = $hizmetIds ?? [];
 $eski = $_SESSION['_old'] ?? [];
 $admin = Auth::isAdmin();
@@ -17,17 +15,11 @@ $admin = Auth::isAdmin();
             <div class="card">
                 <div class="card-header"><h5>Maliyet bilgileri</h5></div>
                 <div class="card-body">
-                    <p class="small text-muted">Seçilen hizmetler, yapıştırılan ve firmaya ait araçlara katalog fiyatıyla yazılır.</p>
-                    <div class="mb-2">
-                        <label class="form-label required" for="maliyet-musteri">Müşteri</label>
-                        <select name="musteri_id" id="maliyet-musteri" class="form-select select2" required data-placeholder="Müşteri seçin">
-                            <?= Tanim::options(Tanim::liste('musteriler'), $musteriId ?: null) ?>
-                        </select>
-                    </div>
+                    <p class="small text-muted">Müşteri şasi veya plakadan bulunur. Seçilen hizmet, o aracın firmasına ve otoparkına tanımlı fiyatla yazılır.</p>
                     <div class="mb-2">
                         <label class="form-label required" for="maliyet-hizmet">Hizmet</label>
-                        <select name="maliyet_tipi_id[]" id="maliyet-hizmet" class="form-select select2" multiple data-placeholder="Önce müşteri seçin"></select>
-                        <div class="form-text">Birden fazla hizmet seçilebilir. Liste, bu müşteri için fiyatı olan hizmetlerdir.</div>
+                        <select name="maliyet_tipi_id[]" id="maliyet-hizmet" class="form-select select2" multiple data-placeholder="Hizmet seçin"></select>
+                        <div class="form-text">Birden fazla hizmet seçilebilir. Fiyat, bulunan aracın müşterisine göre uygulanır.</div>
                     </div>
                     <div class="mb-2">
                         <label class="form-label" for="maliyet-tarih">İşlem tarihi</label>
@@ -63,7 +55,7 @@ $admin = Auth::isAdmin();
                     <?php endif; ?>
                     <label class="form-label" for="maliyet-yapiskan">Şasi veya plaka listesi</label>
                     <textarea id="maliyet-yapiskan" name="yapiskan" class="form-control font-monospace" rows="12" placeholder="Tek sütun ya da yan yana iki sütun yapıştırın.&#10;Şase	Plaka&#10;VF1ZUTPNT8GNVDCWJ	06TX584&#10;06 ERHAN 640"><?= e($yapiskan) ?></textarea>
-                    <div class="form-text">Tek sütun alt alta yeter. Şasi ve plaka yan yanaysa iki sütunu birlikte kopyalayın. Kayıtlı olmayan, başka firmaya ait ve fiyatı olmayan satırlar eklenmez.</div>
+                    <div class="form-text">Tek sütun alt alta yeter. Şasi ve plaka yan yanaysa iki sütunu birlikte kopyalayın. Kayıtlı olmayan ve fiyatı olmayan satırlar eklenmez. Firma, kayıttaki müşteridir.</div>
                     <div class="d-flex gap-2 mt-2">
                         <button type="button" class="btn btn-outline-primary" id="maliyet-kontrol"><i class="mdi mdi-clipboard-search-outline me-1"></i>Kontrol et</button>
                     </div>
@@ -82,11 +74,10 @@ $(function () {
     const admin = document.body.dataset.admin === '1';
     const seciliHizmet = <?= json_encode(array_values(array_map('intval', $hizmetIds)), JSON_UNESCAPED_UNICODE) ?>;
     const renk = {
-        uygun: 'success', kismi: 'warning', kayitli_degil: 'danger', baska_musteri: 'warning',
+        uygun: 'success', kismi: 'warning', kayitli_degil: 'danger', musteri_yok: 'warning',
         tekrar: 'secondary', belirsiz: 'warning', uyusmuyor: 'danger', hizmet_yok: 'danger',
         eklenecek: 'success', zaten_var: 'warning', tanimsiz: 'danger', otopark_yok: 'danger'
     };
-    const $musteri = $('#maliyet-musteri');
     const $hizmet = $('#maliyet-hizmet');
 
     function hizmetKur(rows, secili) {
@@ -96,27 +87,15 @@ $(function () {
             const opt = new Option(h.ad, String(h.id), false, secili.map(String).includes(String(h.id)));
             $hizmet.append(opt);
         });
-        $hizmet.attr('data-placeholder', rows.length ? 'Hizmet seçin' : 'Bu müşteri için fiyatlı hizmet yok');
+        $hizmet.attr('data-placeholder', rows.length ? 'Hizmet seçin' : 'Fiyatı tanımlı hizmet yok');
         App.initSelect2($hizmet.parent());
     }
 
-    function hizmetYukle(secili) {
-        const musteri = $musteri.val();
-        if (!musteri) {
-            hizmetKur([], []);
-            $hizmet.attr('data-placeholder', 'Önce müşteri seçin');
-            return;
-        }
-        $.get('/arac_yonetimi/toplu_ek_maliyet_girisi/hizmetler', { musteri_id: musteri })
-            .done((res) => hizmetKur(res.hizmetler || [], secili || []))
-            .fail((x) => App.error(x.responseJSON?.message || 'Hizmetler alınamadı'));
-    }
-
-    $musteri.on('change', () => hizmetYukle([]));
-    if ($musteri.val()) hizmetYukle(seciliHizmet);
+    $.get('/arac_yonetimi/toplu_ek_maliyet_girisi/hizmetler')
+        .done((res) => hizmetKur(res.hizmetler || [], seciliHizmet))
+        .fail((x) => App.error(x.responseJSON?.message || 'Hizmetler alınamadı'));
 
     function eksik() {
-        if (!$musteri.val()) return 'Müşteri seçilmelidir.';
         if (!$hizmet.val() || !$hizmet.val().length) return 'En az bir hizmet seçilmelidir.';
         if (!$.trim($('#maliyet-yapiskan').val())) return 'Şasi veya plaka yapıştırılmalıdır.';
         return '';
@@ -135,12 +114,11 @@ $(function () {
         if (mesaj) { App.error(mesaj); return; }
         const $btn = $(this).prop('disabled', true);
         $.post('/arac_yonetimi/toplu_ek_maliyet_girisi/kontrol', {
-            musteri_id: $musteri.val(),
             maliyet_tipi_id: $hizmet.val(),
             yapiskan: $('#maliyet-yapiskan').val(),
             _csrf: $('meta[name="csrf-token"]').attr('content'),
         }).done((res) => {
-            const ozet = `${res.uygun || 0} eklenecek, ${res.kismi || 0} kısmen, ${res.baska_musteri || 0} başka firma, ${res.kayitli_degil || 0} kayıtlı değil`;
+            const ozet = `${res.uygun || 0} eklenecek, ${res.kismi || 0} kısmen, ${res.musteri_yok || 0} müşterisiz, ${res.kayitli_degil || 0} kayıtlı değil`;
             let html = `<div class="alert alert-light border small mb-2">${App.esc(ozet)}. Maliyet yalnızca uygun satırlara yazılır.</div>`;
             html += '<div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Şasi</th><th>Plaka</th><th>Durum</th><th>Kayıt</th><th>Hizmet</th></tr></thead><tbody>';
             (res.satirlar || []).forEach((s) => {

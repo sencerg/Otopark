@@ -212,17 +212,15 @@ final class DetayliAracStore
         };
 
         return [
-            ['kod' => 'on', 'ad' => 'Ön', 'rehber' => $v('on.jpg'), 'ipucu' => 'Tam karşıdan dur; araç çerçevede, plaka ortada'],
-            ['kod' => 'arka', 'ad' => 'Arka', 'rehber' => $v('arka.jpg'), 'ipucu' => 'Tam arkadan; stop lambaları ve plaka net'],
-            ['kod' => 'sol', 'ad' => 'Sol yan', 'rehber' => $v('sol.jpg'), 'ipucu' => 'Sol tarafa geç; tüm profil kapılarla birlikte'],
-            ['kod' => 'sag', 'ad' => 'Sağ yan', 'rehber' => $v('sag.jpg'), 'ipucu' => 'Sağ tarafa geç; tüm profil kapılarla birlikte'],
-            ['kod' => 'ic_on', 'ad' => 'İç ön', 'rehber' => $v('ic_on.jpg'), 'ipucu' => 'Ön kapıdan içeri bak; torpido ve ön koltuklar'],
-            ['kod' => 'ic_arka', 'ad' => 'İç arka', 'rehber' => $v('ic_arka.jpg'), 'ipucu' => 'Arka kapıdan / arkadan; koltuk başlıkları görünsün'],
-            ['kod' => 'km', 'ad' => 'Gösterge / KM', 'rehber' => $v('km.jpg'), 'ipucu' => 'Göstergeye yaklaş; KM rakamı okunaklı olsun'],
-            ['kod' => 'motor', 'ad' => 'Motor bölmesi', 'rehber' => $v('motor.jpg'), 'ipucu' => 'Kaput açık, yukarıdan motor bölgesini çek'],
-            ['kod' => 'hasar1', 'ad' => 'Hasar detay 1', 'rehber' => $v('hasar.jpg'), 'ipucu' => 'Hasara yaklaş; çizik veya göçük net görünsün'],
-            ['kod' => 'hasar2', 'ad' => 'Hasar detay 2', 'rehber' => $v('hasar.jpg'), 'ipucu' => 'İkinci hasar veya farklı açıdan yakın çekim'],
-            ['kod' => 'evrak', 'ad' => 'Evrak / ruhsat', 'rehber' => $v('evrak.jpg'), 'ipucu' => 'Ruhsat ve anahtarları düz zemine koyup üstten çek'],
+            ['kod' => 'on_sol', 'ad' => 'Ön sol', 'rehber' => $v('on_sol.png'), 'ipucu' => 'Ön sol çaprazdan; far, plaka ve sol kapılar görünsün'],
+            ['kod' => 'on_sag', 'ad' => 'Ön sağ', 'rehber' => $v('on_sag.png'), 'ipucu' => 'Ön sağ çaprazdan; far, plaka ve sağ kapılar görünsün'],
+            ['kod' => 'arka_sol', 'ad' => 'Arka sol', 'rehber' => $v('arka_sol.png'), 'ipucu' => 'Arka sol çaprazdan; stop, plaka ve sol profil görünsün'],
+            ['kod' => 'arka_sag', 'ad' => 'Arka sağ', 'rehber' => $v('arka_sag.png'), 'ipucu' => 'Arka sağ çaprazdan; stop, plaka ve sağ profil görünsün'],
+            ['kod' => 'bagaj', 'ad' => 'Bagaj', 'rehber' => $v('bagaj.png'), 'ipucu' => 'Bagaj kapağı açık; içeriden arka koltuklara bak'],
+            ['kod' => 'torpido', 'ad' => 'Torpido', 'rehber' => $v('torpido.png'), 'ipucu' => 'Direksiyon, gösterge ve vites ortada olsun'],
+            ['kod' => 'km', 'ad' => 'KM', 'rehber' => $v('km.png'), 'ipucu' => 'Kilometre rakamı kare kare okunaklı olsun'],
+            ['kod' => 'arka_koltuk', 'ad' => 'Arka koltuk', 'rehber' => $v('arka_koltuk.png'), 'ipucu' => 'Arka koltuklar ve başlıklar kadrajda olsun'],
+            ['kod' => 'on_kapi', 'ad' => 'Ön kapı', 'rehber' => $v('on_kapi.png'), 'ipucu' => 'Ön kapı açık; pedallar, direksiyon ve kapı döşemesi görünsün'],
         ];
     }
 

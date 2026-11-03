@@ -31,6 +31,24 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.60',
+                'tarih' => '2026-11-03 17:45',
+                'baslik' => 'Toplu maliyette müşteri şasiden',
+                'maddeler' => [
+                    'Toplu ek maliyette müşteri seçilmez. Şasi veya plaka kayıttaki firmayı bulur.',
+                    'Hizmet fiyatı, bulunan aracın müşterisine ve otoparkına göre uygulanır.',
+                ],
+            ],
+            [
+                'surum' => 'v0.59',
+                'tarih' => '2026-11-03 17:40',
+                'baslik' => 'Ekspertiz fotoğraf açı çizimleri',
+                'maddeler' => [
+                    'Detaylı araç ekspertizinin fotoğraf adımında açı ipuçları yeni çizimlerle değişti.',
+                    'Sıra: ön sol, ön sağ, arka sol, arka sağ, bagaj, torpido, kilometre, arka koltuk, ön kapı.',
+                ],
+            ],
+            [
                 'surum' => 'v0.58',
                 'tarih' => '2026-11-03 17:30',
                 'baslik' => 'Toplu maliyet yapıştırma listesi',
