@@ -31,6 +31,24 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.49',
+                'tarih' => '2026-11-03 13:06',
+                'baslik' => 'Araç listesinde yazdıkça arama',
+                'maddeler' => [
+                    'Plaka veya şasi yazıldıkça liste daralır; boşluklu plaka da bulunur.',
+                    'Öneriden seçilen araç chip olur. Chip silinince o araç filtreden çıkar.',
+                ],
+            ],
+            [
+                'surum' => 'v0.48',
+                'tarih' => '2026-11-03 12:56',
+                'baslik' => 'Seçili araçlara birden fazla maliyet',
+                'maddeler' => [
+                    'Listeden seçilen araçların maliyet formuna satır eklenebilir; her satır tüm seçilenlere yazılır.',
+                    'Tutar boşsa aracın tanımlı fiyatı kullanılır. Boş satırlar yok sayılır.',
+                ],
+            ],
+            [
                 'surum' => 'v0.47',
                 'tarih' => '2026-11-03 12:50',
                 'baslik' => 'Taraflarda kiralayan firma',

@@ -64,6 +64,11 @@ final class AracController extends Controller
         if ($d = Request::date('bitis')) {
             $dt->where('a.stoga_giris_tarihi::date <= :f_bit', ['f_bit' => $d]);
         }
+        $arama = trim((string) (Request::str('q') ?? ''));
+        $pin = Request::ids('pin');
+        if ($arama === '' && $pin) {
+            $dt->where('a.id = ANY(:pin::bigint[])', ['pin' => '{' . implode(',', $pin) . '}']);
+        }
 
         $map = fn ($r) => $r + ['son_hareket_ad' => Tanim::HAREKET_TIPI[$r['son_hareket'] ?? 0] ?? '-'];
         if (Request::input('export')) {
@@ -430,37 +435,34 @@ final class AracController extends Controller
             if (!$ids) {
                 throw new RuntimeException('Araç seçilmedi.');
             }
-            $tipId = (int) (Request::str('maliyet_tipi_id') ?? 0);
-            if ($tipId <= 0) {
-                throw new RuntimeException('Maliyet tipi seçilmelidir.');
+            $satirlar = $this->maliyetSatirlari();
+            if (!$satirlar) {
+                throw new RuntimeException('En az bir maliyet girin.');
             }
-            $tutar = Request::str('tutar');
-            $payload = [
-                'maliyet_tipi_id' => $tipId,
-                'tutar' => ($tutar === null || $tutar === '') ? null : $tutar,
-                'aciklama' => Request::str('aciklama') ?: null,
-                'irsaliye' => Request::str('irsaliye') ?: null,
-                'fatura_no' => Request::str('fatura_no') ?: null,
-                'fatura_tarihi' => Request::str('fatura_tarihi') ?: null,
-                'islem_tarihi' => Request::str('islem_tarihi') ?: date('Y-m-d'),
-            ];
+            $araclar = $this->seciliAraclar($ids);
+            if (!$araclar) {
+                throw new RuntimeException('Seçilen araçlar bulunamadı.');
+            }
             $basarili = 0;
             $hatalar = [];
-            foreach ($this->seciliAraclar($ids) as $arac) {
-                try {
-                    AracService::maliyetEkle((int) $arac['id'], $payload);
-                    $basarili++;
-                } catch (RuntimeException $e) {
-                    $hatalar[] = ($arac['sase'] ?: $arac['plaka']) . ': ' . $e->getMessage();
+            foreach ($araclar as $arac) {
+                foreach ($satirlar as $payload) {
+                    try {
+                        AracService::maliyetEkle((int) $arac['id'], $payload);
+                        $basarili++;
+                    } catch (RuntimeException $e) {
+                        $hatalar[] = ($arac['sase'] ?: $arac['plaka']) . ': ' . $e->getMessage();
+                    }
                 }
             }
             if ($basarili === 0) {
                 throw new RuntimeException($hatalar ? implode(' | ', array_slice($hatalar, 0, 6)) : 'Maliyet eklenemedi.');
             }
-            Log::islem('maliyet', "Seçili araçlara maliyet: {$basarili} kayıt");
-            flash('success', "{$basarili} araca maliyet eklendi.");
+            $kalem = count($satirlar);
+            Log::islem('maliyet', "Seçili araçlara maliyet: {$basarili} kayıt, {$kalem} kalem");
+            flash('success', count($araclar) . " araca {$kalem} maliyet satırı işlendi ({$basarili} kayıt).");
             if ($hatalar) {
-                flash('error', count($hatalar) . ' araç atlandı: ' . implode(' | ', array_slice($hatalar, 0, 6)));
+                flash('error', count($hatalar) . ' kayıt atlandı: ' . implode(' | ', array_slice($hatalar, 0, 6)));
             }
             View::redirect('/arac_yonetimi');
         }, $geri);
@@ -931,6 +933,59 @@ final class AracController extends Controller
             flash('success', "{$basarili} aracın lokasyonu güncellendi (" . count($satirlar) . ' satır okundu).');
             View::redirect('/arac_yonetimi/toplu_kayit_guncelleme_lokasyon');
         }, '/arac_yonetimi/toplu_kayit_guncelleme_lokasyon');
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function maliyetSatirlari(): array
+    {
+        $liste = static function (string $key): array {
+            $value = $_POST[$key] ?? [];
+
+            return is_array($value) ? array_values($value) : [$value];
+        };
+        $tipler = $liste('maliyet_tipi_id');
+        $tutar = $liste('tutar');
+        $aciklama = $liste('aciklama');
+        $irsaliye = $liste('irsaliye');
+        $faturaNo = $liste('fatura_no');
+        $faturaTarihi = $liste('fatura_tarihi');
+        $islem = $liste('islem_tarihi');
+        $satirlar = [];
+        foreach ($tipler as $i => $tip) {
+            $hucre = static function (array $kolon) use ($i): string {
+                return trim((string) ($kolon[$i] ?? ''));
+            };
+            $tipId = (int) $tip;
+            $tutarDeger = $hucre($tutar);
+            $aciklamaDeger = $hucre($aciklama);
+            $irsaliyeDeger = $hucre($irsaliye);
+            $faturaNoDeger = $hucre($faturaNo);
+            $faturaTarihDeger = $hucre($faturaTarihi);
+            if ($tipId <= 0 && $tutarDeger === '' && $aciklamaDeger === '' && $irsaliyeDeger === '' && $faturaNoDeger === '' && $faturaTarihDeger === '') {
+                continue;
+            }
+            if ($tipId <= 0) {
+                throw new RuntimeException('Her maliyet satırında tip seçilmelidir.');
+            }
+            $islemTarihi = $hucre($islem);
+            if ($islemTarihi !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $islemTarihi)) {
+                throw new RuntimeException('İşlem tarihi geçersiz.');
+            }
+            if ($faturaTarihDeger !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $faturaTarihDeger)) {
+                throw new RuntimeException('Fatura tarihi geçersiz.');
+            }
+            $satirlar[] = [
+                'maliyet_tipi_id' => $tipId,
+                'tutar' => $tutarDeger === '' ? null : $tutarDeger,
+                'aciklama' => $aciklamaDeger !== '' ? $aciklamaDeger : null,
+                'irsaliye' => $irsaliyeDeger !== '' ? $irsaliyeDeger : null,
+                'fatura_no' => $faturaNoDeger !== '' ? $faturaNoDeger : null,
+                'fatura_tarihi' => $faturaTarihDeger !== '' ? $faturaTarihDeger : null,
+                'islem_tarihi' => $islemTarihi !== '' ? $islemTarihi : date('Y-m-d'),
+            ];
+        }
+
+        return $satirlar;
     }
 
     /** @param list<int> $ids

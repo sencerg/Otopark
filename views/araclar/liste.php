@@ -31,9 +31,13 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-primary"><i class
                 <option value="stokta" <?= ($_GET['stok'] ?? '') === 'stokta' ? 'selected' : '' ?>>Stokta Olanlar</option>
                 <option value="cikti" <?= ($_GET['stok'] ?? '') === 'cikti' ? 'selected' : '' ?>>Stoktan Çıkanlar</option>
             </select>
-            <input type="search" id="dt-search" class="form-control" placeholder="Plaka, Şasi, Firma, Lokasyon ile arayın..." value="<?= e($_GET['q'] ?? '') ?>">
+            <div class="elastic-ara">
+                <input type="search" id="dt-search" class="form-control" placeholder="Plaka veya şasi yazın, liste daralır..." value="<?= e($_GET['q'] ?? '') ?>" autocomplete="off">
+                <div class="elastic-menu" id="dt-search-menu" hidden></div>
+            </div>
             <button id="dt-clear" class="btn btn-light text-nowrap"><i class="mdi mdi-filter-remove-outline"></i> Temizle</button>
         </div>
+        <div class="elastic-chips" id="dt-search-chips"></div>
         <div class="table-responsive">
             <table id="liste" class="table table-hover w-100">
                 <thead>
@@ -52,8 +56,57 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-primary"><i class
 <script>
 $(function () {
     const canSil = <?= (\App\Core\Auth::isAdmin() && \App\Core\Auth::can('arac.sil')) ? 'true' : 'false' ?>;
+    const pins = new Map();
+    const chipCiz = () => {
+        const $box = $('#dt-search-chips');
+        $box.empty();
+        pins.forEach((r) => {
+            const ad = (r.sase || ('#' + r.id)) + (r.plaka ? ' · ' + r.plaka : '');
+            $box.append(`<span class="elastic-chip">${App.esc(ad)}<button type="button" data-pin-sil="${App.esc(r.id)}" aria-label="Kaldır">&times;</button></span>`);
+        });
+    };
+    const menuKapat = () => $('.elastic-menu').attr('hidden', true).empty();
+    const menuAc = ($input) => {
+        const q = String($input.val() || '').trim();
+        const $menu = $input.siblings('.elastic-menu');
+        if (!$menu.length || q.length < 2) { menuKapat(); return; }
+        $('.elastic-menu').not($menu).attr('hidden', true).empty();
+        $.getJSON('/api/araclar', { q }).done((res) => {
+            if (String($input.val() || '').trim() !== q) return;
+            const rows = res.results || [];
+            $menu.empty();
+            if (!rows.length) {
+                $menu.append('<div class="elastic-empty">Eşleşen araç yok</div>');
+            } else {
+                rows.forEach((r) => {
+                    const $b = $('<button type="button" class="elastic-opt"></button>').text(r.text || r.sase || '');
+                    $b.on('mousedown', (e) => {
+                        e.preventDefault();
+                        pins.set(String(r.id), { id: String(r.id), sase: r.sase || '', plaka: r.plaka || '' });
+                        $('#dt-search, .topbar-search input').val('');
+                        chipCiz();
+                        menuKapat();
+                        dt.ajax.reload();
+                    });
+                    $menu.append($b);
+                });
+            }
+            $menu.removeAttr('hidden');
+        });
+    };
     const dt = App.table('#liste', {
         url: '/arac_yonetimi/liste', bulk: true, bulkRemember: true, order: [[1, 'desc']],
+        extraData() {
+            const q = String($('#dt-search').val() || '').trim();
+            const pin = [...pins.keys()];
+            return !q && pin.length ? { pin } : {};
+        },
+        onClear() {
+            pins.clear();
+            chipCiz();
+            menuKapat();
+            $('.topbar-search input').val('');
+        },
         onSelection(rows) {
             window.__seciliAraclar = rows;
             const $box = $('#bulk-secili');
@@ -91,6 +144,27 @@ $(function () {
                 canSil && { url: '#', icon: 'mdi-delete', color: 'danger', title: 'Sil', attrs: 'data-arac-sil="' + id + '" data-sase="' + App.esc(r.sase || '') + '"' },
             ]) },
         ],
+    });
+
+    let araTimer;
+    $('#dt-search').on('input search', function () {
+        const aktif = document.activeElement;
+        const input = aktif && (aktif.id === 'dt-search' || aktif.closest('.topbar-search')) ? aktif : this;
+        if (input === this) $('.topbar-search input').val(this.value);
+        clearTimeout(araTimer);
+        araTimer = setTimeout(() => menuAc($(input)), 200);
+    });
+    $('.topbar-search').on('submit', (e) => { e.preventDefault(); });
+    $('.topbar-search input').on('input', function () {
+        $('#dt-search').val(this.value).trigger('input');
+    });
+    $(document).on('click', '[data-pin-sil]', function () {
+        pins.delete(String(this.dataset.pinSil));
+        chipCiz();
+        dt.ajax.reload();
+    });
+    $(document).on('click', (e) => {
+        if (!$(e.target).closest('.elastic-ara, .topbar-search').length) menuKapat();
     });
 
     $(document).on('click', '[data-arac-sil]', function (e) {

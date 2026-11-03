@@ -46,6 +46,7 @@ $brandParts = preg_split('/\s+/', trim($appName), 2) ?: ['Moex'];
             <form class="topbar-search" action="/arama" method="get">
                 <i class="mdi mdi-magnify"></i>
                 <input type="search" name="q" placeholder="Arama Yap... (şasi, plaka)" autocomplete="off" value="<?= e($_GET['q'] ?? '') ?>">
+                <div class="elastic-menu" hidden></div>
             </form>
             <div class="topbar-actions">
                 <?php if (Auth::can('menu.hizli_arac')): ?>

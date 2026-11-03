@@ -42,6 +42,7 @@ final class ApiController extends Controller
         if (mb_strlen($q) < 2) {
             View::json(['results' => []]);
         }
+        $norm = preg_replace('/[^0-9A-Z]/', '', $q) ?? '';
 
         $stok = Request::input('stokta') === '1' ? ' AND a.stokta' : '';
         $rows = Database::fetchAll(
@@ -49,13 +50,18 @@ final class ApiController extends Controller
              FROM araclar a
              LEFT JOIN markalar m ON m.id = a.marka_id
              LEFT JOIN seriler s ON s.id = a.seri_id
-             WHERE (a.sase ILIKE :q OR a.plaka ILIKE :q) AND NOT a.arsiv AND " . Auth::bayiKosulu('a.bayi_id') . $stok . '
+             WHERE (a.sase ILIKE :q OR a.plaka ILIKE :q
+                OR regexp_replace(upper(coalesce(a.plaka, '')), '[^0-9A-Z]', '', 'g') LIKE :n
+                OR regexp_replace(upper(coalesce(a.sase, '')), '[^0-9A-Z]', '', 'g') LIKE :n2)
+               AND NOT a.arsiv AND " . Auth::bayiKosulu('a.bayi_id') . $stok . '
              ORDER BY a.stokta DESC, a.id DESC LIMIT 20',
-            ['q' => '%' . $q . '%']
+            ['q' => '%' . $q . '%', 'n' => '%' . $norm . '%', 'n2' => '%' . $norm . '%']
         );
 
         View::json(['results' => array_map(fn ($r) => [
             'id' => $r['id'],
+            'sase' => $r['sase'],
+            'plaka' => $r['plaka'] ?: '',
             'text' => $r['sase'] . ' — ' . ($r['plaka'] ?: '-') . ' — ' . trim(($r['marka'] ?? '') . ' ' . ($r['seri'] ?? '')) . ($r['stokta'] ? '' : ' (stok dışı)'),
         ], $rows)]);
     }

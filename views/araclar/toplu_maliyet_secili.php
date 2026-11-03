@@ -4,7 +4,8 @@ use App\Core\Tanim;
 
 $secili = $secili ?? [];
 ?>
-<form method="post" action="/arac_yonetimi/secili_maliyet" data-confirm="Seçilen araçlara bu maliyet eklensin mi?">
+<?php $tipSecenek = Tanim::options(Tanim::liste('maliyet_tipleri')); ?>
+<form method="post" action="/arac_yonetimi/secili_maliyet" data-confirm="Yazılan maliyet satırları seçilen her araca eklensin mi?">
     <?= Csrf::field() ?>
     <?php foreach ($secili as $arac): ?>
         <input type="hidden" name="ids[]" value="<?= (int) $arac['id'] ?>">
@@ -40,29 +41,49 @@ $secili = $secili ?? [];
         </div>
         <div class="col-xl-7">
             <div class="card">
-                <div class="card-header"><h5>Ortak maliyet</h5></div>
-                <div class="card-body row g-3">
-                    <p class="small text-muted mb-0">Aynı hizmet ve tutar soldaki her araca yazılır. Tanımlı fiyat varsa tutar boş bırakılabilir.</p>
-                    <div class="col-12">
-                        <label class="form-label required">Maliyet tipi</label>
-                        <select name="maliyet_tipi_id" class="form-select select2" required><?= Tanim::options(Tanim::liste('maliyet_tipleri')) ?></select>
+                <div class="card-header">
+                    <h5>Maliyetler</h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="#maliyet-satir-tpl" data-target="#maliyet-satirlari"><i class="mdi mdi-plus"></i> Satır ekle</button>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">Her satır soldaki tüm araçlara yazılır. Birden fazla maliyet ekleyebilirsiniz. Tutar boşsa o aracın tanımlı fiyatı kullanılır.</p>
+                    <div id="maliyet-satirlari">
+                        <?php
+                        $maliyetSatir = static function (string $tipSecenek, bool $tarihDolu) {
+                            $tarih = $tarihDolu ? date('Y-m-d') : '';
+                            ?>
+                            <div class="row-item border rounded p-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small fw-semibold">Maliyet satırı</span>
+                                    <button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-delete-outline"></i></button>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label class="form-label required">Maliyet tipi</label>
+                                        <select name="maliyet_tipi_id[]" class="form-select select2"><?= $tipSecenek ?></select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tutar</label>
+                                        <input type="number" step="0.01" min="0" name="tutar[]" class="form-control" placeholder="Boşsa tanımlı fiyat">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">İşlem tarihi</label>
+                                        <input type="date" name="islem_tarihi[]" class="form-control" value="<?= e($tarih) ?>">
+                                    </div>
+                                    <div class="col-md-4"><label class="form-label">Fatura no</label><input type="text" name="fatura_no[]" class="form-control"></div>
+                                    <div class="col-md-4"><label class="form-label">Fatura tarihi</label><input type="date" name="fatura_tarihi[]" class="form-control"></div>
+                                    <div class="col-md-4"><label class="form-label">İrsaliye</label><input type="text" name="irsaliye[]" class="form-control"></div>
+                                    <div class="col-12"><label class="form-label">Açıklama</label><input type="text" name="aciklama[]" class="form-control"></div>
+                                </div>
+                            </div>
+                            <?php
+                        };
+                        $maliyetSatir($tipSecenek, true);
+                        ?>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Tutar</label>
-                        <input type="number" step="0.01" min="0" name="tutar" class="form-control" placeholder="Boşsa tanımlı fiyat">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">İşlem tarihi</label>
-                        <input type="date" name="islem_tarihi" class="form-control" value="<?= date('Y-m-d') ?>">
-                    </div>
-                    <div class="col-md-6"><label class="form-label">Fatura no</label><input type="text" name="fatura_no" class="form-control"></div>
-                    <div class="col-md-6"><label class="form-label">Fatura tarihi</label><input type="date" name="fatura_tarihi" class="form-control"></div>
-                    <div class="col-md-6"><label class="form-label">İrsaliye</label><input type="text" name="irsaliye" class="form-control"></div>
-                    <div class="col-12"><label class="form-label">Açıklama</label><textarea name="aciklama" class="form-control" rows="2"></textarea></div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary"><i class="mdi mdi-cash-plus me-1"></i>Seçilenlere ekle</button>
-                        <a href="/arac_yonetimi/toplu_ek_maliyet_girisi" class="btn btn-outline-secondary">Excel ile yükle</a>
-                    </div>
+                    <template id="maliyet-satir-tpl"><?php $maliyetSatir($tipSecenek, true); ?></template>
+                    <button type="submit" class="btn btn-primary"><i class="mdi mdi-cash-plus me-1"></i>Seçilenlere ekle</button>
+                    <a href="/arac_yonetimi/toplu_ek_maliyet_girisi" class="btn btn-outline-secondary">Excel ile yükle</a>
                 </div>
             </div>
         </div>

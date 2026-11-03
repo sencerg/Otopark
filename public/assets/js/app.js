@@ -155,6 +155,7 @@
             });
             const q = $(opts.search || '#dt-search').val();
             if (q) d.q = q;
+            if (typeof opts.extraData === 'function') Object.assign(d, opts.extraData() || {});
             return d;
         };
 
@@ -220,9 +221,15 @@
         });
 
         let timer;
-        $(opts.search || '#dt-search').on('input', () => { clearTimeout(timer); timer = setTimeout(() => dt.ajax.reload(), 350); });
+        const reloadSearch = () => { clearTimeout(timer); timer = setTimeout(() => dt.ajax.reload(), 250); };
+        $(opts.search || '#dt-search').on('input search', reloadSearch);
         $filters.on('change', () => dt.ajax.reload());
-        $(opts.clear || '#dt-clear').on('click', () => { $filters.val(null).trigger('change.select2'); $(opts.search || '#dt-search').val(''); dt.ajax.reload(); });
+        $(opts.clear || '#dt-clear').on('click', () => {
+            if (typeof opts.onClear === 'function') opts.onClear();
+            $filters.val(null).trigger('change.select2');
+            $(opts.search || '#dt-search').val('');
+            dt.ajax.reload();
+        });
 
         $(opts.exportBtn || '#dt-export').on('click', function (e) {
             e.preventDefault();

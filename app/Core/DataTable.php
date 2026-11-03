@@ -33,18 +33,47 @@ final class DataTable
         $where = $this->where;
         $params = $this->params;
 
-        $search = $_REQUEST['search']['value'] ?? $_REQUEST['q'] ?? '';
-        $search = is_string($search) ? trim($search) : '';
+        $fromQ = $_REQUEST['q'] ?? null;
+        $fromDt = $_REQUEST['search']['value'] ?? null;
+        $search = '';
+        if (is_string($fromQ) && trim($fromQ) !== '') {
+            $search = trim($fromQ);
+        } elseif (is_string($fromDt)) {
+            $search = trim($fromDt);
+        }
         if ($withSearch && $search !== '' && $this->searchable) {
-            $parts = [];
-            foreach ($this->searchable as $i => $expr) {
-                $parts[] = "{$expr}::text ILIKE :dt_s{$i}";
-                $params["dt_s{$i}"] = '%' . $search . '%';
+            $tokens = preg_split('/\s+/u', $search) ?: [];
+            $tokenSql = [];
+            foreach (array_values(array_filter($tokens, static fn ($t) => $t !== '')) as $t => $token) {
+                $parts = [];
+                foreach ($this->searchable as $i => $expr) {
+                    $key = "dt_s{$t}_{$i}";
+                    $parts[] = "{$expr}::text ILIKE :{$key} ESCAPE '\\'";
+                    $params[$key] = self::like($token);
+                    if (preg_match('/\.(plaka|sase)$/', $expr)) {
+                        $norm = preg_replace('/[^0-9A-Za-z]/', '', $token) ?? '';
+                        if ($norm !== '') {
+                            $nkey = "dt_n{$t}_{$i}";
+                            $parts[] = "regexp_replace(upper(coalesce({$expr}::text, '')), '[^0-9A-Z]', '', 'g') LIKE :{$nkey} ESCAPE '\\'";
+                            $params[$nkey] = self::like(strtoupper($norm));
+                        }
+                    }
+                }
+                if ($parts) {
+                    $tokenSql[] = '(' . implode(' OR ', $parts) . ')';
+                }
             }
-            $where[] = '(' . implode(' OR ', $parts) . ')';
+            if ($tokenSql) {
+                $where[] = implode(' AND ', $tokenSql);
+            }
         }
 
         return [$where ? ' WHERE ' . implode(' AND ', $where) : '', $params];
+    }
+
+    private static function like(string $value): string
+    {
+        return '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value) . '%';
     }
 
     private function select(): string
