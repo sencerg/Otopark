@@ -51,11 +51,17 @@ final class DataTable
                     $parts[] = "{$expr}::text ILIKE :{$key} ESCAPE '\\'";
                     $params[$key] = self::like($token);
                     if (preg_match('/\.(plaka|sase)$/', $expr)) {
-                        $norm = preg_replace('/[^0-9A-Za-z]/', '', $token) ?? '';
+                        $norm = strtoupper(preg_replace('/[^0-9A-Za-z]/', '', $token) ?? '');
                         if ($norm !== '') {
+                            $compact = "regexp_replace(upper(coalesce({$expr}::text, '')), '[^0-9A-Z]', '', 'g')";
                             $nkey = "dt_n{$t}_{$i}";
-                            $parts[] = "regexp_replace(upper(coalesce({$expr}::text, '')), '[^0-9A-Z]', '', 'g') LIKE :{$nkey} ESCAPE '\\'";
-                            $params[$nkey] = self::like(strtoupper($norm));
+                            $parts[] = "{$compact} LIKE :{$nkey} ESCAPE '\\'";
+                            $params[$nkey] = self::like($norm);
+                            $skey = "dt_r{$t}_{$i}";
+                            $slen = "dt_rl{$t}_{$i}";
+                            $parts[] = "right({$compact}, char_length(:{$slen})) = :{$skey}";
+                            $params[$slen] = $norm;
+                            $params[$skey] = $norm;
                         }
                     }
                 }

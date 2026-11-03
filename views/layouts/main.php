@@ -45,7 +45,7 @@ $brandParts = preg_split('/\s+/', trim($appName), 2) ?: ['Moex'];
             <button type="button" class="topbar-btn" data-toggle-sidebar aria-label="Menü"><i class="mdi mdi-menu"></i></button>
             <form class="topbar-search" action="/arama" method="get">
                 <i class="mdi mdi-magnify"></i>
-                <input type="search" name="q" placeholder="Arama Yap... (şasi, plaka)" autocomplete="off" value="<?= e($_GET['q'] ?? '') ?>">
+                <input type="search" name="q" placeholder="Arama Yap... (şasi / plaka, son haneler de)" autocomplete="off" value="<?= e($_GET['q'] ?? '') ?>">
                 <div class="elastic-menu" hidden></div>
             </form>
             <div class="topbar-actions">

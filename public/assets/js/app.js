@@ -587,6 +587,18 @@
             try { this.setSelectionRange(Math.max(0, pos - 1), Math.max(0, pos - 1)); } catch (_) { /* ignore */ }
         }
     });
+    function plakaBirlestir(deger) {
+        return String(deger || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+    }
+    $(document).on('input', 'input[name="plaka"], input[name="onceki_plaka"], input[name="cekici_plakasi"], input[name="satir[plaka][]"]', function () {
+        const temiz = plakaBirlestir(this.value);
+        if (this.value !== temiz) {
+            const pos = this.selectionStart;
+            this.value = temiz;
+            try { this.setSelectionRange(pos, pos); } catch (_) { /* ignore */ }
+        }
+    });
+
     $(document).on('paste', 'input.sase-input, input[name="sase"]', function (e) {
         e.preventDefault();
         const text = (e.originalEvent.clipboardData || window.clipboardData).getData('text');

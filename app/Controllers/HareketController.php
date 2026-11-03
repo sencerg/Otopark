@@ -288,7 +288,7 @@ final class HareketController extends Controller
                 AracService::guncelle((int) $h['id'], $alanlar, 'arac_hareketleri');
 
                 $arac = [
-                    'plaka' => ($p = Request::str('plaka')) ? mb_strtoupper($p) : null, 'marka_id' => Request::int('marka_id'), 'seri_id' => Request::int('seri_id'),
+                    'plaka' => AracService::normalizePlaka(Request::str('plaka')), 'marka_id' => Request::int('marka_id'), 'seri_id' => Request::int('seri_id'),
                     'model_id' => Request::int('model_id'), 'model_yili_id' => Request::int('yil'), 'arac_durumu' => Request::int('arac_durumu'),
                     'arac_tipi_id' => Request::int('arac_tipi'), 'kasa_tipi_id' => Request::int('kasa_tipi'), 'renk_id' => Request::int('renk'),
                     'yakit_tipi_id' => Request::int('yakit_tipi'), 'vites_tipi_id' => Request::int('vites_tipi'),

@@ -32,7 +32,7 @@ $headerActions = '<a href="/arac_yonetimi/ekle" class="btn btn-primary"><i class
                 <option value="cikti" <?= ($_GET['stok'] ?? '') === 'cikti' ? 'selected' : '' ?>>Stoktan Çıkanlar</option>
             </select>
             <div class="elastic-ara">
-                <input type="search" id="dt-search" class="form-control" placeholder="Plaka veya şasi yazın, liste daralır..." value="<?= e($_GET['q'] ?? '') ?>" autocomplete="off">
+                <input type="search" id="dt-search" class="form-control" placeholder="Plaka veya şasi — başı, ortası veya son haneleri" value="<?= e($_GET['q'] ?? '') ?>" autocomplete="off">
                 <div class="elastic-menu" id="dt-search-menu" hidden></div>
             </div>
             <button id="dt-clear" class="btn btn-light text-nowrap"><i class="mdi mdi-filter-remove-outline"></i> Temizle</button>

@@ -32,6 +32,37 @@ final class AracService
         return mb_strtoupper(preg_replace('/\s+/', '', (string) $sase) ?? '', 'UTF-8');
     }
 
+    /** Plaka boşluksuz ve büyük harf: "06 TX 584" → "06TX584". Boşsa null. */
+    public static function normalizePlaka(?string $plaka): ?string
+    {
+        $plaka = strtoupper(preg_replace('/[^0-9A-Za-z]/', '', (string) $plaka) ?? '');
+
+        return $plaka === '' ? null : $plaka;
+    }
+
+    public static function plakaMusait(?string $plaka, ?int $haricId = null): void
+    {
+        if ($plaka === null || $plaka === '') {
+            return;
+        }
+        if ($haricId) {
+            $kendi = Database::fetch('SELECT plaka FROM araclar WHERE id = :id', ['id' => $haricId]);
+            if ($kendi && self::normalizePlaka($kendi['plaka'] ?? null) === $plaka) {
+                return;
+            }
+        }
+        $sql = 'SELECT sase FROM araclar WHERE plaka = :p AND NOT COALESCE(arsiv, false)';
+        $params = ['p' => $plaka];
+        if ($haricId) {
+            $sql .= ' AND id <> :id';
+            $params['id'] = $haricId;
+        }
+        $var = Database::fetch($sql . ' LIMIT 1', $params);
+        if ($var) {
+            throw new RuntimeException('Bu plaka başka bir araçta kayıtlı: ' . $var['sase']);
+        }
+    }
+
     /**
      * Şasi: tam 17 hane, yalnızca A–Z / 0–9; I, O ve Türkçe harfler (Ü, Ş, Ç, Ğ, Ö, İ…) yok.
      */
@@ -102,7 +133,8 @@ final class AracService
             throw new RuntimeException('Müşteri seçilmelidir.');
         }
         $arac['bayi_id'] = self::bayiKontrol($arac['bayi_id'] ?? null);
-        $arac['plaka'] = isset($arac['plaka']) ? mb_strtoupper(trim((string) $arac['plaka'])) : null;
+        $arac['plaka'] = self::normalizePlaka(isset($arac['plaka']) ? (string) $arac['plaka'] : null);
+        $arac['onceki_plaka'] = self::normalizePlaka(isset($arac['onceki_plaka']) ? (string) $arac['onceki_plaka'] : null);
         self::markaSeriModelKontrol($arac);
 
         return Database::transaction(function () use ($sase, $arac, $hareket, $envanterler, $donanimlar) {
@@ -122,6 +154,7 @@ final class AracService
             if (!$mevcut && $hareket && (int) $hareket['hareket_tipi'] === 2) {
                 throw new RuntimeException('Stokta olmayan araç için çıkış yapılamaz.');
             }
+            self::plakaMusait($arac['plaka'] ?? null, $mevcut ? (int) $mevcut['id'] : null);
 
             $alanlar = array_intersect_key($arac, array_flip(self::ARAC_ALANLARI));
             if ($mevcut) {
@@ -293,6 +326,26 @@ final class AracService
 
     public static function guncelle(int $aracId, array $data, string $table = 'araclar'): void
     {
+        if ($table === 'araclar') {
+            foreach (['plaka', 'onceki_plaka'] as $alan) {
+                if (array_key_exists($alan, $data)) {
+                    $data[$alan] = self::normalizePlaka(is_string($data[$alan]) ? $data[$alan] : null);
+                }
+            }
+            if (array_key_exists('plaka', $data)) {
+                self::plakaMusait($data['plaka'], $aracId);
+            }
+            if (!empty($data['sase'])) {
+                $data['sase'] = self::dogrulaSase((string) $data['sase']);
+                $var = Database::fetch('SELECT id FROM araclar WHERE sase = :s AND id <> :id', ['s' => $data['sase'], 'id' => $aracId]);
+                if ($var) {
+                    throw new RuntimeException('Bu şasi başka bir araçta kayıtlı.');
+                }
+            }
+        }
+        if ($table === 'arac_hareketleri' && array_key_exists('cekici_plakasi', $data)) {
+            $data['cekici_plakasi'] = self::normalizePlaka(is_string($data['cekici_plakasi']) ? $data['cekici_plakasi'] : null);
+        }
         if (!$data) {
             return;
         }

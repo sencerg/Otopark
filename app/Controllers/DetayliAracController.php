@@ -78,7 +78,7 @@ final class DetayliAracController extends Controller
                 'kullanici_id' => Auth::id(),
                 'veri' => [
                     'sase' => $sase,
-                    'plaka' => $plaka ? mb_strtoupper(trim($plaka)) : '',
+                    'plaka' => AracService::normalizePlaka($plaka) ?? '',
                 ],
                 'kontrol' => [
                     'kosul_sase' => true,
@@ -282,7 +282,7 @@ final class DetayliAracController extends Controller
                 ];
 
                 $veri = [
-                    'plaka' => $plaka ? mb_strtoupper(trim($plaka)) : ($row['veri']['plaka'] ?? ''),
+                    'plaka' => AracService::normalizePlaka($plaka) ?? (AracService::normalizePlaka($row['veri']['plaka'] ?? null) ?? ''),
                     'arac_tipi_id' => $aracTipi,
                     'marka_id' => $markaId,
                     'seri_id' => $seriId,

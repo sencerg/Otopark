@@ -31,6 +31,15 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.50',
+                'tarih' => '2026-11-03 13:15',
+                'baslik' => 'Plaka birleşik, arama parçadan bulur',
+                'maddeler' => [
+                    'Plaka kayıtta ve listede boşluksuz durur (06TX584). Yeni plaka başka araçta kullanılamaz.',
+                    'Arama şasi ve plakanın başını, ortasını veya son hanelerini bulur; 17 hanenin son 7 hanesi yeter.',
+                ],
+            ],
+            [
                 'surum' => 'v0.49',
                 'tarih' => '2026-11-03 13:06',
                 'baslik' => 'Araç listesinde yazdıkça arama',
