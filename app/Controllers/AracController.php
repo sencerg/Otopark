@@ -612,38 +612,299 @@ final class AracController extends Controller
         return [$file['tmp_name'], $file['name']];
     }
 
-    /**
-     * Toplu çıkış satırından araç bulur.
-     * Plaka boş olabilir; şasi yeter. Plaka sütununa şasi yapıştırılmışsa da kabul edilir.
-     */
-    private function stoktakiAracSatirdan(?array $satir): ?array
+    /** Başlık hücresi şasi mi plaka mı. */
+    private function baslikRolu(string $hucre): ?string
     {
-        $adaylar = [];
-        foreach ([(string) ($satir['sase'] ?? ''), (string) ($satir['plaka'] ?? '')] as $ham) {
-            $n = AracService::normalizeSase($ham);
-            if ($n !== '' && !in_array($n, $adaylar, true)) {
-                $adaylar[] = $n;
-            }
+        $h = str_replace(['İ', 'I', 'ı'], ['i', 'i', 'i'], trim($hucre));
+        $h = mb_strtolower($h, 'UTF-8');
+        $h = rtrim($h, " *\t");
+        if (preg_match('/^(plaka|plate)$/u', $h)) {
+            return 'plaka';
         }
-        foreach ($adaylar as $deger) {
-            $arac = Database::fetch(
-                'SELECT * FROM araclar WHERE sase = :s AND NOT COALESCE(arsiv, false) AND ' . Auth::bayiKosulu('bayi_id'),
-                ['s' => $deger]
-            );
-            if ($arac) {
-                return $arac;
-            }
-            $arac = Database::fetch(
-                "SELECT * FROM araclar WHERE upper(replace(coalesce(plaka,''), ' ', '')) = :p
-                 AND NOT COALESCE(arsiv, false) AND " . Auth::bayiKosulu('bayi_id'),
-                ['p' => $deger]
-            );
-            if ($arac) {
-                return $arac;
-            }
+        if (preg_match('/^(şase( numarası| no)?|sase( numarasi| no)?|şasi( numarası)?|sasi|chassis|vin)$/u', $h)) {
+            return 'sase';
         }
 
         return null;
+    }
+
+    private function saseGibi(string $deger): bool
+    {
+        $n = strtoupper(preg_replace('/[^0-9A-Za-z]/', '', $deger) ?? '');
+
+        return strlen($n) === 17;
+    }
+
+    /** @return list<string> */
+    private function hucreBol(string $ham): array
+    {
+        if (str_contains($ham, "\t")) {
+            return array_map('trim', explode("\t", $ham));
+        }
+        if (preg_match('/[;|]/u', $ham)) {
+            return array_map('trim', preg_split('/[;|]/u', $ham) ?: []);
+        }
+        $genis = array_map('trim', preg_split('/\s{2,}/u', $ham) ?: []);
+        if (count(array_filter($genis, static fn ($p) => $p !== '')) > 1) {
+            return $genis;
+        }
+        if (preg_match('/^([A-Za-z0-9]{17})\s+(.+)$/', $ham, $m)) {
+            return [trim($m[1]), trim($m[2])];
+        }
+        if (preg_match('/^(.+?)\s+([A-Za-z0-9]{17})$/', $ham, $m)) {
+            return [trim($m[1]), trim($m[2])];
+        }
+
+        return [trim($ham)];
+    }
+
+    /**
+     * Tek sütun alt alta, ya da Excel'den yan yana kopyalanmış şasi + plaka.
+     *
+     * @return list<array{ham:string,sase:string,plaka:string}>
+     */
+    private function yapistirmaSatirlari(string $metin): array
+    {
+        $satirlar = [];
+        $rol = null;
+        foreach (preg_split('/\R/u', $metin) ?: [] as $ham) {
+            $ham = trim($ham, " \n\r\0\x0B");
+            if ($ham === '') {
+                continue;
+            }
+            $hucre = $this->hucreBol($ham);
+            $roller = [];
+            $baslik = true;
+            foreach ($hucre as $h) {
+                if ($h === '') {
+                    $roller[] = null;
+                    continue;
+                }
+                $r = $this->baslikRolu($h);
+                if ($r === null) {
+                    $baslik = false;
+                    break;
+                }
+                $roller[] = $r;
+            }
+            if ($baslik && array_filter($roller)) {
+                $rol = $roller;
+                continue;
+            }
+
+            $sase = '';
+            $plaka = '';
+            if ($rol) {
+                foreach ($hucre as $i => $h) {
+                    $r = $rol[$i] ?? null;
+                    if ($r === 'sase' && $sase === '') {
+                        $sase = $h;
+                    }
+                    if ($r === 'plaka' && $plaka === '') {
+                        $plaka = $h;
+                    }
+                }
+            } else {
+                $dolu = array_values(array_filter($hucre, static fn ($h) => $h !== ''));
+                if (count($dolu) === 1) {
+                    if ($this->saseGibi($dolu[0])) {
+                        $sase = $dolu[0];
+                    } else {
+                        $plaka = $dolu[0];
+                    }
+                } elseif (count($dolu) >= 2) {
+                    $aSase = $this->saseGibi($dolu[0]);
+                    $bSase = $this->saseGibi($dolu[1]);
+                    if ($bSase && !$aSase) {
+                        $plaka = $dolu[0];
+                        $sase = $dolu[1];
+                    } else {
+                        $sase = $dolu[0];
+                        $plaka = $dolu[1];
+                    }
+                }
+            }
+            if ($sase === '' && $plaka === '') {
+                continue;
+            }
+            $satirlar[] = ['ham' => $ham, 'sase' => $sase, 'plaka' => $plaka];
+        }
+
+        return $satirlar;
+    }
+
+    /** @return list<array{ham:string,sase:string,plaka:string}> */
+    private function cikisKaynakSatirlari(): array
+    {
+        if (!empty($_FILES['import_file']['name'])) {
+            [$path, $name] = $this->yuklenenDosya();
+            $satirlar = [];
+            foreach (Excel::read($path, $name) as $s) {
+                $sase = trim((string) ($s['sase'] ?? ''));
+                $plaka = trim((string) ($s['plaka'] ?? ''));
+                if ($sase === '' && $plaka === '') {
+                    continue;
+                }
+                $satirlar[] = ['ham' => trim($sase . "\t" . $plaka), 'sase' => $sase, 'plaka' => $plaka];
+            }
+
+            return $satirlar;
+        }
+
+        $metin = Request::input('yapiskan');
+        $satirlar = $this->yapistirmaSatirlari(is_string($metin) ? $metin : '');
+        $plakalar = (array) ($_POST['satir']['plaka'] ?? []);
+        $saseList = (array) ($_POST['satir']['sase'] ?? []);
+        $max = max(count($plakalar), count($saseList));
+        for ($i = 0; $i < $max; $i++) {
+            $sase = trim((string) ($saseList[$i] ?? ''));
+            $plaka = trim((string) ($plakalar[$i] ?? ''));
+            if ($sase === '' && $plaka === '') {
+                continue;
+            }
+            $satirlar[] = ['ham' => trim($sase . ' ' . $plaka), 'sase' => $sase, 'plaka' => $plaka];
+        }
+
+        return $satirlar;
+    }
+
+    private function stoktaMi(mixed $deger): bool
+    {
+        return $deger === true || $deger === 1 || $deger === '1' || $deger === 't' || $deger === 'true';
+    }
+
+    /**
+     * Her satırı stokta, stokta değil, kayıtlı değil, tekrar veya belirsiz diye ayırır.
+     *
+     * @param list<array{ham:string,parcalar:list<string>}> $satirlar
+     * @return list<array{ham:string,durum:string,mesaj:string,arac:?array}>
+     */
+    private function cikisSatirlariniAyir(array $satirlar): array
+    {
+        $anahtarlar = [];
+        foreach ($satirlar as $satir) {
+            foreach ([$satir['sase'] ?? '', $satir['plaka'] ?? ''] as $parca) {
+                $anahtar = AracService::normalizePlaka((string) $parca);
+                if ($anahtar !== null) {
+                    $anahtarlar[$anahtar] = true;
+                }
+            }
+        }
+
+        $bulunan = [];
+        $anahtarListe = array_keys($anahtarlar);
+        if ($anahtarListe) {
+            $dizi = '{' . implode(',', $anahtarListe) . '}';
+            $rows = Database::fetchAll(
+                "SELECT a.id, a.sase, a.plaka, a.stokta, a.stoga_giris_tarihi, a.musteri_id, a.bayi_id,
+                        regexp_replace(upper(coalesce(a.plaka, '')), '[^0-9A-Z]', '', 'g') AS plaka_k
+                 FROM araclar a
+                 WHERE NOT COALESCE(a.arsiv, false) AND " . Auth::bayiKosulu('a.bayi_id') . "
+                   AND (
+                        a.sase = ANY(:k::text[])
+                        OR regexp_replace(upper(coalesce(a.plaka, '')), '[^0-9A-Z]', '', 'g') = ANY(:k2::text[])
+                   )",
+                ['k' => $dizi, 'k2' => $dizi]
+            );
+            foreach ($rows as $row) {
+                $bulunan[$row['sase']][] = $row;
+                if ($row['plaka_k'] !== '' && $row['plaka_k'] !== $row['sase']) {
+                    $bulunan[$row['plaka_k']][] = $row;
+                }
+            }
+        }
+
+        $eslesen = function (string $deger, bool $saseAlani) use ($bulunan): array {
+            $anahtar = AracService::normalizePlaka($deger);
+            if ($anahtar === null) {
+                return [];
+            }
+            $sase = [];
+            $plaka = [];
+            foreach ($bulunan[$anahtar] ?? [] as $arac) {
+                if ($arac['sase'] === $anahtar) {
+                    $sase[(int) $arac['id']] = $arac;
+                }
+                if ($arac['plaka_k'] === $anahtar) {
+                    $plaka[(int) $arac['id']] = $arac;
+                }
+            }
+            if ($saseAlani && $this->saseGibi($deger)) {
+                return $sase;
+            }
+            if (!$saseAlani) {
+                return $plaka !== [] ? $plaka : $sase;
+            }
+
+            return $sase !== [] ? $sase : $plaka;
+        };
+
+        $sonuc = [];
+        $gorulen = [];
+        foreach ($satirlar as $satir) {
+            $saseBul = $satir['sase'] !== '' ? $eslesen($satir['sase'], true) : [];
+            $plakaBul = $satir['plaka'] !== '' ? $eslesen($satir['plaka'], false) : [];
+            if ($saseBul && $plakaBul) {
+                $ortak = array_intersect_key($saseBul, $plakaBul);
+                if (!$ortak) {
+                    $sonuc[] = ['ham' => $satir['ham'], 'durum' => 'uyusmuyor', 'mesaj' => 'Şasi ile plaka farklı araç', 'arac' => null, 'sase' => $satir['sase'], 'plaka' => $satir['plaka']];
+                    continue;
+                }
+                $havuz = $ortak;
+            } else {
+                $havuz = $saseBul ?: $plakaBul;
+            }
+            if (count($havuz) > 1) {
+                $sonuc[] = ['ham' => $satir['ham'], 'durum' => 'belirsiz', 'mesaj' => 'Birden fazla kayıt', 'arac' => null, 'sase' => $satir['sase'], 'plaka' => $satir['plaka']];
+                continue;
+            }
+            $arac = $havuz ? reset($havuz) : null;
+            if (!$arac) {
+                $sonuc[] = ['ham' => $satir['ham'], 'durum' => 'kayitli_degil', 'mesaj' => 'Kayıtlı değil', 'arac' => null, 'sase' => $satir['sase'], 'plaka' => $satir['plaka']];
+                continue;
+            }
+            $satirCevap = ['ham' => $satir['ham'], 'arac' => $arac, 'sase' => $satir['sase'], 'plaka' => $satir['plaka']];
+            if (!$this->stoktaMi($arac['stokta'])) {
+                $sonuc[] = $satirCevap + ['durum' => 'stokta_degil', 'mesaj' => 'Stokta değil'];
+                continue;
+            }
+            $id = (int) $arac['id'];
+            if (isset($gorulen[$id])) {
+                $sonuc[] = $satirCevap + ['durum' => 'tekrar', 'mesaj' => 'Aynı araç tekrar yazılmış'];
+                continue;
+            }
+            $gorulen[$id] = true;
+            $sonuc[] = $satirCevap + ['durum' => 'stokta', 'mesaj' => 'Stokta'];
+        }
+
+        return $sonuc;
+    }
+
+    public function topluStokCikisKontrol(): void
+    {
+        $this->ajax(function () {
+            $metin = Request::input('yapiskan');
+            $satirlar = $this->yapistirmaSatirlari(is_string($metin) ? $metin : '');
+            if (!$satirlar) {
+                throw new RuntimeException('Yapıştırılacak şasi veya plaka yok.');
+            }
+            $ayrim = $this->cikisSatirlariniAyir($satirlar);
+            $say = array_count_values(array_column($ayrim, 'durum'));
+            $this->ok('Kontrol edildi.', [
+                'stokta' => (int) ($say['stokta'] ?? 0),
+                'stokta_degil' => (int) ($say['stokta_degil'] ?? 0),
+                'kayitli_degil' => (int) ($say['kayitli_degil'] ?? 0),
+                'satirlar' => array_map(static fn (array $s) => [
+                    'ham' => $s['ham'],
+                    'durum' => $s['durum'],
+                    'mesaj' => $s['mesaj'],
+                    'girilen_sase' => (string) ($s['sase'] ?? ''),
+                    'girilen_plaka' => (string) ($s['plaka'] ?? ''),
+                    'sase' => (string) ($s['arac']['sase'] ?? ''),
+                    'plaka' => (string) ($s['arac']['plaka'] ?? ''),
+                ], $ayrim),
+            ]);
+        });
     }
 
     public function excelTopluGiris(): void
@@ -784,51 +1045,26 @@ final class AracController extends Controller
                 'hareket_tarihi' => $cikisTarihi,
             ];
 
-            $satirlar = [];
-            if (!empty($_FILES['import_file']['name'])) {
-                [$path, $name] = $this->yuklenenDosya();
-                $satirlar = Excel::read($path, $name);
-            } else {
-                $plakalar = (array) ($_POST['satir']['plaka'] ?? []);
-                $saseList = (array) ($_POST['satir']['sase'] ?? []);
-                $max = max(count($plakalar), count($saseList));
-                for ($i = 0; $i < $max; $i++) {
-                    $satirlar[] = [
-                        'plaka' => $plakalar[$i] ?? '',
-                        'sase' => $saseList[$i] ?? '',
-                    ];
-                }
-            }
-            $satirlar = array_values(array_filter(
-                $satirlar,
-                static fn ($s) => trim((string) ($s['sase'] ?? '')) !== '' || trim((string) ($s['plaka'] ?? '')) !== ''
-            ));
+            $satirlar = $this->cikisKaynakSatirlari();
             if (!$satirlar) {
-                throw new RuntimeException('Çıkış yapılacak satır bulunamadı. Excel yükleyin veya plaka / şasi girin.');
+                throw new RuntimeException('Çıkış yapılacak satır bulunamadı. Excel yükleyin veya şasi / plaka yapıştırın.');
             }
 
             $basarili = 0;
-            $hatalar = [];
-            $islenen = [];
-            foreach ($satirlar as $i => $s) {
+            $uyari = ['kayitli_degil' => [], 'stokta_degil' => [], 'tekrar' => [], 'belirsiz' => [], 'uyusmuyor' => [], 'tarih' => [], 'kayit' => []];
+            foreach ($this->cikisSatirlariniAyir($satirlar) as $satir) {
+                if ($satir['durum'] !== 'stokta') {
+                    $uyari[$satir['durum']][] = $satir['ham'];
+                    continue;
+                }
+                $arac = $satir['arac'];
+                $girisTs = strtotime((string) ($arac['stoga_giris_tarihi'] ?? ''));
+                if ($girisTs && $cikisTs < $girisTs) {
+                    $uyari['tarih'][] = ($arac['sase'] ?: $satir['ham']) . ' (giriş: ' . date('d.m.Y H:i', $girisTs) . ')';
+                    continue;
+                }
                 try {
-                    $arac = $this->stoktakiAracSatirdan($s);
-                    if (!$arac) {
-                        throw new RuntimeException('Şasi / plaka ile stokta araç bulunamadı (plaka boşsa şasi yeterli)');
-                    }
-                    if (!filter_var($arac['stokta'], FILTER_VALIDATE_BOOLEAN)) {
-                        throw new RuntimeException('Araç stokta değil');
-                    }
-                    $aracId = (int) $arac['id'];
-                    if (isset($islenen[$aracId])) {
-                        throw new RuntimeException('Aynı araç satırda tekrarlanmış, atlandı');
-                    }
-                    $girisTs = strtotime((string) ($arac['stoga_giris_tarihi'] ?? ''));
-                    if ($girisTs && $cikisTs < $girisTs) {
-                        throw new RuntimeException('Çıkış tarihi girişten önce olamaz (giriş: ' . date('d.m.Y H:i', $girisTs) . ')');
-                    }
-
-                    AracService::hareketEkle($aracId, [
+                    AracService::hareketEkle((int) $arac['id'], [
                         'hareket_tipi' => 2,
                         'hareket_nedeni_id' => $ortak['hareket_nedeni_id'],
                         'musteri_id' => $arac['musteri_id'],
@@ -845,20 +1081,44 @@ final class AracController extends Controller
                         'aciklama' => $ortak['aciklama'],
                         'hareket_tarihi' => $ortak['hareket_tarihi'],
                     ]);
-                    $islenen[$aracId] = true;
                     $basarili++;
                 } catch (\PDOException $e) {
                     error_log($e->getMessage());
-                    $hatalar[] = 'Satır ' . ($i + 1) . ' (' . ($s['sase'] ?? $s['plaka'] ?? '?') . '): kayıt hatası';
+                    $uyari['kayit'][] = $satir['ham'];
                 } catch (RuntimeException $e) {
-                    $hatalar[] = 'Satır ' . ($i + 1) . ' (' . ($s['sase'] ?? $s['plaka'] ?? '?') . '): ' . $e->getMessage();
+                    $uyari['kayit'][] = $satir['ham'] . ': ' . $e->getMessage();
                 }
             }
 
             Log::islem('hareket', "Toplu stok çıkışı: {$basarili} araç");
-            flash('success', "{$basarili} araç stoktan çıkarıldı.");
-            if ($hatalar) {
-                flash('error', count($hatalar) . ' satır işlenemedi: ' . implode(' | ', array_slice($hatalar, 0, 10)));
+            if ($basarili > 0) {
+                flash('success', "{$basarili} araç stoktan çıkarıldı.");
+            }
+            $etiket = [
+                'kayitli_degil' => 'Kayıtlı değil',
+                'stokta_degil' => 'Stokta değil',
+                'tekrar' => 'Aynı araç tekrar yazılmış',
+                'belirsiz' => 'Birden fazla kayıt',
+                'uyusmuyor' => 'Şasi ile plaka farklı araç',
+                'tarih' => 'Çıkış tarihi girişten önce',
+                'kayit' => 'Kaydedilemedi',
+            ];
+            $parcalar = [];
+            foreach ($etiket as $anahtar => $ad) {
+                if (!$uyari[$anahtar]) {
+                    continue;
+                }
+                $goster = array_slice($uyari[$anahtar], 0, 20);
+                $ek = count($uyari[$anahtar]) > 20 ? ' ve ' . (count($uyari[$anahtar]) - 20) . ' tane daha' : '';
+                $parcalar[] = $ad . ' (' . count($uyari[$anahtar]) . '): ' . implode(', ', $goster) . $ek;
+            }
+            if ($parcalar) {
+                flash('error', implode(' · ', $parcalar));
+            } elseif ($basarili === 0) {
+                flash('error', 'Çıkış yapılacak stoktaki araç bulunamadı.');
+            }
+            if ($basarili === 0) {
+                $_SESSION['_old'] = $_POST;
             }
             View::redirect($basarili > 0 ? '/arac_hareketleri/cikis' : '/arac_yonetimi/toplu_stok_cikisi');
         }, '/arac_yonetimi/toplu_stok_cikisi');

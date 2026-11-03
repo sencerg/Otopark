@@ -48,10 +48,20 @@ $headerActions = '<a href="/arac_yonetimi/sablon/cikis" class="btn btn-success">
                 <div class="card-body">
                     <input type="file" name="import_file" class="form-control" accept=".xlsx,.xls,.csv,.txt">
                     <div class="form-text">
-                        Şablon: <b>Plaka</b> (opsiyonel) + <b>Şase Numarası</b>. Plaka boş olabilir; yalnızca şasi yapıştırmanız yeterli.
-                        Plaka sütununa şasi yazılmışsa da kabul edilir. Araç stokta ve erişiminiz olan otoparkta olmalıdır.
-                        Dosya seçilirse aşağıdaki manuel satırlar dikkate alınmaz.
+                        Şablon: <b>Plaka</b> (opsiyonel) + <b>Şase Numarası</b>. Dosya seçilirse aşağıdaki yapıştırma alanı ve manuel satırlar dikkate alınmaz.
                     </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h5>Toplu yapıştır</h5></div>
+                <div class="card-body">
+                    <label class="form-label" for="cikis-yapiskan">Şasi veya plaka listesi</label>
+                    <textarea id="cikis-yapiskan" name="yapiskan" class="form-control font-monospace" rows="12" placeholder="Tek sütun ya da yan yana iki sütun yapıştırın.&#10;Şase	Plaka&#10;VF1ZUTPNT8GNVDCWJ	06TX584&#10;06 ERHAN 640"><?= old('yapiskan') ?></textarea>
+                    <div class="form-text">Tek sütun alt alta yeter. Şasi ve plaka yan yanaysa Excel’de iki sütunu birlikte kopyalayın; sıra Şasi–Plaka ya da Plaka–Şasi olabilir. Aynı satırdaki ikisi aynı aracı gösterir. Boşluklu plaka da okunur.</div>
+                    <div class="d-flex gap-2 mt-2">
+                        <button type="button" class="btn btn-outline-primary" id="cikis-kontrol"><i class="mdi mdi-clipboard-search-outline me-1"></i>Kontrol et</button>
+                    </div>
+                    <div id="cikis-onizleme" class="mt-3"></div>
                 </div>
             </div>
             <div class="card">
@@ -118,6 +128,26 @@ $(function () {
     if (!$('#cikis-satirlari tr').length) {
         $('[data-add-row]').first().trigger('click');
     }
+    const renk = { stokta: 'success', stokta_degil: 'warning', kayitli_degil: 'danger', tekrar: 'secondary', belirsiz: 'warning', uyusmuyor: 'danger' };
+    $('#cikis-kontrol').on('click', function () {
+        const $btn = $(this).prop('disabled', true);
+        $.post('/arac_yonetimi/toplu_stok_cikisi/kontrol', {
+            yapiskan: $('#cikis-yapiskan').val(),
+            _csrf: $('meta[name="csrf-token"]').attr('content'),
+        }).done((res) => {
+            const satirlar = res.satirlar || [];
+            const ozet = `${res.stokta || 0} stokta, ${res.stokta_degil || 0} stokta değil, ${res.kayitli_degil || 0} kayıtlı değil`;
+            let html = `<div class="alert alert-light border small mb-2">${App.esc(ozet)}. Çıkış yalnızca stoktaki araçlara yazılır.</div>`;
+            html += '<div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Şasi</th><th>Plaka</th><th>Durum</th><th>Kayıt</th></tr></thead><tbody>';
+            satirlar.forEach((s) => {
+                const kayit = s.sase ? App.esc(s.sase + (s.plaka ? ' · ' + s.plaka : '')) : '—';
+                html += `<tr><td class="font-monospace">${App.esc(s.girilen_sase || '—')}</td><td class="font-monospace">${App.esc(s.girilen_plaka || '—')}</td><td>${App.badge(s.mesaj, renk[s.durum] || 'secondary')}</td><td>${kayit}</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+            $('#cikis-onizleme').html(html);
+        }).fail((x) => App.error(x.responseJSON?.message || 'Kontrol edilemedi'))
+            .always(() => $btn.prop('disabled', false));
+    });
 });
 </script>
 <?php $scripts = ob_get_clean(); ?>

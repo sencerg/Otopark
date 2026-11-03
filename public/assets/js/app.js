@@ -201,10 +201,48 @@
             paintBulk();
         }
 
+        let snapshot = { total: 0, filtered: 0, data: [] };
+        let currentXhr = null;
+        let pendingAjax = null;
+        const readJson = (raw, draw) => {
+            let json = null;
+            try { json = JSON.parse(String(raw || '')); } catch (e) { json = null; }
+            if (!json || !Array.isArray(json.data)) {
+                return { draw, recordsTotal: snapshot.total, recordsFiltered: snapshot.filtered, data: snapshot.data };
+            }
+            snapshot = {
+                total: Number(json.recordsTotal) || 0,
+                filtered: Number(json.recordsFiltered) || 0,
+                data: json.data,
+            };
+            return json;
+        };
+        const deliverAjax = (data, callback) => {
+            const payload = Object.assign({}, data, filterData());
+            const xhr = $.ajax({ url: opts.url, type: 'GET', data: payload, dataType: 'text' });
+            currentXhr = xhr;
+            xhr.always(() => {
+                const json = readJson(xhr.responseText, data.draw);
+                if (currentXhr === xhr) currentXhr = null;
+                if (opts.onData) opts.onData(json);
+                callback(json);
+                if (!pendingAjax) return;
+                const next = pendingAjax;
+                pendingAjax = null;
+                deliverAjax(next.data, next.callback);
+            });
+        };
+
         dt = $table.DataTable({
             serverSide: true,
             searching: false,
-            ajax: { url: opts.url, type: 'GET', data: (d) => Object.assign(d, filterData()), dataSrc: (json) => { opts.onData && opts.onData(json); return json.data; } },
+            ajax: (data, callback) => {
+                if (currentXhr) {
+                    pendingAjax = { data, callback };
+                    return;
+                }
+                deliverAjax(data, callback);
+            },
             columns,
             order: opts.order || [[opts.bulk ? 1 : 0, 'desc']],
             createdRow: opts.createdRow,

@@ -58,9 +58,7 @@ final class DataTable
                             $parts[] = "{$compact} LIKE :{$nkey} ESCAPE '\\'";
                             $params[$nkey] = self::like($norm);
                             $skey = "dt_r{$t}_{$i}";
-                            $slen = "dt_rl{$t}_{$i}";
-                            $parts[] = "right({$compact}, char_length(:{$slen})) = :{$skey}";
-                            $params[$slen] = $norm;
+                            $parts[] = 'right(' . $compact . ', ' . strlen($norm) . ') = :' . $skey;
                             $params[$skey] = $norm;
                         }
                     }

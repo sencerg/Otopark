@@ -31,6 +31,33 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.53',
+                'tarih' => '2026-11-03 14:05',
+                'baslik' => 'Çıkışa yan yana şasi ve plaka',
+                'maddeler' => [
+                    'Toplu çıkışta şasi ve plaka Excel’deki gibi yan yana yapıştırılır; sütun sırası fark etmez.',
+                    'Tek sütun da okunur. Aynı satırda ikisi farklı aracı gösterirse çıkış yazılmaz.',
+                ],
+            ],
+            [
+                'surum' => 'v0.52',
+                'tarih' => '2026-11-03 14:00',
+                'baslik' => 'Toplu çıkışa yapıştırma',
+                'maddeler' => [
+                    'Toplu stok çıkışında Excel sütunu gibi alt alta şasi veya plaka yapıştırılır.',
+                    'Kayıtlı olmayan ve stokta olmayan araçlar ayrı uyarılır; çıkış stoktakilere yazılır.',
+                ],
+            ],
+            [
+                'surum' => 'v0.51',
+                'tarih' => '2026-11-03 13:50',
+                'baslik' => 'Arama listesi JSON uyarısı',
+                'maddeler' => [
+                    'Yazdıkça aramada liste tek istekle güncellenir; yarım kalan yanıt tabloyu bozmaz.',
+                    'Sunucu hata sayfası yerine tabloya JSON döner.',
+                ],
+            ],
+            [
                 'surum' => 'v0.50',
                 'tarih' => '2026-11-03 13:15',
                 'baslik' => 'Plaka birleşik, arama parçadan bulur',
