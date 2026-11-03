@@ -78,11 +78,23 @@
     });
   }
 
+  function fotoAlinir(sev) {
+    return !!sev && sev !== 'C0';
+  }
+
   function toggleFotoZone(row, tipKod, open) {
     var zone = row.querySelector('.detayli-hasar-foto-zone');
     if (!zone) return;
     zone.classList.toggle('d-none', !open);
-    if (!open) return;
+    if (!open) {
+      var input = zone.querySelector('input[type="file"]');
+      if (input) input.value = '';
+      var wrap = zone.querySelector('.detayli-hasar-thumbs');
+      if (wrap) {
+        wrap.querySelectorAll('.is-local').forEach(function (n) { n.remove(); });
+      }
+      return;
+    }
     var rec = state[aktifKod] || {};
     var fotolar = ensureFotolar(rec);
     renderThumbs(zone, fotolar[tipKod] || []);
@@ -100,9 +112,9 @@
     var not = (notInput.value || '').trim();
     var prev = state[aktifKod] || {};
     var fotolar = ensureFotolar(prev);
-    // Seçimi kalkmış tiplerin fotoğraflarını da temizle
+    // Seçimi kalkmış veya C0 olan tipler fotoğraf tutmaz
     Object.keys(fotolar).forEach(function (tip) {
-      if (!tipler[tip]) delete fotolar[tip];
+      if (!fotoAlinir(tipler[tip])) delete fotolar[tip];
     });
 
     if (Object.keys(tipler).length === 0 && not === '' && Object.keys(fotolar).length === 0) {
@@ -209,7 +221,7 @@
           } else {
             row.querySelectorAll('.detayli-c-btn').forEach(function (x) { x.classList.remove('active'); });
             b.classList.add('active');
-            toggleFotoZone(row, t.kod, true);
+            toggleFotoZone(row, t.kod, fotoAlinir(sev));
           }
           saveAktif();
         });
@@ -220,7 +232,7 @@
 
       var zone = buildFotoZone(t.kod);
       row.appendChild(zone);
-      if (selected) toggleFotoZone(row, t.kod, true);
+      if (fotoAlinir(selected)) toggleFotoZone(row, t.kod, true);
 
       tipWrap.appendChild(row);
     });

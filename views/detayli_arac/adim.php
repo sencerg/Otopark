@@ -396,7 +396,7 @@ $kondData = is_array($ex['kondisyon'] ?? null) ? $ex['kondisyon'] : [];
                                 </div>
                                 <div class="card-body">
                                     <div id="hasar-bos" class="text-muted small py-5 text-center">
-                                        Excel listesindeki parçalardan birini seçin. Hasar tipi + C0–C5 seçince altına görsel ekleyebilirsiniz (zorunlu değil).
+                                        Excel listesindeki parçalardan birini seçin. C1–C5 seçince altına görsel ekleyebilirsiniz (zorunlu değil).
                                     </div>
                                     <div id="hasar-panel" class="d-none">
                                         <div class="d-flex justify-content-between align-items-center mb-3 gap-2 flex-wrap">

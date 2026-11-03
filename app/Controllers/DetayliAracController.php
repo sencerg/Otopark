@@ -407,6 +407,9 @@ final class DetayliAracController extends Controller
                             if (!in_array((string) $tipKod, $izinliTipler, true) || !is_array($liste)) {
                                 continue;
                             }
+                            if (($tipler[(string) $tipKod] ?? '') === 'C0') {
+                                continue;
+                            }
                             $temiz = [];
                             foreach ($liste as $f) {
                                 if (!is_array($f) || empty($f['path'])) {
@@ -454,6 +457,9 @@ final class DetayliAracController extends Controller
                             }
                         }
                         if ($parcaKod === null || $tipKod === null || !isset($hasar[$parcaKod])) {
+                            continue;
+                        }
+                        if (($hasar[$parcaKod]['tipler'][$tipKod] ?? '') === 'C0') {
                             continue;
                         }
                         $tanim = 'Hasar · ' . ($hasar[$parcaKod]['ad'] ?? $parcaKod) . ' · ' . $tipKod;
