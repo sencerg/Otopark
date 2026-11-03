@@ -180,7 +180,7 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                 <div class="row g-2 align-items-end">
                     <div class="col-xl-3 col-lg-4 col-md-6">
                         <label class="form-label required mb-1">Maliyet Tipi</label>
-                        <select name="maliyet_tipi_modal" class="form-select select2" data-tutar-target="#arac-maliyet-tutar" required>
+                        <select name="maliyet_tipi_modal" class="form-select select2" required>
                             <option value="">Seçiniz</option>
                             <?php foreach (($hizmetler ?? []) as $mt): ?>
                                 <option value="<?= (int) $mt['id'] ?>" data-bayi-degistirebilir="<?= !empty($mt['bayi_fiyat_degistirebilir']) ? '1' : '0' ?>" data-tekrar-eklenebilir="<?= !empty($mt['tekrar_eklenebilir']) ? '1' : '0' ?>"><?= e($mt['ad']) ?><?= empty($mt['bayi_fiyat_degistirebilir']) ? ' (kilitli)' : '' ?><?= empty($mt['tekrar_eklenebilir']) ? ' (tek sefer)' : '' ?></option>
@@ -188,9 +188,15 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                         </select>
                     </div>
                     <div class="col-xl-2 col-lg-2 col-md-3 col-6">
-                        <label class="form-label required mb-1">Tutar</label>
-                        <input type="number" step="0.01" min="0" name="tutar_ek" id="arac-maliyet-tutar" class="form-control" required placeholder="Fiyat belirlenmedi">
+                        <label class="form-label mb-1">Bayi fiyatı</label>
+                        <input type="number" step="0.01" min="0" name="bayi_tutar" data-fiyat-rol="bayi" class="form-control" placeholder="Anlaşma fiyatı">
                     </div>
+                    <?php if (Auth::isAdmin()): ?>
+                    <div class="col-xl-2 col-lg-2 col-md-3 col-6">
+                        <label class="form-label mb-1">Müşteri fiyatı</label>
+                        <input type="number" step="0.01" min="0" name="musteri_tutar" data-fiyat-rol="musteri" class="form-control" placeholder="Moex fiyatı">
+                    </div>
+                    <?php endif; ?>
                     <div class="col-xl-2 col-lg-2 col-md-3 col-6">
                         <label class="form-label mb-1">İşlem Tarihi</label>
                         <input type="date" name="islem_tarihi" class="form-control" data-default-today>
@@ -214,14 +220,19 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
             </form>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
-                    <thead><tr><th>İşlem Tarihi</th><th>Maliyet Tipi</th><th>Açıklama</th><th>Fatura No</th><th>Lokasyon</th><th>Ekleyen</th><th class="text-end">Tutar</th><th></th></tr></thead>
+                    <thead><tr><th>İşlem Tarihi</th><th>Maliyet Tipi</th><th>Açıklama</th><th>Fatura No</th><th>Lokasyon</th><th>Ekleyen</th><?php if (Auth::isAdmin()): ?><th class="text-end">Bayi</th><th class="text-end">Müşteri</th><th class="text-end">Kâr</th><?php else: ?><th class="text-end"><?= Auth::fiyatMaskeli() ? 'Bayi fiyatı' : 'Tutar' ?></th><?php endif; ?><th></th></tr></thead>
                     <tbody>
                     <?php
                     $maske = Auth::fiyatMaskeli();
+                    $adminFiyat = Auth::isAdmin();
+                    $tl = static fn ($n) => number_format((float) $n, 2, ',', '.') . ' ₺';
                     $toplam = 0;
+                    $toplamBayi = 0;
                     foreach ($ekstre as $x):
-                        $toplam += (float) $x['tutar'];
-                        $deg = !empty($x['bayi_fiyat_degistirebilir']);
+                        $musteriTutar = (float) $x['tutar'];
+                        $bayiSatir = (float) ($x['bayi_tutar'] ?? $x['tutar']);
+                        $toplam += $maske ? $bayiSatir : $musteriTutar;
+                        $toplamBayi += $bayiSatir;
                         ?>
                         <tr class="<?= $x['cikis_sonrasi'] ? 'table-warning' : '' ?>">
                             <td><?= date('d.m.Y', strtotime($x['islem_tarihi'])) ?></td>
@@ -230,21 +241,23 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
                             <td><?= e($x['fatura_no'] ?: '-') ?></td>
                             <td><?= e($x['bayi'] ?: '-') ?></td>
                             <td><?= e($x['kullanici'] ?: '-') ?></td>
-                            <td class="text-end fw-semibold"><?= $maske
-                                ? \App\Services\HizmetFiyat::bayiTutarHtml($deg, $x['tutar'])
-                                : number_format((float) $x['tutar'], 2, ',', '.') . ' ₺' ?></td>
+                            <?php if ($adminFiyat): ?>
+                                <td class="text-end"><?= $tl($bayiSatir) ?></td>
+                                <td class="text-end fw-semibold"><?= $tl($musteriTutar) ?></td>
+                                <td class="text-end"><?= $tl($musteriTutar - $bayiSatir) ?></td>
+                            <?php else: ?>
+                                <td class="text-end fw-semibold"><?= $tl($maske ? $bayiSatir : $musteriTutar) ?></td>
+                            <?php endif; ?>
                             <td class="text-end text-nowrap">
                                 <button type="button" class="btn btn-sm btn-primary btn-icon" data-maliyet-duzenle="<?= $x['id'] ?>" title="Düzenle"><i class="mdi mdi-pencil"></i></button>
                                 <button type="button" class="btn btn-sm btn-danger btn-icon" data-maliyet-sil="<?= $x['id'] ?>" title="Sil"><i class="mdi mdi-delete"></i></button>
                             </td>
                         </tr>
                     <?php endforeach; ?>
-                    <?php if (!$ekstre): ?><tr><td colspan="8" class="text-center text-muted py-4">Bu araca yazılmış ek maliyet yok.</td></tr><?php endif; ?>
+                    <?php if (!$ekstre): ?><tr><td colspan="<?= $adminFiyat ? 10 : 8 ?>" class="text-center text-muted py-4">Bu araca yazılmış ek maliyet yok.</td></tr><?php endif; ?>
                     </tbody>
                     <?php if ($ekstre): ?>
-                        <tfoot><tr><th colspan="6" class="text-end">Toplam</th><th class="text-end"><?= $maske
-                            ? e(\App\Services\HizmetFiyat::bayiToplamOzeti($ekstre))
-                            : number_format($toplam, 2, ',', '.') . ' ₺' ?></th><th></th></tr></tfoot>
+                        <tfoot><tr><th colspan="6" class="text-end">Toplam</th><?php if ($adminFiyat): ?><th class="text-end"><?= $tl($toplamBayi) ?></th><th class="text-end"><?= $tl($toplam) ?></th><th class="text-end"><?= $tl($toplam - $toplamBayi) ?></th><?php else: ?><th class="text-end"><?= $tl($toplam) ?></th><?php endif; ?><th></th></tr></tfoot>
                     <?php endif; ?>
                 </table>
             </div>
@@ -307,7 +320,12 @@ require BASE_PATH . '/views/partials/dosya_sil_formlari.php';
             <div class="modal-header"><h5 class="modal-title">Maliyet Düzenle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body row g-3">
                 <div class="col-12"><label class="form-label required">Maliyet Tipi</label><select name="maliyet_tipi_id" class="form-select" required><?= Tanim::options(Tanim::liste('maliyet_tipleri')) ?></select></div>
-                <div class="col-6"><label class="form-label required">Tutar</label><input type="number" step="0.01" min="0" name="tutar" class="form-control" required data-tutar-field></div>
+                <?php if (Auth::isAdmin()): ?>
+                <div class="col-6"><label class="form-label">Bayi fiyatı</label><input type="number" step="0.01" min="0" name="bayi_tutar" data-fiyat-rol="bayi" class="form-control"></div>
+                <div class="col-6"><label class="form-label">Müşteri fiyatı</label><input type="number" step="0.01" min="0" name="musteri_tutar" data-fiyat-rol="musteri" class="form-control"></div>
+                <?php else: ?>
+                <div class="col-6"><label class="form-label">Bayi fiyatı</label><input type="number" step="0.01" min="0" name="bayi_tutar" data-fiyat-rol="bayi" class="form-control" data-tutar-field></div>
+                <?php endif; ?>
                 <div class="col-6"><label class="form-label">İşlem Tarihi</label><input type="date" name="islem_tarihi" class="form-control"></div>
                 <div class="col-6"><label class="form-label">Fatura No</label><input type="text" name="fatura_no" class="form-control"></div>
                 <div class="col-6"><label class="form-label">Fatura Tarihi</label><input type="date" name="fatura_tarihi" class="form-control"></div>
@@ -330,12 +348,17 @@ $(function () {
             const $m = $('#maliyetDuzenleModal');
             const $f = $m.find('form').attr('action', '/arac_ekstreleri/maliyet_guncelle/' + id);
             const d = r.data || {};
-            ['maliyet_tipi_id', 'tutar', 'islem_tarihi', 'fatura_no', 'fatura_tarihi', 'irsaliye', 'aciklama'].forEach((k) => $f.find(`[name=${k}]`).val(d[k] ?? ''));
-            App.hizmetTutarUygula($f.find('[name=tutar]'), {
-                tutar: d.tutar,
-                tanimli: d.tutar != null || d.tutar_etiket === 'Anlaşmalı Fiyat',
-                degistirebilir: d.bayi_fiyat_degistirebilir,
-            });
+            ['maliyet_tipi_id', 'islem_tarihi', 'fatura_no', 'fatura_tarihi', 'irsaliye', 'aciklama'].forEach((k) => $f.find(`[name=${k}]`).val(d[k] ?? ''));
+            const $musteri = $f.find('[data-fiyat-rol="musteri"]');
+            const $bayi = $f.find('[data-fiyat-rol="bayi"]');
+            if ($musteri.length) $musteri.val(d.musteri_tutar ?? d.tutar ?? '');
+            if ($bayi.length) {
+                App.hizmetTutarUygula($bayi, {
+                    tutar: d.bayi_tutar ?? d.tutar,
+                    tanimli: true,
+                    degistirebilir: d.bayi_fiyat_degistirebilir,
+                });
+            }
             bootstrap.Modal.getOrCreateInstance($m[0]).show();
         }).fail((x) => App.error(x.responseJSON?.message));
     });

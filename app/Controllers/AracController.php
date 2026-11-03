@@ -205,7 +205,7 @@ final class AracController extends Controller
                 ['a' => $id]
             ),
             'ekstre' => Database::fetchAll(
-                'SELECT e.id, e.tutar, e.islem_tarihi, e.aciklama, e.fatura_no, e.cikis_sonrasi, mt.ad AS maliyet_tipi,
+                'SELECT e.id, e.tutar, e.bayi_tutar, e.islem_tarihi, e.aciklama, e.fatura_no, e.cikis_sonrasi, mt.ad AS maliyet_tipi,
                         mt.bayi_fiyat_degistirebilir, b.ad AS bayi, u.name AS kullanici
                  FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
                  LEFT JOIN bayiler b ON b.id = e.bayi_id LEFT JOIN users u ON u.id = e.kullanici_id
@@ -1206,6 +1206,8 @@ final class AracController extends Controller
         };
         $tipler = $liste('maliyet_tipi_id');
         $tutar = $liste('tutar');
+        $musteriTutar = $liste('musteri_tutar');
+        $bayiTutar = $liste('bayi_tutar');
         $aciklama = $liste('aciklama');
         $irsaliye = $liste('irsaliye');
         $faturaNo = $liste('fatura_no');
@@ -1218,11 +1220,13 @@ final class AracController extends Controller
             };
             $tipId = (int) $tip;
             $tutarDeger = $hucre($tutar);
+            $musteriDeger = $hucre($musteriTutar);
+            $bayiDeger = $hucre($bayiTutar);
             $aciklamaDeger = $hucre($aciklama);
             $irsaliyeDeger = $hucre($irsaliye);
             $faturaNoDeger = $hucre($faturaNo);
             $faturaTarihDeger = $hucre($faturaTarihi);
-            if ($tipId <= 0 && $tutarDeger === '' && $aciklamaDeger === '' && $irsaliyeDeger === '' && $faturaNoDeger === '' && $faturaTarihDeger === '') {
+            if ($tipId <= 0 && $tutarDeger === '' && $musteriDeger === '' && $bayiDeger === '' && $aciklamaDeger === '' && $irsaliyeDeger === '' && $faturaNoDeger === '' && $faturaTarihDeger === '') {
                 continue;
             }
             if ($tipId <= 0) {
@@ -1235,7 +1239,7 @@ final class AracController extends Controller
             if ($faturaTarihDeger !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $faturaTarihDeger)) {
                 throw new RuntimeException('Fatura tarihi geçersiz.');
             }
-            $satirlar[] = [
+            $satir = [
                 'maliyet_tipi_id' => $tipId,
                 'tutar' => $tutarDeger === '' ? null : $tutarDeger,
                 'aciklama' => $aciklamaDeger !== '' ? $aciklamaDeger : null,
@@ -1244,6 +1248,12 @@ final class AracController extends Controller
                 'fatura_tarihi' => $faturaTarihDeger !== '' ? $faturaTarihDeger : null,
                 'islem_tarihi' => $islemTarihi !== '' ? $islemTarihi : date('Y-m-d'),
             ];
+            if ($musteriDeger !== '' || $bayiDeger !== '') {
+                $satir['musteri_tutar'] = $musteriDeger === '' ? null : $musteriDeger;
+                $satir['bayi_tutar'] = $bayiDeger === '' ? null : $bayiDeger;
+                unset($satir['tutar']);
+            }
+            $satirlar[] = $satir;
         }
 
         return $satirlar;

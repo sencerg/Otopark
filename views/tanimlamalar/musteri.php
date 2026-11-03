@@ -105,8 +105,8 @@ $bayiJson = array_map(static fn ($b) => [
                 <div class="card-header"><h5>Bu firmaya özel otopark (depolama) ücretleri</h5></div>
                 <div class="card-body">
                     <div class="alert alert-info py-2 small"><i class="mdi mdi-information-outline me-1"></i>
-                        Tüm aktif otoparklar listelenir. Günlük depolama ücreti <b>yalnızca bu firmaya</b> özeldir; boş bırakılan otoparklarda
-                        <b>fiyat belirlenmedi</b> kabul edilir. Genel / standart otopark fiyatı yoktur.
+                        Tüm aktif otoparklar listelenir. <b>Müşteri günlük</b> Moex’in firmaya kestiği ücrettir.
+                        <b>Bayi günlük</b> otopark anlaşmasıdır ve yalnızca bayi tarafında görünür. İkisi birlikte boşsa fiyat yoktur.
                     </div>
                     <form method="post" action="/tanimlamalar/musteri/kaydet" data-ajax data-tip="musteri" id="form-otopark">
                         <?= Csrf::field() ?>
@@ -127,26 +127,35 @@ $bayiJson = array_map(static fn ($b) => [
                                     <tr>
                                         <th>Otopark</th>
                                         <th>Şehir</th>
-                                        <th class="text-end" style="width:14rem">Firma günlük (₺)</th>
+                                        <th class="text-end" style="width:12rem">Bayi günlük (₺)</th>
+                                        <th class="text-end" style="width:12rem">Müşteri günlük (₺)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (empty($otoparkFiyatlari)): ?>
-                                        <tr><td colspan="3" class="text-center text-muted py-4">Aktif otopark yok.</td></tr>
+                                        <tr><td colspan="4" class="text-center text-muted py-4">Aktif otopark yok.</td></tr>
                                     <?php else: ?>
                                         <?php foreach ($otoparkFiyatlari as $o):
                                             $bid = (int) $o['id'];
                                             $firma = $o['firma_fiyat'];
+                                            $bayiFiyat = $o['bayi_fiyat'] ?? null;
                                             ?>
                                             <tr>
                                                 <td><b><?= e($o['ad']) ?></b></td>
                                                 <td class="text-muted"><?= e($o['sehir'] ?: '—') ?></td>
                                                 <td>
                                                     <input type="hidden" name="otopark_bayi_id[]" value="<?= $bid ?>">
-                                                    <input type="number" step="0.01" min="0" name="otopark_tutar[]"
+                                                    <input type="number" step="0.01" min="0" name="otopark_bayi[]"
+                                                           class="form-control text-end"
+                                                           value="<?= $bayiFiyat !== null && $bayiFiyat !== '' ? e((string) $bayiFiyat) : '' ?>"
+                                                           placeholder="Bayi fiyatı"
+                                                           <?= $yaz ? '' : 'disabled' ?>>
+                                                </td>
+                                                <td>
+                                                    <input type="number" step="0.01" min="0" name="otopark_musteri[]"
                                                            class="form-control text-end"
                                                            value="<?= $firma !== null && $firma !== '' ? e((string) $firma) : '' ?>"
-                                                           placeholder="Fiyat belirlenmedi"
+                                                           placeholder="Müşteri fiyatı"
                                                            <?= $yaz ? '' : 'disabled' ?>>
                                                 </td>
                                             </tr>
@@ -177,8 +186,8 @@ $bayiJson = array_map(static fn ($b) => [
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info py-2 small"><i class="mdi mdi-information-outline me-1"></i>
-                        Aynı hizmet farklı otoparklarda farklı ücret alabilir. Her satırda <b>otopark + hizmet</b> seçin.
-                        Tanımsız çiftler için <b>fiyat belirlenmedi</b> kabul edilir.
+                        Her satır bir otopark ve bir hizmettir. <b>Müşteri fiyatı</b> Moex’in firmaya kestiği tutardır; bayi hizmeti kendisi eklese de müşteri bunu görür.
+                        <b>Bayi fiyatı</b> yalnızca otoparkın gördüğü anlaşma tutarıdır. Kâr bu iki tutarın farkıdır.
                     </div>
                     <form method="post" action="/tanimlamalar/musteri/kaydet" data-ajax data-tip="musteri" id="form-fiyat">
                         <?= Csrf::field() ?>
@@ -199,13 +208,14 @@ $bayiJson = array_map(static fn ($b) => [
                                     <tr>
                                         <th style="min-width:14rem">Otopark</th>
                                         <th style="min-width:14rem">Hizmet</th>
-                                        <th class="text-end" style="width:12rem">Firma ücreti (₺)</th>
+                                        <th class="text-end" style="width:11rem">Bayi fiyatı (₺)</th>
+                                        <th class="text-end" style="width:11rem">Müşteri fiyatı (₺)</th>
                                         <?php if ($yaz): ?><th style="width:3rem"></th><?php endif; ?>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (!$fiyatlar): ?>
-                                        <tr class="text-muted" data-bos-satir><td colspan="4" class="text-center py-4">Henüz fiyat yok. “Satır ekle” ile ekleyin.</td></tr>
+                                        <tr class="text-muted" data-bos-satir><td colspan="5" class="text-center py-4">Henüz fiyat yok. “Satır ekle” ile ekleyin.</td></tr>
                                     <?php endif; ?>
                                     <?php foreach ($fiyatlar as $f):
                                         $hid = (int) $f['maliyet_tipi_id'];
@@ -233,10 +243,16 @@ $bayiJson = array_map(static fn ($b) => [
                                                 </select>
                                             </td>
                                             <td>
-                                                <input type="number" step="0.01" min="0" name="fiyat_tutar[]"
-                                                       class="form-control text-end" value="<?= e((string) $f['tutar']) ?>"
+                                                <input type="number" step="0.01" min="0" name="fiyat_bayi[]"
+                                                       class="form-control text-end" value="<?= e((string) ($f['bayi_fiyat'] ?? $f['tutar'])) ?>"
                                                        required <?= $yaz ? '' : 'disabled' ?>
-                                                       placeholder="Firma ücreti">
+                                                       placeholder="Bayi fiyatı">
+                                            </td>
+                                            <td>
+                                                <input type="number" step="0.01" min="0" name="fiyat_musteri[]"
+                                                       class="form-control text-end" value="<?= e((string) ($f['musteri_fiyat'] ?? $f['tutar'])) ?>"
+                                                       required <?= $yaz ? '' : 'disabled' ?>
+                                                       placeholder="Müşteri fiyatı">
                                             </td>
                                             <?php if ($yaz): ?>
                                                 <td class="text-end"><button type="button" class="btn btn-sm btn-link text-danger" data-fiyat-sil title="Kaldır"><i class="mdi mdi-close"></i></button></td>
@@ -269,7 +285,8 @@ $bayiJson = array_map(static fn ($b) => [
                 <option value="">Hizmet seçiniz</option>
             </select>
         </td>
-        <td><input type="number" step="0.01" min="0" name="fiyat_tutar[]" class="form-control text-end" required placeholder="Firma ücreti"></td>
+        <td><input type="number" step="0.01" min="0" name="fiyat_bayi[]" class="form-control text-end" required placeholder="Bayi fiyatı"></td>
+        <td><input type="number" step="0.01" min="0" name="fiyat_musteri[]" class="form-control text-end" required placeholder="Müşteri fiyatı"></td>
         <td class="text-end"><button type="button" class="btn btn-sm btn-link text-danger" data-fiyat-sil title="Kaldır"><i class="mdi mdi-close"></i></button></td>
     </tr>
 </template>
@@ -354,7 +371,7 @@ $(function () {
         bayiOptionDoldur($tr.find('[name="fiyat_bayi_id[]"]')[0], bayiId || '');
         hizmetOptionDoldur($tr.find('[name="fiyat_hizmet_id[]"]')[0], hizmetId || '', bayiId || '', $tr[0]);
         if (tutar !== undefined && tutar !== null && tutar !== '') {
-            $tr.find('[name="fiyat_tutar[]"]').val(tutar);
+            $tr.find('[name="fiyat_musteri[]"], [name="fiyat_bayi[]"]').val(tutar);
         }
         tumSelectleriYenile();
         return $tr;

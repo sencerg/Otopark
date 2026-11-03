@@ -135,7 +135,8 @@ final class ApiController extends Controller
             $musteriId = (int) ($arac['musteri_id'] ?? 0) ?: null;
             $bayiId = (int) ($arac['bayi_id'] ?? 0) ?: null;
         }
-        $tutar = HizmetFiyat::tutar($musteriId, $tipId, $bayiId);
+        $musteriFiyat = HizmetFiyat::tutar($musteriId, $tipId, $bayiId);
+        $bayiFiyat = HizmetFiyat::bayiTutar($musteriId, $tipId, $bayiId);
         $tanimli = HizmetFiyat::tanimli($musteriId, $tipId, $bayiId);
         $deg = HizmetFiyat::bayiDegistirebilir($tipId);
         $tekrar = HizmetFiyat::tekrarEklenebilir($tipId);
@@ -143,10 +144,13 @@ final class ApiController extends Controller
         $tekrarEngelli = !$tekrar && $aractaAdet > 0 && !Auth::isAdmin();
         $adminOzelGerekli = !$tekrar && $aractaAdet > 0 && Auth::isAdmin();
         $maskeli = Auth::fiyatMaskeli();
+        $admin = Auth::isAdmin();
         View::json([
             'success' => true,
-            // Bayi hiçbir katalog tutarını görmez; admin/müşteri gerçek tutarı alır
-            'tutar' => ($maskeli || $adminOzelGerekli) ? null : $tutar,
+            // Bayi yalnızca bayi fiyatını görür. Müşteri fiyatı Moex kataloğudur.
+            'tutar' => $adminOzelGerekli ? null : ($maskeli ? $bayiFiyat : $musteriFiyat),
+            'musteri_fiyat' => ($admin && !$adminOzelGerekli && $tanimli) ? $musteriFiyat : null,
+            'bayi_fiyat' => ((!$adminOzelGerekli && $tanimli) && ($admin || $maskeli)) ? $bayiFiyat : null,
             'tanimli' => $tanimli,
             'kaynak' => $tanimli ? 'firma_otopark' : null,
             'musteri_id' => $musteriId,

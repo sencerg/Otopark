@@ -380,22 +380,23 @@
             return;
         }
         if (maskeli && !deg) {
-            // Katalog tutarını gönderme; sunucu anlaşmalı fiyatı uygular
-            $tutar.val('').prop('required', false).prop('readonly', true).addClass('d-none');
-            $maske.removeClass('d-none').text(tanimli ? 'Anlaşmalı Fiyat' : 'Fiyat belirlenmedi');
-            $tutar.attr('title', 'Anlaşmalı fiyat — tutar gösterilmez');
+            $tutar.removeClass('d-none').prop('readonly', true).prop('required', false);
+            $maske.addClass('d-none');
+            if (tanimli && tutar !== null && tutar !== undefined && tutar !== '') {
+                $tutar.val(Number(tutar));
+            } else {
+                $tutar.val('').attr('placeholder', 'Fiyat belirlenmedi');
+            }
+            $tutar.attr('title', 'Bayi fiyatı kilitli');
             return;
         }
         $tutar.removeClass('d-none').prop('readonly', false);
         $maske.addClass('d-none');
         if (maskeli && deg) {
-            // Bayi katalogu görmez; elle özel fiyat girer (düzenlemede mevcut özel tutarı koru)
-            if (!$tutar.data('ozel-elle') && (tutar === null || tutar === undefined || tutar === '')) {
-                $tutar.val('');
-            } else if (!$tutar.data('ozel-elle') && tutar !== null && tutar !== undefined && tutar !== '') {
+            if (!$tutar.data('ozel-elle') && tutar !== null && tutar !== undefined && tutar !== '') {
                 $tutar.val(Number(tutar));
             }
-            $tutar.prop('required', true).attr('placeholder', 'Özel fiyat girin').attr('title', 'Bu hizmet için özel fiyat girebilirsiniz');
+            $tutar.prop('required', false).attr('placeholder', 'Bayi fiyatı').attr('title', 'Yalnızca bayi tarafında görünen tutar');
             return;
         }
         // Admin / müşteri: gerçek tutar
@@ -417,11 +418,14 @@
     function hizmetTutarDoldur($select, zorla) {
         const tipId = $select.val();
         const $form = $select.closest('form');
+        const $kapsam = $select.closest('tr').length ? $select.closest('tr') : $form;
+        const $musteriAlan = $kapsam.find('[data-fiyat-rol="musteri"]');
+        const $bayiAlan = $kapsam.find('[data-fiyat-rol="bayi"]');
         let $target = $select.data('tutar-target') ? $($select.data('tutar-target')) : $();
         if (!$target.length) {
-            $target = $select.closest('tr').find('[name="hizmet_tutar[]"], [name=tutar_ek], [name=tutar]');
+            $target = $bayiAlan.length ? $bayiAlan : $kapsam.find('[name="hizmet_tutar[]"], [name=tutar_ek], [name=tutar], [name="bayi_tutar"], [name="bayi_tutar[]"]');
         }
-        if (!$target.length || !tipId) return;
+        if ((!$target.length && !$musteriAlan.length) || !tipId) return;
         if (!zorla && !App.fiyatMaskeli() && $target.val() && !$target.prop('readonly')) return;
         const aracId = $form.find('[name=arac_id]').val();
         const musteriId = $form.find('[name=musteri_id]').val();
@@ -467,7 +471,28 @@
                     const d = deg === undefined ? degOk : !!(deg);
                     if (r.admin_ozel_gerekli) {
                         App.toast(r.uyari || 'Ek kayıt — özel fiyat girin.', 'info');
-                        uygula(null, true, true, true);
+                        if ($musteriAlan.length) App.hizmetTutarUygula($musteriAlan, { tutar: null, tanimli: true, degistirebilir: true, tekrarOzel: true });
+                        if ($bayiAlan.length) App.hizmetTutarUygula($bayiAlan, { tutar: null, tanimli: true, degistirebilir: true, tekrarOzel: true });
+                        else uygula(null, true, true, true);
+                        return;
+                    }
+                    if ($musteriAlan.length || $bayiAlan.length) {
+                        if ($musteriAlan.length) {
+                            App.hizmetTutarUygula($musteriAlan, {
+                                tutar: r.musteri_fiyat != null ? Number(r.musteri_fiyat) : null,
+                                tanimli: !!(r.success && r.tanimli),
+                                degistirebilir: true,
+                                tekrarOzel: false,
+                            });
+                        }
+                        if ($bayiAlan.length) {
+                            App.hizmetTutarUygula($bayiAlan, {
+                                tutar: r.bayi_fiyat != null ? Number(r.bayi_fiyat) : (r.tutar != null ? Number(r.tutar) : null),
+                                tanimli: !!(r.success && r.tanimli),
+                                degistirebilir: d,
+                                tekrarOzel: false,
+                            });
+                        }
                         return;
                     }
                     uygula(r.success && r.tutar != null ? Number(r.tutar) : null, !!(r.success && r.tanimli), d, false);
@@ -477,7 +502,7 @@
             uygula(null, false, degOk, false);
         }
     }
-    $(document).on('input', '[name="hizmet_tutar[]"], [name=tutar_ek], [name=tutar]', function () {
+    $(document).on('input', '[name="hizmet_tutar[]"], [name="hizmet_bayi_tutar[]"], [name="hizmet_musteri_tutar[]"], [name=tutar_ek], [name=tutar], [data-fiyat-rol]', function () {
         $(this).data('ozel-elle', true);
     });
     $(document).on('change', 'select[data-tutar-target], select[name="hizmet_id[]"], select[name=maliyet_tipi_modal], select[name=maliyet_tipi_id]', function () {

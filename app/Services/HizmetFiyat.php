@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Core\Auth;
 use App\Core\Database;
 
 /**
@@ -51,18 +52,106 @@ final class HizmetFiyat
         );
     }
 
-    public static function tutar(?int $musteriId, int $maliyetTipiId, ?int $bayiId = null): float
+    /** @return ?array{musteri_fiyat:float,bayi_fiyat:float} */
+    public static function cift(?int $musteriId, int $maliyetTipiId, ?int $bayiId = null): ?array
     {
         if (!$musteriId || !$bayiId) {
-            return 0.0;
+            return null;
         }
-        $ozel = Database::fetch(
-            'SELECT tutar FROM hizmet_fiyatlari
+        $row = Database::fetch(
+            'SELECT musteri_fiyat, bayi_fiyat, tutar FROM hizmet_fiyatlari
              WHERE musteri_id = :m AND maliyet_tipi_id = :t AND bayi_id = :b',
             ['m' => $musteriId, 't' => $maliyetTipiId, 'b' => $bayiId]
         );
+        if (!$row) {
+            return null;
+        }
+        $musteri = $row['musteri_fiyat'] !== null ? (float) $row['musteri_fiyat'] : (float) $row['tutar'];
+        $bayi = $row['bayi_fiyat'] !== null ? (float) $row['bayi_fiyat'] : $musteri;
 
-        return $ozel ? round((float) $ozel['tutar'], 2) : 0.0;
+        return [
+            'musteri_fiyat' => round($musteri, 2),
+            'bayi_fiyat' => round($bayi, 2),
+        ];
+    }
+
+    /** Moex'in müşteriye kestiği katalog fiyatı. */
+    public static function tutar(?int $musteriId, int $maliyetTipiId, ?int $bayiId = null): float
+    {
+        return self::cift($musteriId, $maliyetTipiId, $bayiId)['musteri_fiyat'] ?? 0.0;
+    }
+
+    /** Otopark anlaşma fiyatı. */
+    public static function bayiTutar(?int $musteriId, int $maliyetTipiId, ?int $bayiId = null): float
+    {
+        return self::cift($musteriId, $maliyetTipiId, $bayiId)['bayi_fiyat'] ?? 0.0;
+    }
+
+    public static function sayi(mixed $v): ?float
+    {
+        if ($v === null || $v === '' || !is_numeric($v)) {
+            return null;
+        }
+        $n = round((float) $v, 2);
+
+        return $n < 0 ? null : $n;
+    }
+
+    /**
+     * Satıra yazılacak iki tutar.
+     * Müşteri tutarı Moex kataloğudur; bayi bunu değiştiremez.
+     * Bayi tutarı anlaşma fiyatıdır; yalnızca bayi fiyatı değişebilir işaretliyse bayi kendi tutarını yazar.
+     *
+     * @param array{musteri?:mixed,bayi?:mixed,tek?:mixed,ayri?:bool} $gelen
+     * @return array{musteri:float,bayi:float}
+     */
+    public static function satirTutarlari(
+        ?int $musteriId,
+        int $maliyetTipiId,
+        array $gelen,
+        bool $admin,
+        ?int $bayiId,
+        bool $tekrarOzel
+    ): array {
+        $katalogM = self::tutar($musteriId, $maliyetTipiId, $bayiId);
+        $katalogB = self::bayiTutar($musteriId, $maliyetTipiId, $bayiId);
+        $ayri = !empty($gelen['ayri']);
+        $hamM = self::sayi($gelen['musteri'] ?? null);
+        $hamB = self::sayi($gelen['bayi'] ?? null);
+        $hamTek = self::sayi($gelen['tek'] ?? null);
+        if (!$ayri) {
+            if ($admin) {
+                $hamM = $hamTek;
+                if ($tekrarOzel) {
+                    $hamB = $hamTek;
+                }
+            } else {
+                $hamB = $hamTek;
+            }
+        }
+        $deg = self::bayiDegistirebilir($maliyetTipiId);
+
+        if ($tekrarOzel) {
+            if ($hamM === null || $hamM <= 0) {
+                throw new \RuntimeException('Ek kayıt için müşteri fiyatı giriniz.');
+            }
+
+            return ['musteri' => $hamM, 'bayi' => $hamB ?? $hamM];
+        }
+
+        $musteri = $katalogM;
+        if ($admin && $hamM !== null) {
+            $musteri = $hamM;
+        }
+        $bayi = $katalogB;
+        if (($admin || $deg) && $hamB !== null) {
+            $bayi = $hamB;
+        }
+        if (!$admin && !$deg && $hamB !== null && abs($hamB - $katalogB) > 0.009) {
+            throw new \RuntimeException('Bu hizmetin bayi fiyatı kilitlidir; tutar değiştirilemez.');
+        }
+
+        return ['musteri' => $musteri, 'bayi' => $bayi];
     }
 
     public static function bayiDegistirebilir(int $maliyetTipiId): bool
@@ -120,6 +209,37 @@ final class HizmetFiyat
 
         return '<span class="text-nowrap"><span class="badge badge-soft-info me-1">Özel fiyat</span>'
             . number_format((float) ($tutar ?? 0), 2, ',', '.') . ' ₺</span>';
+    }
+
+    /**
+     * Liste satırı: müşteri tutarı, bayi tutarı ve kâr birbirine karışmaz.
+     * Bayi yanıtında müşteri tutarı yoktur.
+     *
+     * @param array<string,mixed> $r
+     * @return array<string,mixed>
+     */
+    public static function gorunenEkstre(array $r): array
+    {
+        $musteri = round((float) ($r['tutar'] ?? 0), 2);
+        $bayi = round((float) ($r['bayi_tutar'] ?? $musteri), 2);
+        if (Auth::isAdmin()) {
+            $r['tutar'] = $musteri;
+            $r['bayi_tutar'] = $bayi;
+            $r['kar'] = round($musteri - $bayi, 2);
+
+            return $r;
+        }
+        if (Auth::fiyatMaskeli()) {
+            $r['tutar'] = $bayi;
+            $r['tutar_etiket'] = number_format($bayi, 2, ',', '.') . ' ₺';
+            unset($r['bayi_tutar'], $r['kar']);
+
+            return $r;
+        }
+        $r['tutar'] = $musteri;
+        unset($r['bayi_tutar'], $r['kar']);
+
+        return $r;
     }
 
     /** Bayi ara/genel toplam metni (adet + özel tutar). */
@@ -226,7 +346,8 @@ final class HizmetFiyat
         }
 
         return Database::fetchAll(
-            'SELECT f.id, f.musteri_id, f.bayi_id, f.maliyet_tipi_id, f.tutar,
+            'SELECT f.id, f.musteri_id, f.bayi_id, f.maliyet_tipi_id, f.musteri_fiyat AS tutar,
+                    f.musteri_fiyat, f.bayi_fiyat,
                     mu.ad AS musteri, mt.ad AS hizmet, b.ad AS otopark
              FROM hizmet_fiyatlari f
              JOIN musteriler mu ON mu.id = f.musteri_id

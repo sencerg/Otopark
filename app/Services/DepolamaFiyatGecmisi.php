@@ -19,24 +19,25 @@ final class DepolamaFiyatGecmisi
      * @param ?int $musteriId null = otopark standart tarife
      * @param ?int $aracTipiId null = tüm tipler
      */
-    public static function kaydet(int $bayiId, ?int $musteriId, ?int $aracTipiId, float $gunlukFiyat, ?string $from = null): void
+    public static function kaydet(int $bayiId, ?int $musteriId, ?int $aracTipiId, float $gunlukFiyat, ?string $from = null, ?float $bayiGunluk = null): void
     {
         $gunlukFiyat = round($gunlukFiyat, 2);
-        if ($gunlukFiyat < 0) {
+        $bayiGunluk = round($bayiGunluk ?? $gunlukFiyat, 2);
+        if ($gunlukFiyat < 0 || $bayiGunluk < 0) {
             return;
         }
         $from = $from ?? date('Y-m-d');
         $acik = self::acikSegment($bayiId, $musteriId, $aracTipiId);
-        if ($acik && self::ayniFiyat((float) $acik['gunluk_fiyat'], $gunlukFiyat)) {
+        $acikBayi = $acik ? round((float) ($acik['bayi_gunluk_fiyat'] ?? $acik['gunluk_fiyat']), 2) : null;
+        if ($acik && self::ayniFiyat((float) $acik['gunluk_fiyat'], $gunlukFiyat) && self::ayniFiyat((float) $acikBayi, $bayiGunluk)) {
             return;
         }
         if ($acik) {
             $eskiFrom = substr((string) $acik['effective_from'], 0, 10);
             if ($from <= $eskiFrom) {
-                // Aynı gün içinde yeniden değişiklik: açık satırı güncelle
                 Database::query(
-                    'UPDATE depolama_fiyat_gecmisi SET gunluk_fiyat = :f WHERE id = :id',
-                    ['f' => $gunlukFiyat, 'id' => (int) $acik['id']]
+                    'UPDATE depolama_fiyat_gecmisi SET gunluk_fiyat = :f, bayi_gunluk_fiyat = :bf WHERE id = :id',
+                    ['f' => $gunlukFiyat, 'bf' => $bayiGunluk, 'id' => (int) $acik['id']]
                 );
 
                 return;
@@ -52,13 +53,14 @@ final class DepolamaFiyatGecmisi
 
         try {
             Database::query(
-                'INSERT INTO depolama_fiyat_gecmisi (bayi_id, musteri_id, arac_tipi_id, gunluk_fiyat, effective_from, effective_to, created_by)
-                 VALUES (:b, :m, :t, :f, :from, NULL, :u)',
+                'INSERT INTO depolama_fiyat_gecmisi (bayi_id, musteri_id, arac_tipi_id, gunluk_fiyat, bayi_gunluk_fiyat, effective_from, effective_to, created_by)
+                 VALUES (:b, :m, :t, :f, :bf, :from, NULL, :u)',
                 [
                     'b' => $bayiId,
                     'm' => $musteriId,
                     't' => $aracTipiId,
                     'f' => $gunlukFiyat,
+                    'bf' => $bayiGunluk,
                     'from' => $from,
                     'u' => Auth::id(),
                 ]
@@ -69,12 +71,12 @@ final class DepolamaFiyatGecmisi
             }
             // open_uidx: aynı gün / kaçırılmış açık satır — fiyatı güncelle
             $n = Database::query(
-                'UPDATE depolama_fiyat_gecmisi SET gunluk_fiyat = :f
+                'UPDATE depolama_fiyat_gecmisi SET gunluk_fiyat = :f, bayi_gunluk_fiyat = :bf
                  WHERE bayi_id = :b
                    AND musteri_id IS NOT DISTINCT FROM :m
                    AND arac_tipi_id IS NOT DISTINCT FROM :t
                    AND effective_to IS NULL',
-                ['f' => $gunlukFiyat, 'b' => $bayiId, 'm' => $musteriId, 't' => $aracTipiId]
+                ['f' => $gunlukFiyat, 'bf' => $bayiGunluk, 'b' => $bayiId, 'm' => $musteriId, 't' => $aracTipiId]
             )->rowCount();
             if ($n === 0) {
                 throw $e;
@@ -104,7 +106,7 @@ final class DepolamaFiyatGecmisi
     private static function acikSegment(int $bayiId, ?int $musteriId, ?int $aracTipiId): ?array
     {
         return Database::fetch(
-            'SELECT id, gunluk_fiyat, effective_from FROM depolama_fiyat_gecmisi
+            'SELECT id, gunluk_fiyat, bayi_gunluk_fiyat, effective_from FROM depolama_fiyat_gecmisi
              WHERE bayi_id = :b
                AND musteri_id IS NOT DISTINCT FROM :m
                AND arac_tipi_id IS NOT DISTINCT FROM :t

@@ -25,14 +25,21 @@ final class MaliyetController extends Controller
             if (!$aracId) {
                 throw new RuntimeException('Araç seçilmelidir.');
             }
-            $tutar = Request::decimal('tutar_ek');
-            if ($tutar !== null && $tutar < 0) {
-                throw new RuntimeException('Tutar negatif olamaz.');
-            }
-            // Tutar boş/0 ise AracService firma özel fiyatı veya hizmet varsayılanını kullanır.
-            AracService::maliyetEkle($aracId, [
+            $ayri = array_key_exists('musteri_tutar', $_POST) || array_key_exists('bayi_tutar', $_POST);
+            $payload = [
                 'maliyet_tipi_id' => Request::int('maliyet_tipi_modal'),
-                'tutar' => ($tutar !== null && $tutar > 0) ? $tutar : null,
+            ];
+            if ($ayri) {
+                $payload['musteri_tutar'] = Request::decimal('musteri_tutar');
+                $payload['bayi_tutar'] = Request::decimal('bayi_tutar');
+            } else {
+                $tutar = Request::decimal('tutar_ek');
+                if ($tutar !== null && $tutar < 0) {
+                    throw new RuntimeException('Tutar negatif olamaz.');
+                }
+                $payload['tutar'] = ($tutar !== null && $tutar > 0) ? $tutar : null;
+            }
+            AracService::maliyetEkle($aracId, $payload + [
                 'aciklama' => Request::str('aciklama_ekstre'),
                 'irsaliye' => Request::str('irsaliye'),
                 'fatura_no' => Request::str('fatura_no'),
@@ -62,12 +69,10 @@ final class MaliyetController extends Controller
             $row = $this->bul((int) $id);
             $deg = HizmetFiyat::bayiDegistirebilir((int) $row['maliyet_tipi_id']);
             $row['bayi_fiyat_degistirebilir'] = $deg;
-            if (Auth::fiyatMaskeli() && !$deg) {
-                $row['tutar'] = null;
-                $row['tutar_etiket'] = 'Anlaşmalı Fiyat';
-            } elseif (Auth::fiyatMaskeli()) {
-                $row['tutar_etiket'] = HizmetFiyat::bayiTutarMetni(true, $row['tutar'] ?? null);
+            if (Auth::isAdmin()) {
+                $row['musteri_tutar'] = $row['tutar'];
             }
+            $row = HizmetFiyat::gorunenEkstre($row);
             View::json(['success' => true, 'data' => $row]);
         });
     }
@@ -82,26 +87,40 @@ final class MaliyetController extends Controller
             }
             $musteriId = (int) ($row['musteri_id'] ?? 0) ?: null;
             $bayiId = (int) ($row['bayi_id'] ?? 0) ?: null;
-            $gelen = Request::decimal('tutar');
             if (!Auth::isAdmin()) {
                 $tipId = (int) $row['maliyet_tipi_id'];
             }
             $tanimli = HizmetFiyat::tanimli($musteriId, $tipId, $bayiId);
             $deg = HizmetFiyat::bayiDegistirebilir($tipId);
-            if (!$tanimli && !(Auth::isAdmin() && $gelen !== null && $gelen > 0)
-                && !($deg && $gelen !== null && $gelen > 0)) {
+            if (!$tanimli) {
                 throw new RuntimeException('Bu hizmet için müşteri / otopark fiyatı belirlenmedi.');
             }
-            $tutar = HizmetFiyat::tutarBayiIcin($musteriId, $tipId, $gelen, Auth::isAdmin(), $bayiId);
-            if ($tutar < 0 || ($tutar <= 0 && !$tanimli)) {
+            $mevcutMusteri = round((float) $row['tutar'], 2);
+            $mevcutBayi = round((float) ($row['bayi_tutar'] ?? $row['tutar']), 2);
+            if (Auth::isAdmin()) {
+                $musteri = Request::decimal('musteri_tutar');
+                if ($musteri === null) {
+                    $musteri = Request::decimal('tutar');
+                }
+                $bayi = Request::decimal('bayi_tutar');
+                $yeniMusteri = $musteri ?? $mevcutMusteri;
+                $yeniBayi = $bayi ?? $mevcutBayi;
+            } else {
+                $yeniMusteri = $mevcutMusteri;
+                $bayi = Request::decimal('bayi_tutar');
+                if ($bayi === null) {
+                    $bayi = Request::decimal('tutar');
+                }
+                if (!$deg && $bayi !== null && abs($bayi - $mevcutBayi) > 0.009) {
+                    throw new RuntimeException('Bu hizmetin bayi fiyatı kilitlidir; tutar değiştirilemez.');
+                }
+                $yeniBayi = ($deg && $bayi !== null) ? $bayi : $mevcutBayi;
+            }
+            if ($yeniMusteri < 0 || $yeniBayi < 0) {
                 throw new RuntimeException('Geçerli bir tutar giriniz.');
             }
-            if (!Auth::isAdmin() && !$deg && $tanimli && $gelen !== null
-                && abs((float) $gelen - $tutar) > 0.009) {
-                throw new RuntimeException('Bu hizmetin fiyatı kilitlidir; tutar değiştirilemez.');
-            }
             AracService::guncelle((int) $row['id'], [
-                'maliyet_tipi_id' => $tipId, 'tutar' => $tutar,
+                'maliyet_tipi_id' => $tipId, 'tutar' => $yeniMusteri, 'bayi_tutar' => $yeniBayi,
                 'islem_tarihi' => Request::date('islem_tarihi') ?? $row['islem_tarihi'],
                 'fatura_no' => Request::str('fatura_no'), 'fatura_tarihi' => Request::date('fatura_tarihi'),
                 'irsaliye' => Request::str('irsaliye'), 'aciklama' => Request::str('aciklama'),
@@ -141,7 +160,7 @@ final class MaliyetController extends Controller
              LEFT JOIN users u ON u.id = e.kullanici_id',
             [
                 'id' => 'e.id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad',
-                'lokasyon' => 'b.ad', 'maliyet_tipi' => 'mt.ad', 'tutar' => 'e.tutar', 'aciklama' => 'e.aciklama', 'fatura_no' => 'e.fatura_no',
+                'lokasyon' => 'b.ad', 'maliyet_tipi' => 'mt.ad', 'tutar' => 'e.tutar', 'bayi_tutar' => 'COALESCE(e.bayi_tutar, e.tutar)', 'aciklama' => 'e.aciklama', 'fatura_no' => 'e.fatura_no',
                 'bayi_fiyat_degistirebilir' => 'mt.bayi_fiyat_degistirebilir',
                 'islem_tarihi' => "to_char(e.islem_tarihi, 'DD.MM.YYYY')", 'islem_tarihi_sort' => 'e.islem_tarihi',
                 'cikis_sonrasi' => 'e.cikis_sonrasi', 'hareket_id' => 'e.hareket_id',
@@ -174,39 +193,48 @@ final class MaliyetController extends Controller
     public function isTakibiListe(): void
     {
         $dt = self::ekstreTablosu();
+        $admin = Auth::isAdmin();
         $maske = Auth::fiyatMaskeli();
-        $map = static function (array $r) use ($maske): array {
-            if ($maske) {
-                $deg = !empty($r['bayi_fiyat_degistirebilir']);
-                $r['tutar_etiket'] = HizmetFiyat::bayiTutarMetni($deg, $r['tutar'] ?? null);
-                if (!$deg) {
-                    unset($r['tutar']);
-                }
-            }
-
-            return $r;
-        };
+        $map = static fn (array $r): array => HizmetFiyat::gorunenEkstre($r);
         if (Request::input('export')) {
-            Excel::download('is-takibi', [
+            $kolon = [
                 'islem_tarihi' => 'İşlem Tarihi', 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'lokasyon' => 'Lokasyon',
-                'maliyet_tipi' => 'Hizmet', 'tutar' => 'Tutar', 'aciklama' => 'Açıklama', 'kullanici' => 'İşlemi Yapan', 'kayit_zamani' => 'Kayıt Zamanı',
-            ], array_map(static function (array $r) use ($maske): array {
-                if ($maske) {
-                    $r['tutar'] = HizmetFiyat::bayiTutarMetni(!empty($r['bayi_fiyat_degistirebilir']), $r['tutar'] ?? null);
-                }
-
-                return $r;
-            }, $dt->all()));
+                'maliyet_tipi' => 'Hizmet', 'aciklama' => 'Açıklama', 'kullanici' => 'İşlemi Yapan', 'kayit_zamani' => 'Kayıt Zamanı',
+            ];
+            if ($admin) {
+                $kolon['bayi_tutar'] = 'Bayi tutarı';
+                $kolon['tutar'] = 'Müşteri tutarı';
+                $kolon['kar'] = 'Kâr';
+            } else {
+                $kolon['tutar'] = $maske ? 'Bayi tutarı' : 'Müşteri tutarı';
+            }
+            Excel::download('is-takibi', $kolon, array_map($map, $dt->all()));
         }
-        $extra = ['toplam_maskeli' => $maske];
-        if ($maske) {
-            $anlasmali = (int) round($dt->sum('CASE WHEN NOT COALESCE(mt.bayi_fiyat_degistirebilir, FALSE) THEN 1 ELSE 0 END'));
-            $ozel = $dt->sum('CASE WHEN COALESCE(mt.bayi_fiyat_degistirebilir, FALSE) THEN e.tutar ELSE 0 END');
-            $extra['toplam'] = null;
-            $extra['toplam_etiket'] = HizmetFiyat::bayiToplamMetni($anlasmali, $ozel);
+        $extra = self::ekstreToplamlari($dt, $admin, $maske);
+        $dt->response($map, $extra);
+    }
+
+    /** @return array<string,mixed> */
+    public static function ekstreToplamlari(DataTable $dt, bool $admin, bool $maske): array
+    {
+        $extra = ['toplam_maskeli' => $maske, 'toplam_admin' => $admin];
+        if ($admin) {
+            $musteri = $dt->sum('e.tutar');
+            $bayi = $dt->sum('COALESCE(e.bayi_tutar, e.tutar)');
+            $extra['toplam'] = $musteri;
+            $extra['toplam_bayi'] = $bayi;
+            $extra['toplam_kar'] = round($musteri - $bayi, 2);
+            $extra['ozet'] = $dt->groupSum('mt.ad', 'e.tutar');
+        } elseif ($maske) {
+            $bayi = $dt->sum('COALESCE(e.bayi_tutar, e.tutar)');
+            $extra['toplam'] = $bayi;
+            $extra['toplam_etiket'] = number_format($bayi, 2, ',', '.') . ' ₺';
+            $extra['ozet'] = [];
         } else {
             $extra['toplam'] = $dt->sum('e.tutar');
+            $extra['ozet'] = $dt->groupSum('mt.ad', 'e.tutar');
         }
-        $dt->response($map, $extra);
+
+        return $extra;
     }
 }

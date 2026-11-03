@@ -63,9 +63,15 @@ $secili = $secili ?? [];
                                         <select name="maliyet_tipi_id[]" class="form-select select2"><?= $tipSecenek ?></select>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Tutar</label>
-                                        <input type="number" step="0.01" min="0" name="tutar[]" class="form-control" placeholder="Boşsa tanımlı fiyat">
+                                        <label class="form-label">Bayi fiyatı</label>
+                                        <input type="number" step="0.01" min="0" name="bayi_tutar[]" data-fiyat-rol="bayi" class="form-control" placeholder="Boşsa anlaşma fiyatı">
                                     </div>
+                                    <?php if (\App\Core\Auth::isAdmin()): ?>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Müşteri fiyatı</label>
+                                        <input type="number" step="0.01" min="0" name="musteri_tutar[]" data-fiyat-rol="musteri" class="form-control" placeholder="Boşsa Moex fiyatı">
+                                    </div>
+                                    <?php endif; ?>
                                     <div class="col-md-6">
                                         <label class="form-label">İşlem tarihi</label>
                                         <input type="date" name="islem_tarihi[]" class="form-control" value="<?= e($tarih) ?>">

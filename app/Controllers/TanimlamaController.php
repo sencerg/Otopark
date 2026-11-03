@@ -279,12 +279,13 @@ final class TanimlamaController extends Controller
     }
 
     /**
-     * POST: fiyat_bayi_id[] + fiyat_hizmet_id[] + fiyat_tutar[]
+     * POST: fiyat_bayi_id[] + fiyat_hizmet_id[] + fiyat_musteri[] + fiyat_bayi[]
      * Aynı otopark + hizmet çifti bir kez; tüm satırlar müşteri için senkronize edilir.
      */
     private function musteriHizmetFiyatlariniKaydet(int $musteriId): void
     {
-        $tutarlar = (array) ($_POST['fiyat_tutar'] ?? []);
+        $musteriTutarlar = (array) ($_POST['fiyat_musteri'] ?? []);
+        $bayiTutarlar = (array) ($_POST['fiyat_bayi'] ?? []);
         $hizmetler = (array) ($_POST['fiyat_hizmet_id'] ?? []);
         $bayiler = (array) ($_POST['fiyat_bayi_id'] ?? []);
         $gelen = [];
@@ -297,12 +298,19 @@ final class TanimlamaController extends Controller
                 throw new RuntimeException('Hizmet fiyatı için otopark seçilmelidir.');
             }
             $bayiId = (int) $bayiId;
-            $ham = $tutarlar[$i] ?? '';
-            if (!is_scalar($ham) || trim((string) $ham) === '') {
+            $hamM = $musteriTutarlar[$i] ?? '';
+            $hamB = $bayiTutarlar[$i] ?? '';
+            $bosM = !is_scalar($hamM) || trim((string) $hamM) === '';
+            $bosB = !is_scalar($hamB) || trim((string) $hamB) === '';
+            if ($bosM && $bosB) {
                 continue;
             }
-            $tutar = Request::parseDecimal((string) $ham);
-            if ($tutar === null || $tutar < 0) {
+            if ($bosM || $bosB) {
+                throw new RuntimeException('Hizmet satırında müşteri fiyatı ve bayi fiyatı birlikte girilmelidir.');
+            }
+            $musteriFiyat = Request::parseDecimal((string) $hamM);
+            $bayiFiyat = Request::parseDecimal((string) $hamB);
+            if ($musteriFiyat === null || $musteriFiyat < 0 || $bayiFiyat === null || $bayiFiyat < 0) {
                 throw new RuntimeException('Firma hizmet fiyatı geçersiz.');
             }
             $hizmetId = (int) $hizmetId;
@@ -316,13 +324,14 @@ final class TanimlamaController extends Controller
             if (!Database::fetch('SELECT 1 FROM bayiler WHERE id = :id AND aktif', ['id' => $bayiId])) {
                 throw new RuntimeException('Seçilen otopark bulunamadı veya pasif.');
             }
-            $gelen[$anahtar] = ['b' => $bayiId, 't' => $hizmetId, 'u' => $tutar];
+            $gelen[$anahtar] = ['b' => $bayiId, 't' => $hizmetId];
             Database::query(
-                'INSERT INTO hizmet_fiyatlari (musteri_id, bayi_id, maliyet_tipi_id, tutar, updated_at)
-                 VALUES (:m, :b, :t, :u, NOW())
+                'INSERT INTO hizmet_fiyatlari (musteri_id, bayi_id, maliyet_tipi_id, tutar, musteri_fiyat, bayi_fiyat, updated_at)
+                 VALUES (:m, :b, :t, :u, :u, :bf, NOW())
                  ON CONFLICT (musteri_id, bayi_id, maliyet_tipi_id)
-                 DO UPDATE SET tutar = EXCLUDED.tutar, updated_at = NOW()',
-                ['m' => $musteriId, 'b' => $bayiId, 't' => $hizmetId, 'u' => $tutar]
+                 DO UPDATE SET tutar = EXCLUDED.tutar, musteri_fiyat = EXCLUDED.musteri_fiyat,
+                               bayi_fiyat = EXCLUDED.bayi_fiyat, updated_at = NOW()',
+                ['m' => $musteriId, 'b' => $bayiId, 't' => $hizmetId, 'u' => $musteriFiyat, 'bf' => $bayiFiyat]
             );
         }
         if ($gelen) {
@@ -345,13 +354,14 @@ final class TanimlamaController extends Controller
 
     /**
      * Müşteri kartından otopark (depolama) günlük ücretlerini senkronize eder.
-     * POST: otopark_bayi_id[] + otopark_tutar[] — boş tutar = bu firmada o otopark için fiyat kaldırılır.
+     * POST: otopark_bayi_id[] + otopark_musteri[] + otopark_bayi[] — ikisi de boşsa fiyat kaldırılır.
      * Araç tipi boş (NULL) satırları yönetir; tip bazlı eski tarifelere dokunulmaz.
      */
     private function musteriOtoparkFiyatlariniKaydet(int $musteriId): void
     {
         $bayiler = (array) ($_POST['otopark_bayi_id'] ?? []);
-        $tutarlar = (array) ($_POST['otopark_tutar'] ?? []);
+        $musteriTutarlar = (array) ($_POST['otopark_musteri'] ?? []);
+        $bayiTutarlar = (array) ($_POST['otopark_bayi'] ?? []);
         $gelen = [];
         foreach ($bayiler as $i => $bayiId) {
             if (!is_scalar($bayiId) || (int) $bayiId <= 0) {
@@ -365,8 +375,11 @@ final class TanimlamaController extends Controller
                 throw new RuntimeException('Seçilen otopark bulunamadı veya pasif.');
             }
             $gelen[$bayiId] = true;
-            $ham = $tutarlar[$i] ?? '';
-            if (!is_scalar($ham) || trim((string) $ham) === '') {
+            $hamM = $musteriTutarlar[$i] ?? '';
+            $hamB = $bayiTutarlar[$i] ?? '';
+            $bosM = !is_scalar($hamM) || trim((string) $hamM) === '';
+            $bosB = !is_scalar($hamB) || trim((string) $hamB) === '';
+            if ($bosM && $bosB) {
                 Database::query(
                     'DELETE FROM depolama_fiyatlari WHERE musteri_id = :m AND bayi_id = :b AND arac_tipi_id IS NULL',
                     ['m' => $musteriId, 'b' => $bayiId]
@@ -374,24 +387,27 @@ final class TanimlamaController extends Controller
                 DepolamaFiyatGecmisi::kapat($bayiId, $musteriId, null);
                 continue;
             }
-            $tutar = Request::parseDecimal((string) $ham);
-            if ($tutar === null || $tutar < 0) {
+            if ($bosM || $bosB) {
+                throw new RuntimeException('Otopark satırında müşteri günlük fiyatı ve bayi günlük fiyatı birlikte girilmelidir.');
+            }
+            $musteriFiyat = Request::parseDecimal((string) $hamM);
+            $bayiFiyat = Request::parseDecimal((string) $hamB);
+            if ($musteriFiyat === null || $musteriFiyat < 0 || $bayiFiyat === null || $bayiFiyat < 0) {
                 throw new RuntimeException('Otopark firma ücreti geçersiz.');
             }
-            // NULL arac_tipi_id ile ON CONFLICT bazı ortamlarda eşleşmez / yanlış "unique" hatası verir.
             $guncellenen = Database::query(
-                'UPDATE depolama_fiyatlari SET gunluk_fiyat = :f
+                'UPDATE depolama_fiyatlari SET gunluk_fiyat = :f, bayi_gunluk_fiyat = :bf
                  WHERE musteri_id = :m AND bayi_id = :b AND arac_tipi_id IS NULL',
-                ['m' => $musteriId, 'b' => $bayiId, 'f' => $tutar]
+                ['m' => $musteriId, 'b' => $bayiId, 'f' => $musteriFiyat, 'bf' => $bayiFiyat]
             )->rowCount();
             if ($guncellenen === 0) {
                 Database::query(
-                    'INSERT INTO depolama_fiyatlari (musteri_id, bayi_id, arac_tipi_id, gunluk_fiyat)
-                     VALUES (:m, :b, NULL, :f)',
-                    ['m' => $musteriId, 'b' => $bayiId, 'f' => $tutar]
+                    'INSERT INTO depolama_fiyatlari (musteri_id, bayi_id, arac_tipi_id, gunluk_fiyat, bayi_gunluk_fiyat)
+                     VALUES (:m, :b, NULL, :f, :bf)',
+                    ['m' => $musteriId, 'b' => $bayiId, 'f' => $musteriFiyat, 'bf' => $bayiFiyat]
                 );
             }
-            DepolamaFiyatGecmisi::kaydet($bayiId, $musteriId, null, (float) $tutar);
+            DepolamaFiyatGecmisi::kaydet($bayiId, $musteriId, null, (float) $musteriFiyat, null, (float) $bayiFiyat);
         }
     }
 

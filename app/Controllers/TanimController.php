@@ -55,7 +55,7 @@ final class TanimController extends Controller
                     'aktif' => ['Aktif', 'bool', false],
                 ]],
             'depolama_fiyatlari' => ['baslik' => 'Depolama Fiyatları', 'tablo' => 'depolama_fiyatlari', 'icon' => 'mdi-cash-clock', 'grup' => 'Operasyon', 'admin' => true, 'sira' => 'musteri_id, bayi_id',
-                'alanlar' => ['musteri_id' => ['Müşteri', 'select', true, 'musteriler'], 'bayi_id' => ['Lokasyon', 'select', true, 'bayiler'], 'arac_tipi_id' => ['Araç Tipi (boş = tümü)', 'select', false, 'arac_tipleri'], 'gunluk_fiyat' => ['Günlük Fiyat (₺)', 'decimal', true]]],
+                'alanlar' => ['musteri_id' => ['Müşteri', 'select', true, 'musteriler'], 'bayi_id' => ['Lokasyon', 'select', true, 'bayiler'], 'arac_tipi_id' => ['Araç Tipi (boş = tümü)', 'select', false, 'arac_tipleri'], 'bayi_gunluk_fiyat' => ['Bayi günlük (₺)', 'decimal', true], 'gunluk_fiyat' => ['Müşteri günlük (₺)', 'decimal', true]]],
             'musteriler' => ['baslik' => 'Müşteriler (Firmalar)', 'tablo' => 'musteriler', 'icon' => 'mdi-domain', 'grup' => 'Firma ve Personel', 'admin' => true,
                 'alanlar' => ['ad' => ['Firma Adı', 'text', true], 'vergi_no' => ['Vergi No', 'text', false], 'telefon' => ['Telefon', 'text', false], 'eposta' => ['E-posta', 'text', false], 'aktif' => ['Aktif', 'bool', false]]],
             'bayiler' => ['baslik' => 'Lokasyonlar (Bayiler)', 'tablo' => 'bayiler', 'icon' => 'mdi-map-marker-multiple-outline', 'grup' => 'Firma ve Personel', 'admin' => true,
@@ -276,6 +276,8 @@ final class TanimController extends Controller
                 $yeniTip = ($data['arac_tipi_id'] ?? '') === '' || $data['arac_tipi_id'] === null
                     ? null : (int) $data['arac_tipi_id'];
                 $yeniFiyat = (float) $data['gunluk_fiyat'];
+                $yeniBayiFiyat = isset($data['bayi_gunluk_fiyat']) && $data['bayi_gunluk_fiyat'] !== ''
+                    ? (float) $data['bayi_gunluk_fiyat'] : $yeniFiyat;
                 if ($eskiDepolama) {
                     $eskiTip = $eskiDepolama['arac_tipi_id'] !== null ? (int) $eskiDepolama['arac_tipi_id'] : null;
                     $anahtarDegisti = (int) $eskiDepolama['bayi_id'] !== $yeniBayi
@@ -285,7 +287,7 @@ final class TanimController extends Controller
                         DepolamaFiyatGecmisi::kapat((int) $eskiDepolama['bayi_id'], (int) $eskiDepolama['musteri_id'], $eskiTip);
                     }
                 }
-                DepolamaFiyatGecmisi::kaydet($yeniBayi, $yeniMusteri, $yeniTip, $yeniFiyat);
+                DepolamaFiyatGecmisi::kaydet($yeniBayi, $yeniMusteri, $yeniTip, $yeniFiyat, null, $yeniBayiFiyat);
             }
 
             Log::islem('tanim', $t['baslik'] . ' kaydedildi', $id);

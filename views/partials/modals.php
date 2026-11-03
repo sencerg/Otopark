@@ -82,7 +82,7 @@ $bayiler = Tanim::liste('bayiler');
                 <div class="row g-3">
                     <div class="col-md-12"><label class="form-label required">Şasi Numarası</label><select name="arac_id" class="form-select arac-select" required></select></div>
                     <div class="col-md-8"><label class="form-label required">Maliyet Tipi</label>
-                        <select name="maliyet_tipi_modal" id="hizli-maliyet-tipi" class="form-select select2" required data-tutar-target="#hizli-maliyet-tutar" data-firma-hizmet="1">
+                        <select name="maliyet_tipi_modal" id="hizli-maliyet-tipi" class="form-select select2" required data-firma-hizmet="1">
                             <option value="">Önce araç seçiniz</option>
                         </select>
                         <div class="form-text text-muted mt-1" id="hizli-maliyet-hizmet-uyari">
@@ -90,7 +90,10 @@ $bayiler = Tanim::liste('bayiler');
                             Eğer yeni bir hizmet eklemek istiyorsanız sistem yöneticisi ile görüşünüz.
                         </div>
                     </div>
-                    <div class="col-md-4"><label class="form-label required">Fiyat</label><input type="number" step="0.01" min="0" name="tutar_ek" id="hizli-maliyet-tutar" class="form-control" required placeholder="Fiyat belirlenmedi"></div>
+                    <div class="col-md-4"><label class="form-label">Bayi fiyatı</label><input type="number" step="0.01" min="0" name="bayi_tutar" data-fiyat-rol="bayi" class="form-control" placeholder="Anlaşma fiyatı"></div>
+                    <?php if (\App\Core\Auth::isAdmin()): ?>
+                    <div class="col-md-4"><label class="form-label">Müşteri fiyatı</label><input type="number" step="0.01" min="0" name="musteri_tutar" data-fiyat-rol="musteri" class="form-control" placeholder="Moex fiyatı"></div>
+                    <?php endif; ?>
                     <div class="col-md-12"><label class="form-label">Açıklama</label><textarea name="aciklama_ekstre" class="form-control" rows="2"></textarea></div>
                     <div class="col-md-4"><label class="form-label">İrsaliye Bilgisi</label><input type="text" name="irsaliye" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Fatura No</label><input type="text" name="fatura_no" class="form-control"></div>

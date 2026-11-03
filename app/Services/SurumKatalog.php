@@ -31,6 +31,16 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.54',
+                'tarih' => '2026-11-03 16:10',
+                'baslik' => 'Müşteri fiyatı ve bayi fiyatı',
+                'maddeler' => [
+                    'Hizmet ve depolama tarifesinde müşteri fiyatı ile bayi fiyatı ayrı tutulur.',
+                    'Müşteri her zaman Moex fiyatını görür. Bayi yalnızca kendi anlaşma fiyatını görür. Yönetici ikisini ve kârı raporlarda görür.',
+                    'Gösterimde önce bayi fiyatı, sonra müşteri fiyatı gelir.',
+                ],
+            ],
+            [
                 'surum' => 'v0.53',
                 'tarih' => '2026-11-03 14:05',
                 'baslik' => 'Çıkışa yan yana şasi ve plaka',

@@ -95,16 +95,18 @@ final class HareketController extends Controller
              LEFT JOIN bayiler b ON b.id = h.bayi_id
              LEFT JOIN hareket_nedenleri hn ON hn.id = h.hareket_nedeni_id
              LEFT JOIN LATERAL (SELECT g.hareket_tarihi FROM arac_hareketleri g WHERE g.arac_id = h.arac_id AND g.hareket_tipi = 1 AND g.hareket_tarihi <= h.hareket_tarihi ORDER BY g.hareket_tarihi DESC LIMIT 1) gh ON TRUE
-             LEFT JOIN LATERAL (SELECT SUM(e.tutar) AS tutar, COUNT(*) FILTER (WHERE e.cikis_sonrasi) AS sonradan,
+             LEFT JOIN LATERAL (SELECT SUM(e.tutar) AS tutar,
+                                       SUM(COALESCE(e.bayi_tutar, e.tutar)) AS bayi_tutar,
+                                       COUNT(*) FILTER (WHERE e.cikis_sonrasi) AS sonradan,
                                        SUM(e.tutar) FILTER (WHERE e.cikis_sonrasi) AS sonradan_tutar,
-                                       COUNT(*) FILTER (WHERE NOT COALESCE(mt.bayi_fiyat_degistirebilir, FALSE)) AS anlasmali_adet,
-                                       COALESCE(SUM(e.tutar) FILTER (WHERE COALESCE(mt.bayi_fiyat_degistirebilir, FALSE)), 0) AS ozel_tutar
+                                       SUM(COALESCE(e.bayi_tutar, e.tutar)) FILTER (WHERE e.cikis_sonrasi) AS sonradan_bayi
                                 FROM arac_ekstreleri e
                                 JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
                                 WHERE e.arac_id = h.arac_id AND (e.hareket_id = h.id OR (e.hareket_id IS NULL AND e.islem_tarihi BETWEEN gh.hareket_tarihi::date AND h.hareket_tarihi::date))) hz ON TRUE',
             [
-                'hizmet_tutari' => 'COALESCE(hz.tutar, 0)', 'sonradan_adet' => 'COALESCE(hz.sonradan, 0)', 'sonradan_tutar' => 'COALESCE(hz.sonradan_tutar, 0)',
-                'anlasmali_adet' => 'COALESCE(hz.anlasmali_adet, 0)', 'ozel_tutar' => 'COALESCE(hz.ozel_tutar, 0)',
+                'hizmet_tutari' => 'COALESCE(hz.tutar, 0)', 'bayi_hizmet' => 'COALESCE(hz.bayi_tutar, 0)',
+                'sonradan_adet' => 'COALESCE(hz.sonradan, 0)', 'sonradan_tutar' => 'COALESCE(hz.sonradan_tutar, 0)',
+                'sonradan_bayi' => 'COALESCE(hz.sonradan_bayi, 0)',
                 'id' => 'h.id', 'arac_id' => 'a.id', 'sase' => 'a.sase', 'plaka' => 'a.plaka', 'firma' => 'mu.ad', 'marka' => 'm.ad', 'seri' => 's.ad',
                 'lokasyon' => 'b.ad', 'hareket_nedeni' => 'hn.ad',
                 'hareket_tarihi' => "to_char(h.hareket_tarihi, 'DD.MM.YYYY HH24:MI')", 'hareket_tarihi_sort' => 'h.hareket_tarihi',
@@ -119,46 +121,48 @@ final class HareketController extends Controller
         $this->ortakFiltreler($dt, 'h.hareket_tarihi');
 
         $maske = Auth::fiyatMaskeli();
-        $etiket = static function (array $r): string {
-            $parca = [];
-            $a = (int) ($r['anlasmali_adet'] ?? 0);
-            $o = (float) ($r['ozel_tutar'] ?? 0);
-            if ($a > 0) {
-                $parca[] = $a === 1 ? 'Anlaşmalı Fiyat' : ($a . ' × Anlaşmalı Fiyat');
-            }
-            if ($o > 0) {
-                $parca[] = 'Özel: ' . number_format($o, 2, ',', '.') . ' ₺';
-            }
+        $admin = Auth::isAdmin();
+        $ayir = static function (array $r) use ($maske, $admin): array {
+            $musteri = round((float) ($r['hizmet_tutari'] ?? 0), 2);
+            $bayi = round((float) ($r['bayi_hizmet'] ?? $musteri), 2);
+            if ($admin) {
+                $r['hizmet_tutari'] = $musteri;
+                $r['bayi_hizmet'] = $bayi;
+                $r['hizmet_kar'] = round($musteri - $bayi, 2);
 
-            return $parca !== [] ? implode(' + ', $parca) : '—';
+                return $r;
+            }
+            if ($maske) {
+                $r['hizmet_tutari'] = $bayi;
+                $r['sonradan_tutar'] = round((float) ($r['sonradan_bayi'] ?? 0), 2);
+                unset($r['bayi_hizmet'], $r['hizmet_kar'], $r['sonradan_bayi']);
+
+                return $r;
+            }
+            unset($r['bayi_hizmet'], $r['hizmet_kar'], $r['sonradan_bayi']);
+
+            return $r;
         };
         if (Request::input('export')) {
             $kolonlar = [
                 'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
                 'hareket_nedeni' => 'Hareket Nedeni', 'hareket_tarihi' => 'Hareket Tarihi', 'depolama_suresi' => 'Depolama Süresi (Gün)',
                 'teslim_alan' => 'Teslim Alan',
-                'hizmet_tutari' => 'Hizmet Ücreti',
+                'hizmet_tutari' => $maske ? 'Bayi hizmet tutarı' : 'Müşteri hizmet tutarı',
             ];
-            if (!$maske) {
-                $kolonlar['sonradan_tutar'] = 'Çıkış Sonrası Eklenen';
+            if ($admin) {
+                $kolonlar = [
+                    'sase' => 'Şase', 'plaka' => 'Plaka', 'firma' => 'Firma', 'marka' => 'Marka', 'seri' => 'Seri', 'lokasyon' => 'Lokasyon',
+                    'hareket_nedeni' => 'Hareket Nedeni', 'hareket_tarihi' => 'Hareket Tarihi', 'depolama_suresi' => 'Depolama Süresi (Gün)',
+                    'teslim_alan' => 'Teslim Alan',
+                    'bayi_hizmet' => 'Bayi hizmet tutarı',
+                    'hizmet_tutari' => 'Müşteri hizmet tutarı',
+                    'hizmet_kar' => 'Kâr',
+                ];
             }
-            Excel::download('stoktan-cikanlar', $kolonlar, array_map(static function (array $r) use ($maske, $etiket): array {
-                if ($maske) {
-                    $r['hizmet_tutari'] = $etiket($r);
-                    unset($r['sonradan_tutar'], $r['ozel_tutar'], $r['anlasmali_adet']);
-                }
-
-                return $r;
-            }, $dt->all()));
+            Excel::download('stoktan-cikanlar', $kolonlar, array_map($ayir, $dt->all()));
         }
-        $dt->response(static function (array $r) use ($maske, $etiket): array {
-            if ($maske) {
-                $r['hizmet_etiket'] = $etiket($r);
-                unset($r['hizmet_tutari'], $r['sonradan_tutar'], $r['ozel_tutar']);
-            }
-
-            return $r;
-        });
+        $dt->response($ayir);
     }
 
     private function hareket(int $id): array
@@ -216,7 +220,7 @@ final class HareketController extends Controller
             fn ($d) => $d['cikis_tarihi'] !== null && strtotime($d['cikis_tarihi']) === strtotime($h['hareket_tarihi'])
         ))[0] ?? null;
         $eklenenler = Database::fetchAll(
-            'SELECT e.id, mt.ad, e.tutar, e.islem_tarihi, e.aciklama, e.cikis_sonrasi, e.created_at, u.name AS kullanici,
+            'SELECT e.id, mt.ad, e.tutar, e.bayi_tutar, e.islem_tarihi, e.aciklama, e.cikis_sonrasi, e.created_at, u.name AS kullanici,
                     mt.bayi_fiyat_degistirebilir
              FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id LEFT JOIN users u ON u.id = e.kullanici_id
              WHERE e.arac_id = :a AND (e.hareket_id = :h OR (e.hareket_id IS NULL AND e.islem_tarihi BETWEEN :g::date AND :c::date))
@@ -227,24 +231,43 @@ final class HareketController extends Controller
         return [$konaklama, $eklenenler];
     }
 
-    /** @return array<int, float> ekstre_id => yeni tutar (yalnız değişenler) */
+    /** @return array<int, array{musteri?:float,bayi?:float}> */
     private static function mevcutTutarlar(array $h): array
     {
-        $gelen = (array) ($_POST['mevcut_tutar'] ?? []);
-        if (!$gelen) {
+        $gelenM = (array) ($_POST['mevcut_musteri_tutar'] ?? []);
+        $gelenB = (array) ($_POST['mevcut_bayi_tutar'] ?? []);
+        if (!$gelenM && !$gelenB) {
             return [];
         }
         $degisen = [];
         foreach (self::cikisKayitlari($h)[1] as $x) {
-            if (!isset($gelen[$x['id']]) || !is_scalar($gelen[$x['id']]) || trim((string) $gelen[$x['id']]) === '') {
-                continue;
+            $id = (int) $x['id'];
+            $satir = [];
+            if (Auth::isAdmin() && isset($gelenM[$id]) && is_scalar($gelenM[$id]) && trim((string) $gelenM[$id]) !== '') {
+                $tutar = Request::parseDecimal((string) $gelenM[$id]);
+                if ($tutar === null || $tutar < 0) {
+                    throw new RuntimeException("{$x['ad']} müşteri fiyatı geçersiz.");
+                }
+                if (round($tutar, 2) !== round((float) $x['tutar'], 2)) {
+                    $satir['musteri'] = $tutar;
+                }
             }
-            $tutar = Request::parseDecimal((string) $gelen[$x['id']]);
-            if ($tutar === null || $tutar <= 0) {
-                throw new RuntimeException("{$x['ad']} için 0'dan büyük bir ücret giriniz.");
+            if (isset($gelenB[$id]) && is_scalar($gelenB[$id]) && trim((string) $gelenB[$id]) !== '') {
+                $tutar = Request::parseDecimal((string) $gelenB[$id]);
+                if ($tutar === null || $tutar < 0) {
+                    throw new RuntimeException("{$x['ad']} bayi fiyatı geçersiz.");
+                }
+                $deg = !empty($x['bayi_fiyat_degistirebilir']);
+                $eski = round((float) ($x['bayi_tutar'] ?? $x['tutar']), 2);
+                if (!Auth::isAdmin() && !$deg && abs($tutar - $eski) > 0.009) {
+                    throw new RuntimeException("{$x['ad']} bayi fiyatı kilitlidir.");
+                }
+                if (round($tutar, 2) !== $eski) {
+                    $satir['bayi'] = $tutar;
+                }
             }
-            if (round($tutar, 2) !== round((float) $x['tutar'], 2)) {
-                $degisen[(int) $x['id']] = $tutar;
+            if ($satir) {
+                $degisen[$id] = $satir;
             }
         }
 
@@ -262,9 +285,14 @@ final class HareketController extends Controller
             ) : [];
             $tutarlar = $cikis ? self::mevcutTutarlar($h) : [];
             Database::transaction(function () use ($h, $hizmetler, $tutarlar) {
-                foreach ($tutarlar as $ekstreId => $tutar) {
-                    Database::query('UPDATE arac_ekstreleri SET tutar = :t WHERE id = :id', ['t' => $tutar, 'id' => $ekstreId]);
-                    Log::islem('maliyet', 'Hizmet ücreti güncellendi (' . number_format($tutar, 2, ',', '.') . ' ₺): ' . $h['sase'], $ekstreId);
+                foreach ($tutarlar as $ekstreId => $satir) {
+                    if (isset($satir['musteri'])) {
+                        Database::query('UPDATE arac_ekstreleri SET tutar = :t WHERE id = :id', ['t' => $satir['musteri'], 'id' => $ekstreId]);
+                    }
+                    if (isset($satir['bayi'])) {
+                        Database::query('UPDATE arac_ekstreleri SET bayi_tutar = :t WHERE id = :id', ['t' => $satir['bayi'], 'id' => $ekstreId]);
+                    }
+                    Log::islem('maliyet', 'Hizmet ücreti güncellendi: ' . $h['sase'], $ekstreId);
                 }
                 $alanlar = [
                     'hareket_tipi' => Request::int('hareket_tipi') ?? $h['hareket_tipi'],
@@ -311,9 +339,9 @@ final class HareketController extends Controller
                     Database::query('INSERT INTO arac_envanterleri VALUES (:a, :e)', ['a' => $h['arac_id'], 'e' => $e]);
                 }
 
-                foreach ($hizmetler as [$tipId, $tutar, $not]) {
+                foreach ($hizmetler as [$tipId, $musteriHam, $bayiHam, $not]) {
                     AracService::maliyetEkle((int) $h['arac_id'], [
-                        'maliyet_tipi_id' => $tipId, 'tutar' => $tutar, 'aciklama' => $not ?? 'Çıkış sonrası eklendi',
+                        'maliyet_tipi_id' => $tipId, 'musteri_tutar' => $musteriHam, 'bayi_tutar' => $bayiHam, 'aciklama' => $not ?? 'Çıkış sonrası eklendi',
                         'islem_tarihi' => date('Y-m-d'), 'hareket_id' => $h['id'], 'cikis_sonrasi' => true,
                         'musteri_id' => $alanlar['musteri_id'], 'bayi_id' => $alanlar['bayi_id'],
                     ]);
@@ -350,7 +378,7 @@ final class HareketController extends Controller
             ),
             'konaklama' => $konaklama,
             'eklenenler' => $konaklama ? Database::fetchAll(
-                'SELECT mt.ad, e.tutar, e.islem_tarihi, mt.bayi_fiyat_degistirebilir
+                'SELECT mt.ad, e.tutar, e.bayi_tutar, e.islem_tarihi, mt.bayi_fiyat_degistirebilir
                  FROM arac_ekstreleri e JOIN maliyet_tipleri mt ON mt.id = e.maliyet_tipi_id
                  WHERE e.arac_id = :a AND e.islem_tarihi >= :g::date ORDER BY e.islem_tarihi, e.id',
                 ['a' => $arac['id'], 'g' => $konaklama['giris_tarihi']]
@@ -402,9 +430,9 @@ final class HareketController extends Controller
                 'sevkiyat_kodu' => Request::str('sevkiyat_kodu'), 'irsaliye_kodu' => Request::str('irsaliye_kodu'), 'aciklama' => Request::str('aciklama'),
                 'hareket_tarihi' => $cikisTarihi,
                 ]);
-                foreach ($hizmetler as [$tipId, $tutar, $not]) {
+                foreach ($hizmetler as [$tipId, $musteriHam, $bayiHam, $not]) {
                     AracService::maliyetEkle((int) $arac['id'], [
-                        'maliyet_tipi_id' => $tipId, 'tutar' => $tutar, 'aciklama' => $not ?? 'Stoktan çıkış hizmeti',
+                        'maliyet_tipi_id' => $tipId, 'musteri_tutar' => $musteriHam, 'bayi_tutar' => $bayiHam, 'aciklama' => $not ?? 'Stoktan çıkış hizmeti',
                         'islem_tarihi' => substr($cikisTarihi, 0, 10), 'hareket_id' => $hareketId,
                     ]);
                 }
@@ -421,11 +449,12 @@ final class HareketController extends Controller
     /**
      * @param ?int $musteriId Araç/hareket firması
      * @param ?int $bayiId Araçın bulunduğu otopark
-     * @return list<array{int, float, ?string}> [maliyet_tipi_id, tutar, not]
+     * @return list<array{0:int,1:?float,2:?float,3:?string}> [maliyet_tipi_id, müşteri, bayi, not]
      */
     private static function cikisHizmetleri(?int $musteriId = null, ?int $bayiId = null): array
     {
-        $tutarlar = (array) ($_POST['hizmet_tutar'] ?? []);
+        $musteriTutarlar = (array) ($_POST['hizmet_musteri_tutar'] ?? []);
+        $bayiTutarlar = (array) ($_POST['hizmet_bayi_tutar'] ?? []);
         $notlar = (array) ($_POST['hizmet_not'] ?? []);
         $sonuc = [];
         foreach ((array) ($_POST['hizmet_id'] ?? []) as $i => $tipId) {
@@ -451,25 +480,17 @@ final class HareketController extends Controller
                     }
                 }
             }
-            $ham = $tutarlar[$i] ?? '';
-            $gelen = (is_scalar($ham) && trim((string) $ham) !== '') ? Request::parseDecimal((string) $ham) : null;
-            $tanimli = \App\Services\HizmetFiyat::tanimli($musteriId, $tipIdInt, $bayiId);
-            $deg = \App\Services\HizmetFiyat::bayiDegistirebilir($tipIdInt);
-            if (!$tanimli) {
+            if (!\App\Services\HizmetFiyat::tanimli($musteriId, $tipIdInt, $bayiId)) {
                 throw new RuntimeException(
                     "{$tip['ad']} bu firma / otopark için tanımlı değil. Önce Tanımlamalar → müşteri kartından fiyat ekleyin."
                 );
             }
-            $tutar = \App\Services\HizmetFiyat::tutarBayiIcin($musteriId, $tipIdInt, $gelen, Auth::isAdmin(), $bayiId);
-            if ($tutar < 0 || ($tutar <= 0 && !$tanimli)) {
-                throw new RuntimeException("{$tip['ad']} için geçerli bir ücret giriniz.");
-            }
-            if (!Auth::isAdmin() && !$deg && $gelen !== null && $tanimli
-                && abs((float) $gelen - $tutar) > 0.009) {
-                throw new RuntimeException("{$tip['ad']} fiyatı kilitlidir; tutar değiştirilemez.");
-            }
+            $hamM = $musteriTutarlar[$i] ?? '';
+            $hamB = $bayiTutarlar[$i] ?? '';
+            $musteriHam = (is_scalar($hamM) && trim((string) $hamM) !== '') ? Request::parseDecimal((string) $hamM) : null;
+            $bayiHam = (is_scalar($hamB) && trim((string) $hamB) !== '') ? Request::parseDecimal((string) $hamB) : null;
             $not = is_scalar($notlar[$i] ?? null) ? trim((string) $notlar[$i]) : '';
-            $sonuc[] = [(int) $tipId, $tutar, $not !== '' ? mb_substr($not, 0, 500) : null];
+            $sonuc[] = [(int) $tipId, $musteriHam, $bayiHam, $not !== '' ? mb_substr($not, 0, 500) : null];
         }
 
         return $sonuc;

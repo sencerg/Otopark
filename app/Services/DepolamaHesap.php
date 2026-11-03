@@ -23,41 +23,38 @@ final class DepolamaHesap
         $bas = Database::connection()->quote($baslangic);
         $bit = Database::connection()->quote($bitis);
 
-        // tutar: her gün için yalnızca müşteri tarifesi geçmişinden (yoksa canlı firma fiyatı)
-        $gunlukIfade = 'COALESCE(
-            (SELECT g.gunluk_fiyat FROM depolama_fiyat_gecmisi g
-             WHERE g.bayi_id = k.bayi_id AND g.musteri_id IS NOT DISTINCT FROM k.musteri_id
-               AND g.musteri_id IS NOT NULL
-               AND g.arac_tipi_id IS NOT DISTINCT FROM a0.arac_tipi_id
-               AND g.effective_from <= gs::date AND (g.effective_to IS NULL OR gs::date < g.effective_to)
-             ORDER BY g.effective_from DESC LIMIT 1),
-            (SELECT g.gunluk_fiyat FROM depolama_fiyat_gecmisi g
-             WHERE g.bayi_id = k.bayi_id AND g.musteri_id IS NOT DISTINCT FROM k.musteri_id
-               AND g.musteri_id IS NOT NULL
-               AND g.arac_tipi_id IS NULL
-               AND g.effective_from <= gs::date AND (g.effective_to IS NULL OR gs::date < g.effective_to)
-             ORDER BY g.effective_from DESC LIMIT 1),
-            f1.gunluk_fiyat,
-            f2.gunluk_fiyat,
-            0
-        )';
+        $musteriIfade = self::tarifeIfadesi('g.gunluk_fiyat', 'f1.gunluk_fiyat', 'f2.gunluk_fiyat');
+        $bayiIfade = self::tarifeIfadesi(
+            'COALESCE(g.bayi_gunluk_fiyat, g.gunluk_fiyat)',
+            'COALESCE(f1.bayi_gunluk_fiyat, f1.gunluk_fiyat)',
+            'COALESCE(f2.bayi_gunluk_fiyat, f2.gunluk_fiyat)'
+        );
 
         return "(SELECT k.giris_hareket_id, k.arac_id, k.musteri_id, k.bayi_id, k.giris_tarihi, k.cikis_tarihi,
                     GREATEST(k.giris_tarihi::date, {$bas}::date) AS dep_bas,
                     LEAST(COALESCE(k.cikis_tarihi::date, CURRENT_DATE), {$bit}::date) AS dep_bit,
                     LEAST(COALESCE(k.cikis_tarihi::date, CURRENT_DATE), {$bit}::date) - GREATEST(k.giris_tarihi::date, {$bas}::date) + 1 AS gun,
                     ROUND(COALESCE(f1.gunluk_fiyat, f2.gunluk_fiyat, 0), 2) AS gunluk_fiyat,
+                    ROUND(COALESCE(COALESCE(f1.bayi_gunluk_fiyat, f1.gunluk_fiyat), COALESCE(f2.bayi_gunluk_fiyat, f2.gunluk_fiyat), 0), 2) AS bayi_gunluk_fiyat,
                     COALESCE(f1.gunluk_fiyat, f2.gunluk_fiyat, 0) AS taban_fiyat,
                     1::numeric AS carpan,
                     (f1.id IS NULL AND f2.id IS NULL) AS fiyat_yok,
                     ROUND((
-                        SELECT COALESCE(SUM({$gunlukIfade}), 0)
+                        SELECT COALESCE(SUM({$musteriIfade}), 0)
                         FROM generate_series(
                             GREATEST(k.giris_tarihi::date, {$bas}::date),
                             LEAST(COALESCE(k.cikis_tarihi::date, CURRENT_DATE), {$bit}::date),
                             '1 day'::interval
                         ) gs
-                    ), 2) AS tutar
+                    ), 2) AS tutar,
+                    ROUND((
+                        SELECT COALESCE(SUM({$bayiIfade}), 0)
+                        FROM generate_series(
+                            GREATEST(k.giris_tarihi::date, {$bas}::date),
+                            LEAST(COALESCE(k.cikis_tarihi::date, CURRENT_DATE), {$bit}::date),
+                            '1 day'::interval
+                        ) gs
+                    ), 2) AS bayi_tutar
                  FROM arac_konaklamalari k
                  JOIN araclar a0 ON a0.id = k.arac_id
                  LEFT JOIN depolama_fiyatlari f1 ON f1.musteri_id = k.musteri_id AND f1.bayi_id = k.bayi_id AND f1.arac_tipi_id = a0.arac_tipi_id
@@ -73,7 +70,7 @@ final class DepolamaHesap
     public static function musteriOtoparkFiyatlari(int $musteriId): array
     {
         return Database::fetchAll(
-            'SELECT b.id, b.ad, b.sehir, f.gunluk_fiyat AS firma_fiyat
+            'SELECT b.id, b.ad, b.sehir, f.gunluk_fiyat AS firma_fiyat, f.bayi_gunluk_fiyat AS bayi_fiyat
              FROM bayiler b
              LEFT JOIN depolama_fiyatlari f
                ON f.bayi_id = b.id AND f.musteri_id = :m AND f.arac_tipi_id IS NULL
@@ -111,6 +108,9 @@ final class DepolamaHesap
             }
             $row['gun'] = array_sum(array_column($segmentler, 'gun'));
             $row['tutar'] = round(array_sum(array_column($segmentler, 'tutar')), 2);
+            $row['bayi_tutar'] = round(array_sum(array_column($segmentler, 'bayi_tutar')), 2);
+            $row['bayi_gunluk_fiyat'] = $segmentler[0]['bayi_gunluk'] ?? ($row['bayi_gunluk_fiyat'] ?? $row['gunluk_fiyat'] ?? 0);
+            $row['kar'] = round((float) $row['tutar'] - (float) $row['bayi_tutar'], 2);
             if (!empty($row['fiyat_yok']) && $row['tutar'] <= 0) {
                 // geçmişte de müşteri tarifesi yoksa fiyat belirlenmedi kalır
             } elseif ($row['tutar'] > 0 || self::musteriTarifesiVar($row)) {
@@ -118,6 +118,7 @@ final class DepolamaHesap
             }
             $row['fiyat_degisti'] = count($segmentler) > 1;
             $row['fiyat_ozet'] = self::fiyatOzet($segmentler);
+            $row['bayi_fiyat_ozet'] = self::fiyatOzet($segmentler, 'bayi_gunluk');
             if (count($segmentler) === 1) {
                 $row['gunluk_fiyat'] = $segmentler[0]['gunluk_fiyat'];
             }
@@ -148,10 +149,10 @@ final class DepolamaHesap
     /**
      * @param list<array{gun:int,gunluk_fiyat:float,tutar:float}> $segmentler
      */
-    public static function fiyatOzet(array $segmentler): string
+    public static function fiyatOzet(array $segmentler, string $alan = 'gunluk_fiyat'): string
     {
         return implode(' + ', array_map(
-            static fn (array $s) => (int) $s['gun'] . ' gün × ' . number_format((float) $s['gunluk_fiyat'], 2, ',', '.') . ' ₺',
+            static fn (array $s) => (int) $s['gun'] . ' gün × ' . number_format((float) ($s[$alan] ?? $s['gunluk_fiyat']), 2, ',', '.') . ' ₺',
             $segmentler
         ));
     }
@@ -198,7 +199,7 @@ final class DepolamaHesap
         }
 
         $gecmis = Database::fetchAll(
-            'SELECT musteri_id, arac_tipi_id, gunluk_fiyat, effective_from::text AS effective_from,
+            'SELECT musteri_id, arac_tipi_id, gunluk_fiyat, bayi_gunluk_fiyat, effective_from::text AS effective_from,
                     effective_to::text AS effective_to
              FROM depolama_fiyat_gecmisi
              WHERE bayi_id = :b
@@ -212,6 +213,7 @@ final class DepolamaHesap
         );
 
         $yedek = (float) ($k['gunluk_fiyat'] ?? 0);
+        $yedekBayi = (float) ($k['bayi_gunluk_fiyat'] ?? $yedek);
         $points = [$bas];
         $bitExclusive = date('Y-m-d', strtotime($bit . ' +1 day'));
         foreach ($gecmis as $g) {
@@ -236,22 +238,28 @@ final class DepolamaHesap
             if ($toInclusive < $from) {
                 continue;
             }
-            $fiyat = self::fiyatCoz($gecmis, $musteriId, $aracTipiId, $from, $yedek);
+            $fiyat = self::fiyatCoz($gecmis, $musteriId, $aracTipiId, $from, $yedek, 'gunluk_fiyat');
+            $bayiFiyat = self::fiyatCoz($gecmis, $musteriId, $aracTipiId, $from, $yedekBayi, 'bayi_gunluk_fiyat');
             $gun = (int) ((strtotime($toInclusive) - strtotime($from)) / 86400) + 1;
             if ($gun <= 0) {
                 continue;
             }
             $son = $segmentler !== [] ? array_key_last($segmentler) : null;
-            if ($son !== null && (float) $segmentler[$son]['gunluk_fiyat'] === $fiyat) {
+            if ($son !== null
+                && (float) $segmentler[$son]['gunluk_fiyat'] === $fiyat
+                && (float) $segmentler[$son]['bayi_gunluk'] === $bayiFiyat) {
                 $segmentler[$son]['gun'] += $gun;
                 $segmentler[$son]['bit'] = $toInclusive;
                 $segmentler[$son]['tutar'] = round($segmentler[$son]['gun'] * $fiyat, 2);
+                $segmentler[$son]['bayi_tutar'] = round($segmentler[$son]['gun'] * $bayiFiyat, 2);
                 continue;
             }
             $segmentler[] = [
                 'gun' => $gun,
                 'gunluk_fiyat' => $fiyat,
+                'bayi_gunluk' => $bayiFiyat,
                 'tutar' => round($gun * $fiyat, 2),
+                'bayi_tutar' => round($gun * $bayiFiyat, 2),
                 'bas' => $from,
                 'bit' => $toInclusive,
             ];
@@ -263,7 +271,7 @@ final class DepolamaHesap
     /**
      * @param list<array<string,mixed>> $gecmis
      */
-    private static function fiyatCoz(array $gecmis, ?int $musteriId, ?int $aracTipiId, string $gun, float $yedek): float
+    private static function fiyatCoz(array $gecmis, ?int $musteriId, ?int $aracTipiId, string $gun, float $yedek, string $alan = 'gunluk_fiyat'): float
     {
         if ($musteriId === null) {
             return 0.0;
@@ -285,11 +293,33 @@ final class DepolamaHesap
             };
             if ($p > $oncelik) {
                 $oncelik = $p;
-                $aday = (float) $g['gunluk_fiyat'];
+                $ham = $alan === 'bayi_gunluk_fiyat' ? ($g['bayi_gunluk_fiyat'] ?? $g['gunluk_fiyat']) : $g['gunluk_fiyat'];
+                $aday = (float) $ham;
             }
         }
 
         return $oncelik > 0 ? round((float) $aday, 2) : round($yedek, 2);
+    }
+
+    private static function tarifeIfadesi(string $gecmisKolon, string $tipKolon, string $genelKolon): string
+    {
+        return "COALESCE(
+            (SELECT {$gecmisKolon} FROM depolama_fiyat_gecmisi g
+             WHERE g.bayi_id = k.bayi_id AND g.musteri_id IS NOT DISTINCT FROM k.musteri_id
+               AND g.musteri_id IS NOT NULL
+               AND g.arac_tipi_id IS NOT DISTINCT FROM a0.arac_tipi_id
+               AND g.effective_from <= gs::date AND (g.effective_to IS NULL OR gs::date < g.effective_to)
+             ORDER BY g.effective_from DESC LIMIT 1),
+            (SELECT {$gecmisKolon} FROM depolama_fiyat_gecmisi g
+             WHERE g.bayi_id = k.bayi_id AND g.musteri_id IS NOT DISTINCT FROM k.musteri_id
+               AND g.musteri_id IS NOT NULL
+               AND g.arac_tipi_id IS NULL
+               AND g.effective_from <= gs::date AND (g.effective_to IS NULL OR gs::date < g.effective_to)
+             ORDER BY g.effective_from DESC LIMIT 1),
+            {$tipKolon},
+            {$genelKolon},
+            0
+        )";
     }
 
     private static function tarih(mixed $v): ?string
