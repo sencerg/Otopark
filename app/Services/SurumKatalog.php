@@ -37,7 +37,15 @@ final class SurumKatalog
                 'maddeler' => [
                     'Hizmet ve depolama tarifesinde müşteri fiyatı ile bayi fiyatı ayrı tutulur.',
                     'Müşteri her zaman Moex fiyatını görür. Bayi yalnızca kendi anlaşma fiyatını görür. Yönetici ikisini ve kârı raporlarda görür.',
-                    'Gösterimde önce bayi fiyatı, sonra müşteri fiyatı gelir.',
+                ],
+            ],
+            [
+                'surum' => 'v0.55',
+                'tarih' => '2026-11-03 15:45',
+                'baslik' => 'Bayi fiyatı solda',
+                'maddeler' => [
+                    'Fiyat alanları ve rapor sütunları önce bayi fiyatını, sonra müşteri fiyatını gösterir.',
+                    'Kâr en sağda kalır. Kayıt ve fatura alanlarının adı değişmez.',
                 ],
             ],
             [
