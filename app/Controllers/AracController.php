@@ -411,19 +411,174 @@ final class AracController extends Controller
     public function topluEkMaliyet(): void
     {
         $secili = $this->seciliAraclar(Request::ids('ids'));
-        if ($secili) {
-            $this->view('araclar/toplu_maliyet_secili', [
-                'pageTitle' => 'Seçilen araçlara maliyet',
-                'breadcrumb' => ['Araç Yönetimi' => '/arac_yonetimi', 'Toplu Maliyet' => null],
-                'secili' => $secili,
-            ]);
-            return;
+        $eski = $_SESSION['_old'] ?? [];
+        $yapiskan = (string) ($eski['yapiskan'] ?? '');
+        if ($yapiskan === '' && $secili) {
+            $satirlar = [];
+            foreach ($secili as $arac) {
+                $satirlar[] = trim((string) ($arac['sase'] ?? '') . "\t" . (string) ($arac['plaka'] ?? ''));
+            }
+            $yapiskan = implode("\n", array_filter($satirlar, static fn ($s) => trim($s) !== ''));
         }
-        $this->view('araclar/toplu_excel', [
-            'pageTitle' => 'Toplu Ek Maliyet Girişi', 'action' => '/arac_yonetimi/excel_toplu_ek_maliyet_giris', 'sablon' => 'maliyet',
-            'aciklama' => 'Şablonu indirin. “Hizmet Kalemi” sütununa ikinci sayfadaki (Maliyet Tipleri) adlardan birini yazın; fiyatı girip XLSX olarak yükleyin. Şasi sistemde kayıtlı olmalıdır.',
-            'breadcrumb' => ['Araç Yönetimi' => '/arac_yonetimi', 'Toplu Ek Maliyet Girişi' => null],
+        $musteriId = (int) ($eski['musteri_id'] ?? 0);
+        if ($musteriId <= 0 && $secili) {
+            $firmalar = array_values(array_unique(array_filter(array_map(static fn ($a) => (int) ($a['musteri_id'] ?? 0), $secili))));
+            if (count($firmalar) === 1) {
+                $musteriId = $firmalar[0];
+            }
+        }
+        $this->view('araclar/toplu_maliyet', [
+            'pageTitle' => 'Toplu Ek Maliyet Girişi',
+            'breadcrumb' => ['Araç Yönetimi' => '/arac_yonetimi', 'Toplu Ek Maliyet' => null],
+            'secili' => $secili,
+            'yapiskan' => $yapiskan,
+            'musteriId' => $musteriId,
+            'hizmetIds' => array_map('intval', (array) ($eski['maliyet_tipi_id'] ?? [])),
         ]);
+        unset($_SESSION['_old']);
+    }
+
+    public function topluMaliyetHizmetler(): void
+    {
+        $this->ajax(function () {
+            $musteriId = Request::int('musteri_id');
+            if (!$musteriId) {
+                throw new RuntimeException('Müşteri seçilmelidir.');
+            }
+            $this->ok('Hizmetler hazır.', ['hizmetler' => $this->musteriHizmetleri($musteriId)]);
+        });
+    }
+
+    public function topluMaliyetKontrol(): void
+    {
+        $this->ajax(function () {
+            $this->maliyetIzni();
+            $musteriId = Request::int('musteri_id');
+            $hizmetIds = Request::ids('maliyet_tipi_id');
+            $metin = Request::input('yapiskan');
+            $satirlar = $this->yapistirmaSatirlari(is_string($metin) ? $metin : '');
+            if (!$musteriId) {
+                throw new RuntimeException('Müşteri seçilmelidir.');
+            }
+            if (!$hizmetIds) {
+                throw new RuntimeException('En az bir hizmet seçilmelidir.');
+            }
+            if (!$satirlar) {
+                throw new RuntimeException('Yapıştırılacak şasi veya plaka yok.');
+            }
+            $ayrim = $this->maliyetSatirlariniAyir($satirlar, $musteriId, $hizmetIds);
+            $say = array_count_values(array_column($ayrim, 'durum'));
+            $this->ok('Kontrol edildi.', [
+                'uygun' => (int) ($say['uygun'] ?? 0),
+                'kismi' => (int) ($say['kismi'] ?? 0),
+                'kayitli_degil' => (int) ($say['kayitli_degil'] ?? 0),
+                'baska_musteri' => (int) ($say['baska_musteri'] ?? 0),
+                'satirlar' => array_map(fn (array $s) => $this->maliyetOnizleme($s), $ayrim),
+            ]);
+        });
+    }
+
+    public function topluMaliyetKaydet(): void
+    {
+        $this->maliyetIzni();
+        $this->form(function () {
+            $musteriId = Request::int('musteri_id');
+            $hizmetIds = Request::ids('maliyet_tipi_id');
+            if (!$musteriId) {
+                throw new RuntimeException('Müşteri seçilmelidir.');
+            }
+            if (!$hizmetIds) {
+                throw new RuntimeException('En az bir hizmet seçilmelidir.');
+            }
+            $metin = Request::input('yapiskan');
+            $satirlar = $this->yapistirmaSatirlari(is_string($metin) ? $metin : '');
+            if (!$satirlar) {
+                throw new RuntimeException('Maliyet eklenecek şasi veya plaka yok.');
+            }
+            $islemTarihi = Request::date('islem_tarihi') ?? date('Y-m-d');
+            $faturaTarihi = Request::date('fatura_tarihi');
+            $ortak = [
+                'aciklama' => Request::str('aciklama'),
+                'irsaliye' => Request::str('irsaliye'),
+                'fatura_no' => Request::str('fatura_no'),
+                'fatura_tarihi' => $faturaTarihi,
+                'islem_tarihi' => $islemTarihi,
+            ];
+
+            $basarili = 0;
+            $aracSayisi = 0;
+            $uyari = [
+                'kayitli_degil' => [], 'uyusmuyor' => [], 'belirsiz' => [], 'tekrar' => [],
+                'baska_musteri' => [], 'hizmet' => [], 'kayit' => [],
+            ];
+            foreach ($this->maliyetSatirlariniAyir($satirlar, $musteriId, $hizmetIds) as $satir) {
+                if (!in_array($satir['durum'], ['uygun', 'kismi'], true)) {
+                    $anahtar = $satir['durum'] === 'hizmet_yok' ? 'hizmet' : $satir['durum'];
+                    $metin = $satir['ham'];
+                    if ($satir['durum'] === 'hizmet_yok') {
+                        $metin = ($satir['arac']['sase'] ?: $satir['ham']) . ': ' . implode('; ', array_map(
+                            static fn (array $h) => $h['ad'] . ' — ' . $h['mesaj'],
+                            $satir['hizmetler']
+                        ));
+                    }
+                    $uyari[$anahtar][] = $metin;
+                    continue;
+                }
+                $yazilan = 0;
+                foreach ($satir['hizmetler'] as $hizmet) {
+                    if ($hizmet['durum'] !== 'eklenecek') {
+                        $uyari['hizmet'][] = ($satir['arac']['sase'] ?: $satir['ham']) . ': ' . $hizmet['ad'] . ' — ' . $hizmet['mesaj'];
+                        continue;
+                    }
+                    try {
+                        AracService::maliyetEkle((int) $satir['arac']['id'], $ortak + [
+                            'maliyet_tipi_id' => $hizmet['id'],
+                            'musteri_id' => (int) $satir['arac']['musteri_id'],
+                            'bayi_id' => (int) $satir['arac']['bayi_id'],
+                        ]);
+                        $basarili++;
+                        $yazilan++;
+                    } catch (RuntimeException $e) {
+                        $uyari['kayit'][] = ($satir['arac']['sase'] ?: $satir['ham']) . ': ' . $e->getMessage();
+                    }
+                }
+                if ($yazilan > 0) {
+                    $aracSayisi++;
+                }
+            }
+
+            if ($basarili > 0) {
+                Log::islem('maliyet', "Toplu maliyet: {$basarili} kayıt, {$aracSayisi} araç");
+                flash('success', "{$aracSayisi} araca {$basarili} maliyet kaydı eklendi.");
+            }
+            $etiket = [
+                'kayitli_degil' => 'Kayıtlı değil',
+                'uyusmuyor' => 'Şasi ile plaka farklı araç',
+                'belirsiz' => 'Birden fazla kayıt',
+                'tekrar' => 'Aynı araç tekrar yazılmış',
+                'baska_musteri' => 'Seçilen firmaya ait değil',
+                'hizmet' => 'Hizmet eklenmedi',
+                'kayit' => 'Kaydedilemedi',
+            ];
+            $parcalar = [];
+            foreach ($etiket as $anahtar => $ad) {
+                if (!$uyari[$anahtar]) {
+                    continue;
+                }
+                $goster = array_slice($uyari[$anahtar], 0, 12);
+                $ek = count($uyari[$anahtar]) > 12 ? ' ve ' . (count($uyari[$anahtar]) - 12) . ' tane daha' : '';
+                $parcalar[] = $ad . ' (' . count($uyari[$anahtar]) . '): ' . implode(', ', $goster) . $ek;
+            }
+            if ($parcalar) {
+                flash('error', implode(' · ', $parcalar));
+            } elseif ($basarili === 0) {
+                flash('error', 'Maliyet eklenecek uygun araç bulunamadı.');
+            }
+            if ($basarili === 0) {
+                $_SESSION['_old'] = $_POST;
+            }
+            View::redirect($basarili > 0 ? '/is_takibi' : '/arac_yonetimi/toplu_ek_maliyet_girisi');
+        }, '/arac_yonetimi/toplu_ek_maliyet_girisi');
     }
 
     public function seciliMaliyet(): void
@@ -801,7 +956,7 @@ final class AracController extends Controller
      * @param list<array{ham:string,parcalar:list<string>}> $satirlar
      * @return list<array{ham:string,durum:string,mesaj:string,arac:?array}>
      */
-    private function cikisSatirlariniAyir(array $satirlar): array
+    private function cikisSatirlariniAyir(array $satirlar, bool $stokSart = true): array
     {
         $anahtarlar = [];
         foreach ($satirlar as $satir) {
@@ -819,8 +974,11 @@ final class AracController extends Controller
             $dizi = '{' . implode(',', $anahtarListe) . '}';
             $rows = Database::fetchAll(
                 "SELECT a.id, a.sase, a.plaka, a.stokta, a.stoga_giris_tarihi, a.musteri_id, a.bayi_id,
-                        regexp_replace(upper(coalesce(a.plaka, '')), '[^0-9A-Z]', '', 'g') AS plaka_k
+                        regexp_replace(upper(coalesce(a.plaka, '')), '[^0-9A-Z]', '', 'g') AS plaka_k,
+                        mu.ad AS firma, b.ad AS otopark
                  FROM araclar a
+                 LEFT JOIN musteriler mu ON mu.id = a.musteri_id
+                 LEFT JOIN bayiler b ON b.id = a.bayi_id
                  WHERE NOT COALESCE(a.arsiv, false) AND " . Auth::bayiKosulu('a.bayi_id') . "
                    AND (
                         a.sase = ANY(:k::text[])
@@ -886,7 +1044,7 @@ final class AracController extends Controller
                 continue;
             }
             $satirCevap = ['ham' => $satir['ham'], 'arac' => $arac, 'sase' => $satir['sase'], 'plaka' => $satir['plaka']];
-            if (!$this->stoktaMi($arac['stokta'])) {
+            if ($stokSart && !$this->stoktaMi($arac['stokta'])) {
                 $sonuc[] = $satirCevap + ['durum' => 'stokta_degil', 'mesaj' => 'Stokta değil'];
                 continue;
             }
@@ -896,7 +1054,7 @@ final class AracController extends Controller
                 continue;
             }
             $gorulen[$id] = true;
-            $sonuc[] = $satirCevap + ['durum' => 'stokta', 'mesaj' => 'Stokta'];
+            $sonuc[] = $satirCevap + ['durum' => $stokSart ? 'stokta' : 'bulundu', 'mesaj' => $stokSart ? 'Stokta' : 'Kayıtlı'];
         }
 
         return $sonuc;
@@ -1284,6 +1442,216 @@ final class AracController extends Controller
         return $satirlar;
     }
 
+    private function maliyetIzni(): void
+    {
+        if (!Auth::can('maliyet.yonet') && !Auth::can('menu.toplu')) {
+            Auth::requireIzin('maliyet.yonet');
+        }
+    }
+
+    /** @return list<array{id:int,ad:string}> */
+    private function musteriHizmetleri(int $musteriId): array
+    {
+        $kosul = '';
+        $p = ['m' => $musteriId];
+        if ($bayiId = Auth::bayiId()) {
+            $kosul = ' AND f.bayi_id = :b';
+            $p['b'] = $bayiId;
+        }
+        $rows = Database::fetchAll(
+            'SELECT DISTINCT mt.id, mt.ad
+             FROM maliyet_tipleri mt
+             JOIN hizmet_fiyatlari f ON f.maliyet_tipi_id = mt.id AND f.musteri_id = :m
+             WHERE mt.aktif' . $kosul . '
+             ORDER BY mt.ad',
+            $p
+        );
+
+        return array_map(static fn (array $r) => ['id' => (int) $r['id'], 'ad' => (string) $r['ad']], $rows);
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return list<array{id:int,ad:string,tekrar:bool}>
+     */
+    private function maliyetTipleri(array $ids): array
+    {
+        $rows = Database::fetchAll(
+            'SELECT id, ad, tekrar_eklenebilir FROM maliyet_tipleri WHERE aktif AND id = ANY(:t::bigint[]) ORDER BY ad',
+            ['t' => '{' . implode(',', $ids) . '}']
+        );
+
+        return array_map(fn (array $r) => [
+            'id' => (int) $r['id'],
+            'ad' => (string) $r['ad'],
+            'tekrar' => $this->stoktaMi($r['tekrar_eklenebilir']),
+        ], $rows);
+    }
+
+    /**
+     * @param list<int> $hizmetIds
+     * @return array<string,array{musteri:float,bayi:float}>
+     */
+    private function hizmetFiyatHaritasi(int $musteriId, array $hizmetIds): array
+    {
+        $rows = Database::fetchAll(
+            'SELECT bayi_id, maliyet_tipi_id, musteri_fiyat, bayi_fiyat, tutar
+             FROM hizmet_fiyatlari
+             WHERE musteri_id = :m AND maliyet_tipi_id = ANY(:t::bigint[])',
+            ['m' => $musteriId, 't' => '{' . implode(',', $hizmetIds) . '}']
+        );
+        $map = [];
+        foreach ($rows as $r) {
+            $musteri = $r['musteri_fiyat'] !== null ? (float) $r['musteri_fiyat'] : (float) $r['tutar'];
+            $bayi = $r['bayi_fiyat'] !== null ? (float) $r['bayi_fiyat'] : $musteri;
+            $map[(int) $r['bayi_id'] . ':' . (int) $r['maliyet_tipi_id']] = [
+                'musteri' => round($musteri, 2),
+                'bayi' => round($bayi, 2),
+            ];
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param list<int> $aracIds
+     * @param list<int> $hizmetIds
+     * @return array<string,int>
+     */
+    private function hizmetAdetHaritasi(array $aracIds, array $hizmetIds): array
+    {
+        if (!$aracIds || !$hizmetIds) {
+            return [];
+        }
+        $rows = Database::fetchAll(
+            'SELECT arac_id, maliyet_tipi_id, COUNT(*)::int AS c
+             FROM arac_ekstreleri
+             WHERE arac_id = ANY(:a::bigint[]) AND maliyet_tipi_id = ANY(:t::bigint[])
+             GROUP BY arac_id, maliyet_tipi_id',
+            [
+                'a' => '{' . implode(',', $aracIds) . '}',
+                't' => '{' . implode(',', $hizmetIds) . '}',
+            ]
+        );
+        $map = [];
+        foreach ($rows as $r) {
+            $map[(int) $r['arac_id'] . ':' . (int) $r['maliyet_tipi_id']] = (int) $r['c'];
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param array<string,mixed> $arac
+     * @param array{id:int,ad:string,tekrar:bool} $tip
+     * @param array<string,array{musteri:float,bayi:float}> $fiyatlar
+     * @param array<string,int> $adetler
+     * @return array<string,mixed>
+     */
+    private function hizmetKarar(array $arac, array $tip, array $fiyatlar, array $adetler): array
+    {
+        $tipId = $tip['id'];
+        $bayiId = (int) ($arac['bayi_id'] ?? 0);
+        $adet = (int) ($adetler[(int) $arac['id'] . ':' . $tipId] ?? 0);
+        $temel = ['id' => $tipId, 'ad' => $tip['ad']];
+        if ($bayiId <= 0) {
+            return $temel + ['durum' => 'otopark_yok', 'mesaj' => 'Otoparkı yok'];
+        }
+        $fiyat = $fiyatlar[$bayiId . ':' . $tipId] ?? null;
+        if (!$fiyat) {
+            return $temel + ['durum' => 'tanimsiz', 'mesaj' => 'Bu otopark için fiyat yok'];
+        }
+        if ($adet > 0 && !$tip['tekrar']) {
+            return $temel + ['durum' => 'zaten_var', 'mesaj' => 'Bu araçta zaten var'];
+        }
+        $satir = $temel + ['durum' => 'eklenecek', 'mesaj' => $adet > 0 ? 'Yeniden eklenecek' : 'Eklenecek'];
+        if (Auth::isAdmin()) {
+            $satir['musteri_fiyat'] = $fiyat['musteri'];
+            $satir['bayi_fiyat'] = $fiyat['bayi'];
+        }
+
+        return $satir;
+    }
+
+    /**
+     * @param list<array{ham:string,sase:string,plaka:string}> $satirlar
+     * @param list<int> $hizmetIds
+     * @return list<array<string,mixed>>
+     */
+    private function maliyetSatirlariniAyir(array $satirlar, int $musteriId, array $hizmetIds): array
+    {
+        $tipler = $this->maliyetTipleri($hizmetIds);
+        if (count($tipler) !== count($hizmetIds)) {
+            throw new RuntimeException('Seçilen hizmetlerden biri bulunamadı veya pasif.');
+        }
+        $ham = $this->cikisSatirlariniAyir($satirlar, false);
+        $aracIds = [];
+        foreach ($ham as $satir) {
+            if ($satir['durum'] === 'bulundu') {
+                $aracIds[] = (int) $satir['arac']['id'];
+            }
+        }
+        $fiyatlar = $this->hizmetFiyatHaritasi($musteriId, $hizmetIds);
+        $adetler = $this->hizmetAdetHaritasi($aracIds, $hizmetIds);
+        $sonuc = [];
+        foreach ($ham as $satir) {
+            if ($satir['durum'] !== 'bulundu') {
+                $sonuc[] = $satir + ['hizmetler' => []];
+                continue;
+            }
+            $arac = $satir['arac'];
+            if ((int) ($arac['musteri_id'] ?? 0) !== $musteriId) {
+                $sonuc[] = ['durum' => 'baska_musteri', 'mesaj' => 'Seçilen firmaya ait değil', 'hizmetler' => []] + $satir;
+                continue;
+            }
+            $hizmetler = [];
+            $eklenecek = 0;
+            foreach ($tipler as $tip) {
+                $karar = $this->hizmetKarar($arac, $tip, $fiyatlar, $adetler);
+                $hizmetler[] = $karar;
+                if ($karar['durum'] === 'eklenecek') {
+                    $eklenecek++;
+                }
+            }
+            if ($eklenecek === 0) {
+                $kararDurum = ['durum' => 'hizmet_yok', 'mesaj' => 'Eklenecek hizmet yok', 'hizmetler' => $hizmetler];
+            } elseif ($eklenecek === count($hizmetler)) {
+                $kararDurum = ['durum' => 'uygun', 'mesaj' => 'Eklenecek', 'hizmetler' => $hizmetler];
+            } else {
+                $kararDurum = ['durum' => 'kismi', 'mesaj' => 'Bir kısmı eklenecek', 'hizmetler' => $hizmetler];
+            }
+            $sonuc[] = $kararDurum + $satir;
+        }
+
+        return $sonuc;
+    }
+
+    /** @param array<string,mixed> $satir */
+    private function maliyetOnizleme(array $satir): array
+    {
+        $arac = $satir['arac'] ?? null;
+
+        return [
+            'ham' => $satir['ham'],
+            'durum' => $satir['durum'],
+            'mesaj' => $satir['mesaj'],
+            'girilen_sase' => (string) ($satir['sase'] ?? ''),
+            'girilen_plaka' => (string) ($satir['plaka'] ?? ''),
+            'sase' => (string) ($arac['sase'] ?? ''),
+            'plaka' => (string) ($arac['plaka'] ?? ''),
+            'firma' => (string) ($arac['firma'] ?? ''),
+            'otopark' => (string) ($arac['otopark'] ?? ''),
+            'stokta' => $arac ? $this->stoktaMi($arac['stokta'] ?? false) : false,
+            'hizmetler' => array_map(static fn (array $h) => [
+                'ad' => $h['ad'],
+                'durum' => $h['durum'],
+                'mesaj' => $h['mesaj'],
+                'musteri_fiyat' => $h['musteri_fiyat'] ?? null,
+                'bayi_fiyat' => $h['bayi_fiyat'] ?? null,
+            ], $satir['hizmetler'] ?? []),
+        ];
+    }
+
     /** @param list<int> $ids
      *  @return list<array<string,mixed>>
      */
@@ -1294,7 +1662,7 @@ final class AracController extends Controller
         }
 
         return Database::fetchAll(
-            'SELECT a.id, a.sase, a.plaka, a.stokta, mu.ad AS firma
+            'SELECT a.id, a.sase, a.plaka, a.stokta, a.musteri_id, mu.ad AS firma
              FROM araclar a
              LEFT JOIN musteriler mu ON mu.id = a.musteri_id
              WHERE a.id = ANY(:ids::bigint[]) AND ' . Auth::bayiKosulu('a.bayi_id') . '

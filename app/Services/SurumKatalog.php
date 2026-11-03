@@ -31,6 +31,15 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.58',
+                'tarih' => '2026-11-03 17:30',
+                'baslik' => 'Toplu maliyet yapıştırma listesi',
+                'maddeler' => [
+                    'Toplu ek maliyette müşteri ve hizmet seçilir, şasi veya plaka listesi yapıştırılır.',
+                    'Kayıtlı olmayan, başka firmaya ait, tekrar yazılmış ve fiyatı olmayan satırlar eklenmeden önce gösterilir.',
+                ],
+            ],
+            [
                 'surum' => 'v0.57',
                 'tarih' => '2026-11-03 17:10',
                 'baslik' => 'Marka, model ve seri sırası',

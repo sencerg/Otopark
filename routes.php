@@ -94,6 +94,9 @@ $router->get('/arac_yonetimi/toplu_stok_cikisi', [AracController::class, 'topluS
 $router->post('/arac_yonetimi/toplu_stok_cikisi/kontrol', [AracController::class, 'topluStokCikisKontrol'], $staff);
 $router->post('/arac_yonetimi/excel_toplu_cikis', [AracController::class, 'excelTopluCikis'], $staff);
 $router->get('/arac_yonetimi/toplu_ek_maliyet_girisi', [AracController::class, 'topluEkMaliyet'], $staff);
+$router->get('/arac_yonetimi/toplu_ek_maliyet_girisi/hizmetler', [AracController::class, 'topluMaliyetHizmetler'], $staff);
+$router->post('/arac_yonetimi/toplu_ek_maliyet_girisi/kontrol', [AracController::class, 'topluMaliyetKontrol'], $staff);
+$router->post('/arac_yonetimi/toplu_ek_maliyet_girisi', [AracController::class, 'topluMaliyetKaydet'], $staff);
 $router->post('/arac_yonetimi/excel_toplu_ek_maliyet_giris', [AracController::class, 'excelTopluMaliyet'], $staff);
 $router->post('/arac_yonetimi/secili_maliyet', [AracController::class, 'seciliMaliyet'], $staff);
 $router->get('/arac_yonetimi/toplu_kayit_guncelleme_lokasyon', [AracController::class, 'topluLokasyon'], $staff);
