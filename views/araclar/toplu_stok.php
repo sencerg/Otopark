@@ -74,34 +74,47 @@ $markaOptions = Tanim::options(Tanim::liste('markalar'));
                     <div id="giris-onizleme" class="mt-3"></div>
                 </div>
             </div>
-            <div class="card">
-                <div class="card-header"><h5>Manuel Araç Listesi</h5>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="#stok-satir-tpl" data-target="#stok-satirlari"><i class="mdi mdi-plus"></i> Satır Ekle</button></div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
-                            <thead><tr><th>Şasi No</th><th>Plaka</th><th style="min-width:150px">Marka</th><th style="min-width:150px">Model</th><th style="min-width:150px">Seri</th><th>Lokasyon Detay</th><th>Sevkiyat Kodu</th><th>İrsaliye Kodu</th><th></th></tr></thead>
-                            <tbody id="stok-satirlari"></tbody>
-                        </table>
-                    </div>
-                    <template id="stok-satir-tpl">
-                        <tr class="row-item">
-                            <td><input type="text" name="satir[sase][]" class="form-control form-control-sm text-uppercase"></td>
-                            <td><input type="text" name="satir[plaka][]" class="form-control form-control-sm text-uppercase"></td>
-                            <td><select name="satir[marka_id][]" class="form-select form-select-sm satir-marka"><?= $markaOptions ?></select></td>
-                            <td><select name="satir[model_id][]" class="form-select form-select-sm satir-model"><option value="">Önce Marka</option></select></td>
-                            <td><select name="satir[seri_id][]" class="form-select form-select-sm satir-seri"><option value="">Önce Model</option></select></td>
-                            <td><input type="text" name="satir[lokasyon_detay][]" class="form-control form-control-sm"></td>
-                            <td><input type="text" name="satir[sevkiyat_kodu][]" class="form-control form-control-sm"></td>
-                            <td><input type="text" name="satir[irsaliye_kodu][]" class="form-control form-control-sm"></td>
-                            <td><input type="hidden" name="satir[proje_adi][]"><button type="button" class="btn btn-sm btn-light text-danger" data-remove-row><i class="mdi mdi-delete-outline"></i></button></td>
-                        </tr>
-                    </template>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary btn-lg w-100"><i class="mdi mdi-database-import me-1"></i> Stoğa Aktar</button>
         </div>
     </div>
+    <div class="card">
+        <div class="card-header"><h5>Manuel Araç Listesi</h5>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-add-row="#stok-satir-tpl" data-target="#stok-satirlari"><i class="mdi mdi-plus"></i> Satır Ekle</button></div>
+        <div class="card-body p-0">
+            <table class="table table-sm align-middle toplu-manuel mb-0">
+                <thead>
+                    <tr>
+                        <th>Şasi No</th>
+                        <th>Plaka</th>
+                        <th>Marka</th>
+                        <th>Model</th>
+                        <th>Seri</th>
+                        <th>Lokasyon Detay</th>
+                        <th>Sevkiyat Kodu</th>
+                        <th>İrsaliye Kodu</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="stok-satirlari"></tbody>
+            </table>
+            <template id="stok-satir-tpl">
+                <tr>
+                    <td><input type="text" name="satir[sase][]" class="form-control text-uppercase toplu-sase" maxlength="17" spellcheck="false" autocomplete="off"></td>
+                    <td><input type="text" name="satir[plaka][]" class="form-control text-uppercase toplu-plaka" spellcheck="false" autocomplete="off"></td>
+                    <td><select name="satir[marka_id][]" class="form-select form-select-sm satir-marka"><?= $markaOptions ?></select></td>
+                    <td><select name="satir[model_id][]" class="form-select form-select-sm satir-model"><option value="">Önce Marka</option></select></td>
+                    <td><select name="satir[seri_id][]" class="form-select form-select-sm satir-seri"><option value="">Önce Model</option></select></td>
+                    <td><input type="text" name="satir[lokasyon_detay][]" class="form-control form-control-sm"></td>
+                    <td><input type="text" name="satir[sevkiyat_kodu][]" class="form-control form-control-sm"></td>
+                    <td><input type="text" name="satir[irsaliye_kodu][]" class="form-control form-control-sm"></td>
+                    <td class="text-end">
+                        <input type="hidden" name="satir[proje_adi][]">
+                        <button type="button" class="btn btn-light text-danger" data-remove-row title="Satırı sil"><i class="mdi mdi-delete-outline"></i></button>
+                    </td>
+                </tr>
+            </template>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg w-100"><i class="mdi mdi-database-import me-1"></i> Stoğa Aktar</button>
 </form>
 
 <?php ob_start(); ?>

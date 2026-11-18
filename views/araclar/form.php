@@ -64,14 +64,14 @@ if (!$yeni) {
                         <div class="col-md-4"><label class="form-label required">Marka</label><select name="marka_id" class="form-select select2" required><?= Tanim::options(Tanim::liste('markalar'), $markaId) ?></select></div>
                         <div class="col-md-4"><label class="form-label required">Model</label><select name="model_id" class="form-select select2" required><?= $markaId ? Tanim::options(Tanim::modeller((int) $markaId), $modelId) : '<option value="">Önce Marka Seçiniz</option>' ?></select></div>
                         <div class="col-md-4"><label class="form-label">Seri</label><select name="seri_id" class="form-select select2"><?= $modelId ? Tanim::options(Tanim::seriler((int) $modelId), $v('seri_id')) : '<option value="">Önce Model Seçiniz</option>' ?></select></div>
-                        <div class="col-md-3"><label class="form-label">Model Yılı</label><select name="yil" class="form-select"><?= Tanim::options(Tanim::liste('model_yillari'), $v('yil', 'model_yili_id')) ?></select></div>
+                        <div class="col-md-3"><label class="form-label">Model Yılı</label><select name="yil" class="form-select" data-ikinci-el><?= Tanim::options(Tanim::liste('model_yillari'), $v('yil', 'model_yili_id')) ?></select></div>
                         <div class="col-md-3"><label class="form-label">Renk</label><select name="renk" class="form-select select2"><?= Tanim::options(Tanim::liste('renkler'), $v('renk', 'renk_id')) ?></select></div>
-                        <div class="col-md-3"><label class="form-label">Yakıt Tipi</label><select name="yakit_tipi" class="form-select"><?= Tanim::options(Tanim::liste('yakit_tipleri'), $v('yakit_tipi', 'yakit_tipi_id')) ?></select></div>
-                        <div class="col-md-3"><label class="form-label">Vites Tipi</label><select name="vites_tipi" class="form-select"><?= Tanim::options(Tanim::liste('vites_tipleri'), $v('vites_tipi', 'vites_tipi_id')) ?></select></div>
+                        <div class="col-md-3"><label class="form-label">Yakıt Tipi</label><select name="yakit_tipi" class="form-select" data-ikinci-el><?= Tanim::options(Tanim::liste('yakit_tipleri'), $v('yakit_tipi', 'yakit_tipi_id')) ?></select></div>
+                        <div class="col-md-3"><label class="form-label">Vites Tipi</label><select name="vites_tipi" class="form-select" data-ikinci-el><?= Tanim::options(Tanim::liste('vites_tipleri'), $v('vites_tipi', 'vites_tipi_id')) ?></select></div>
                         <div class="col-md-3"><label class="form-label">Motor Hacmi (cc)</label><input type="number" name="motor_hacmi" class="form-control" value="<?= e($v('motor_hacmi')) ?>"></div>
                         <div class="col-md-3"><label class="form-label">Motor Gücü (hp)</label><input type="number" name="motor_gucu" class="form-control" value="<?= e($v('motor_gucu')) ?>"></div>
-                        <div class="col-md-3"><label class="form-label">Güncel KM</label><input type="number" name="km" min="0" class="form-control" value="<?= e($v('km')) ?>"></div>
-                        <div class="col-md-3"><label class="form-label">Yakıt Durumu (%)</label><input type="number" name="yakit_durumu" min="0" max="100" class="form-control" value="<?= e($v('yakit_durumu')) ?>"></div>
+                        <div class="col-md-3"><label class="form-label">Güncel KM</label><input type="number" name="km" min="0" class="form-control" data-ikinci-el value="<?= e($v('km')) ?>"></div>
+                        <div class="col-md-3"><label class="form-label">Yakıt Durumu (%)</label><input type="number" name="yakit_durumu" min="0" max="100" class="form-control" data-ikinci-el value="<?= e($v('yakit_durumu')) ?>"></div>
                     </div>
 
                     <div class="form-section">Müşteri ve Lokasyon</div>
@@ -84,7 +84,36 @@ if (!$yeni) {
                         <div class="col-md-4"><label class="form-label">Konsinye Araç Mı?</label><select name="konsinye" class="form-select"><?= Tanim::options([1 => 'Evet', 0 => 'Hayır'], $v('konsinye') ? 1 : 0, null) ?></select></div>
                         <div class="col-md-8"><label class="form-label">Proje Adı</label><input type="text" name="proje_adi" class="form-control" value="<?= e($v('proje_adi')) ?>"></div>
                         <?php if (!$yeni): ?>
-                            <div class="col-md-4"><label class="form-label">Stoğa Giriş Tarihi</label><input type="date" name="stoga_giris_tarihi" class="form-control" value="<?= $arac['stoga_giris_tarihi'] ? date('Y-m-d', strtotime($arac['stoga_giris_tarihi'])) : '' ?>"></div>
+                            <?php if (Auth::isAdmin()): ?>
+                                <div class="col-md-4">
+                                    <label class="form-label">Stoğa Giriş Tarihi</label>
+                                    <div class="input-group">
+                                        <input type="date" name="stoga_giris_tarihi" class="form-control" value="<?= $arac['stoga_giris_tarihi'] ? date('Y-m-d', strtotime($arac['stoga_giris_tarihi'])) : '' ?>">
+                                        <input type="time" name="stoga_giris_saati" class="form-control" value="<?= $arac['stoga_giris_tarihi'] ? date('H:i', strtotime($arac['stoga_giris_tarihi'])) : '' ?>">
+                                    </div>
+                                </div>
+                                <?php if (!$arac['stokta']): ?>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Stoktan Çıkış Tarihi</label>
+                                        <div class="input-group">
+                                            <input type="date" name="stoktan_cikis_tarihi" class="form-control" value="<?= $arac['stoktan_cikis_tarihi'] ? date('Y-m-d', strtotime($arac['stoktan_cikis_tarihi'])) : '' ?>">
+                                            <input type="time" name="stoktan_cikis_saati" class="form-control" value="<?= $arac['stoktan_cikis_tarihi'] ? date('H:i', strtotime($arac['stoktan_cikis_tarihi'])) : '' ?>">
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <div class="col-md-4">
+                                    <label class="form-label">Stoğa Giriş Tarihi</label>
+                                    <input type="text" class="form-control" value="<?= $arac['stoga_giris_tarihi'] ? date('d.m.Y H:i', strtotime($arac['stoga_giris_tarihi'])) : '—' ?>" disabled>
+                                    <div class="form-text">Giriş ve çıkış tarihini yalnız yönetici değiştirir.</div>
+                                </div>
+                                <?php if (!$arac['stokta']): ?>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Stoktan Çıkış Tarihi</label>
+                                        <input type="text" class="form-control" value="<?= $arac['stoktan_cikis_tarihi'] ? date('d.m.Y H:i', strtotime($arac['stoktan_cikis_tarihi'])) : '—' ?>" disabled>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
 

@@ -334,6 +334,11 @@
     $(document).on('submit', 'form[data-ajax]', function (e) {
         e.preventDefault();
         const form = this;
+        const eksik = ikinciElEksik(form);
+        if (eksik.length) {
+            App.error('İkinci el araçta zorunlu: ' + eksik.join(', ') + '.');
+            return;
+        }
         const $btn = $(form).find('[type="submit"]').prop('disabled', true);
         $.ajax({ url: form.action, method: 'POST', data: new FormData(form), processData: false, contentType: false })
             .done((res) => {
@@ -675,8 +680,43 @@
         try { el.setSelectionRange(caret, caret); } catch (_) { /* ignore */ }
     });
 
+    function ikinciElEksik(form) {
+        const durum = $(form).find('select[name="arac_durumu"]').val();
+        if (String(durum) !== '2') return [];
+        const eksik = [];
+        $(form).find('[data-ikinci-el]').each(function () {
+            if (String(this.value).trim() !== '') return;
+            const label = this.closest('[class*="col-"]')?.querySelector('.form-label');
+            eksik.push((label ? label.textContent : 'Alan').replace(/\s+/g, ' ').trim());
+        });
+        return eksik;
+    }
+    $(document).on('submit', 'form:not([data-ajax])', function (e) {
+        const eksik = ikinciElEksik(this);
+        if (!eksik.length) return;
+        e.preventDefault();
+        App.error('İkinci el araçta zorunlu: ' + eksik.join(', ') + '.');
+    });
+
+    function ikinciElUygula(scope) {
+        $(scope).find('select[name="arac_durumu"]').each(function () {
+            const zorunlu = this.value === '2';
+            const form = this.closest('form') || document;
+            $(form).find('[data-ikinci-el]').each(function () {
+                this.required = zorunlu;
+                const kutu = this.closest('[class*="col-"]');
+                const label = kutu ? kutu.querySelector('.form-label') : null;
+                if (label) label.classList.toggle('required', zorunlu);
+            });
+        });
+    }
+    $(document).on('change', 'select[name="arac_durumu"]', function () {
+        ikinciElUygula(this.closest('form') || document);
+    });
+
     $(function () {
         App.initSelect2();
+        ikinciElUygula(document);
         const zil = document.getElementById('bildirim-zil');
         if (zil) {
             const rozet = zil.querySelector('.bildirim-rozet');

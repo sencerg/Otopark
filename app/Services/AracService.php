@@ -106,6 +106,97 @@ final class AracService
         return $arac;
     }
 
+    /** İkinci el araçta model yılı, yakıt, vites, km ve yakıt durumu boş bırakılamaz. 0 geçerlidir. */
+    public static function ikinciElKontrol(array $arac): void
+    {
+        if ((int) ($arac['arac_durumu'] ?? 0) !== 2) {
+            return;
+        }
+        $eksik = [];
+        if (empty($arac['model_yili_id'])) {
+            $eksik[] = 'Model Yılı';
+        }
+        if (empty($arac['yakit_tipi_id'])) {
+            $eksik[] = 'Yakıt Tipi';
+        }
+        if (empty($arac['vites_tipi_id'])) {
+            $eksik[] = 'Vites Tipi';
+        }
+        if (!array_key_exists('km', $arac) || $arac['km'] === null || $arac['km'] === '') {
+            $eksik[] = 'Güncel KM';
+        }
+        $yakit = $arac['yakit_durumu'] ?? null;
+        if ($yakit === null || $yakit === '' || (int) $yakit < 0 || (int) $yakit > 100) {
+            $eksik[] = 'Yakıt Durumu (%)';
+        }
+        if ($eksik) {
+            throw new RuntimeException('İkinci el araçta şu alanlar zorunlu: ' . implode(', ', $eksik) . '.');
+        }
+    }
+
+    /**
+     * Müşteri listesi giriş ve çıkış tarihini hareket kaydından okur.
+     * Araç kartındaki tarih değişince aynı konaklamanın hareketi de güncellenir.
+     */
+    public static function konaklamaTarihiniGuncelle(int $aracId, bool $stokta, ?string $giris, ?string $cikis): void
+    {
+        $girisId = null;
+        $cikisId = null;
+        if ($giris !== null) {
+            $girisId = $stokta ? self::acikGirisId($aracId) : self::sonKonaklamaGirisId($aracId);
+        }
+        if ($cikis !== null && !$stokta) {
+            $row = Database::fetch(
+                'SELECT id FROM arac_hareketleri
+                 WHERE arac_id = :a AND hareket_tipi = 2 AND NOT arsiv
+                 ORDER BY hareket_tarihi DESC, id DESC LIMIT 1',
+                ['a' => $aracId]
+            );
+            $cikisId = $row ? (int) $row['id'] : null;
+        }
+        if ($girisId) {
+            Database::query('UPDATE arac_hareketleri SET hareket_tarihi = :t WHERE id = :id', ['t' => $giris, 'id' => $girisId]);
+        }
+        if ($cikisId) {
+            Database::query('UPDATE arac_hareketleri SET hareket_tarihi = :t WHERE id = :id', ['t' => $cikis, 'id' => $cikisId]);
+        }
+    }
+
+    private static function acikGirisId(int $aracId): ?int
+    {
+        $row = Database::fetch(
+            'SELECT g.id FROM arac_hareketleri g
+             WHERE g.arac_id = :a AND g.hareket_tipi = 1 AND NOT g.arsiv
+               AND NOT EXISTS (
+                 SELECT 1 FROM arac_hareketleri c
+                 WHERE c.arac_id = g.arac_id AND c.hareket_tipi = 2 AND NOT c.arsiv
+                   AND c.hareket_tarihi >= g.hareket_tarihi
+               )
+             ORDER BY g.hareket_tarihi DESC, g.id DESC LIMIT 1',
+            ['a' => $aracId]
+        );
+
+        return $row ? (int) $row['id'] : null;
+    }
+
+    private static function sonKonaklamaGirisId(int $aracId): ?int
+    {
+        $row = Database::fetch(
+            'SELECT g.id FROM arac_hareketleri g
+             JOIN LATERAL (
+                SELECT h.hareket_tarihi FROM arac_hareketleri h
+                WHERE h.arac_id = g.arac_id AND h.hareket_tipi = 2 AND NOT h.arsiv
+                  AND h.hareket_tarihi >= g.hareket_tarihi
+                ORDER BY h.hareket_tarihi, h.id LIMIT 1
+             ) c ON TRUE
+             WHERE g.arac_id = :a AND g.hareket_tipi = 1 AND NOT g.arsiv
+             ORDER BY c.hareket_tarihi DESC, g.id DESC LIMIT 1',
+            ['a' => $aracId]
+        );
+
+        return $row ? (int) $row['id'] : null;
+    }
+
     public static function markaSeriModelKontrol(array $arac): void
     {
         if (!empty($arac['model_id']) && !Database::fetch(

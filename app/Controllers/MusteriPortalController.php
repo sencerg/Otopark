@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Excel;
+use App\Core\Upload;
 use App\Services\DepolamaHesap;
 
 /** Müşteri portalı — salt görüntüleme (araçlar, gün, depolama ücreti, hizmetler). */
@@ -42,9 +43,13 @@ final class MusteriPortalController extends Controller
                 array_map(static fn ($r) => $r + ['durum' => 'Çıkmış'], $cikanlar)
             ),
         };
-        if ($mod === 'tumu') {
-            usort($araclar, static fn ($a, $b) => ((int) ($b['gun'] ?? 0)) <=> ((int) ($a['gun'] ?? 0)));
-        }
+        $tarih = static function (array $r) use ($mod): int {
+            $alan = $mod === 'cikan' ? 'cikis_tarihi' : 'giris_tarihi';
+            $ts = strtotime((string) ($r[$alan] ?? ''));
+
+            return $ts ?: 0;
+        };
+        usort($araclar, static fn ($a, $b) => $tarih($b) <=> $tarih($a));
 
         $hizmetOzet = Database::fetch(
             'SELECT COUNT(*)::int AS adet, COALESCE(SUM(e.tutar), 0)::float AS tutar
@@ -106,6 +111,7 @@ final class MusteriPortalController extends Controller
             'arac' => $arac,
             'konaklamalar' => DepolamaHesap::arac($aracId),
             'hizmetler' => $this->aracHizmetler($aracId),
+            'fotograflar' => $this->aracFotograflari($aracId),
         ]);
     }
 
@@ -410,6 +416,24 @@ final class MusteriPortalController extends Controller
     }
 
     /** @return list<array<string,mixed>> */
+    private function aracFotograflari(int $aracId): array
+    {
+        $arac = array_values(array_filter(
+            Upload::list('arac', $aracId),
+            static fn ($d) => ($d['tur'] ?? '') === 'fotograf'
+        ));
+        $hareket = Database::fetchAll(
+            "SELECT d.* FROM dosyalar d
+             JOIN arac_hareketleri h ON h.id = d.ilgili_id
+             WHERE d.ilgili_tip = 'hareket' AND d.tur = 'fotograf' AND h.arac_id = :a
+             ORDER BY d.id",
+            ['a' => $aracId]
+        );
+
+        return array_merge($arac, $hareket);
+    }
+
+    /** @return list<array<string,mixed>> */
     private function aracHizmetler(int $aracId): array
     {
         return Database::fetchAll(
@@ -449,7 +473,7 @@ final class MusteriPortalController extends Controller
                    AND d.cikis_tarihi IS NULL
                    AND a.stokta
                    AND NOT COALESCE(a.arsiv, false)
-                 ORDER BY d.gun DESC, COALESCE(a.plaka, a.sase)",
+                 ORDER BY d.giris_tarihi DESC NULLS LAST, COALESCE(a.plaka, a.sase)",
                 ['m' => $musteriId]
             ));
         }

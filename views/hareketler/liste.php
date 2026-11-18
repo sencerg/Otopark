@@ -133,7 +133,7 @@ $(function () {
 
     App.table('#liste', {
         url: giris ? '/arac_hareketleri/giris/liste' : '/arac_hareketleri/cikis/liste',
-        columns, bulk: true, order: [[7, 'desc']],
+        columns, bulk: true, order: [[8, 'desc']],
         createdRow: (row, r) => { if (Number(r.sonradan_adet)) row.classList.add('table-warning'); },
     });
 

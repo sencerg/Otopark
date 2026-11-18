@@ -48,6 +48,36 @@ $hizmetToplam = array_sum($hizmetValues);
     </form>
 </div>
 
+<?php
+$hizliMenu = array_values(array_filter([
+    ['Araç Yönetimi Dashboard', '/saha_dashboard', 'mdi-view-dashboard-outline', '#2563eb', 'menu.saha_dashboard'],
+    ['Stoktaki Araçlar', '/arac_hareketleri/giris', 'mdi-garage', '#059669', 'menu.stok'],
+    ['Stoktan Çıkanlar', '/arac_hareketleri/cikis', 'mdi-logout', '#dc2626', 'menu.cikis'],
+    ['Tüm Araçlar', '/arac_yonetimi', 'mdi-car-multiple', '#0284c7', 'menu.araclar'],
+    ['Araç Ekle', '/arac_yonetimi/ekle', 'mdi-car-2-plus', '#7c3aed', 'arac.ekle'],
+    ['Detaylı Araç Ekle', '/detayli-arac', 'mdi-car-info', '#4f46e5', 'menu.detayli_arac'],
+    ['Toplu Stok Girişi', '/arac_yonetimi/toplu_stok_girisi', 'mdi-table-arrow-down', '#0d9488', 'menu.toplu'],
+    ['Toplu Stok Çıkışı', '/arac_yonetimi/toplu_stok_cikisi', 'mdi-table-arrow-up', '#e11d48', 'menu.toplu'],
+    ['Toplu Ek Maliyet Girişi', '/arac_yonetimi/toplu_ek_maliyet_girisi', 'mdi-cash-plus', '#d97706', 'menu.toplu'],
+    ['Adres (Lokasyon) Düzenle', '/arac_yonetimi/toplu_kayit_guncelleme_lokasyon', 'mdi-map-marker-outline', '#0891b2', 'menu.toplu'],
+    ['Araç Sayımları', '/sayim_kayitlari', 'mdi-counter', '#9333ea', 'menu.sayim'],
+    ['Saha Operasyon İş Takibi', '/is_takibi', 'mdi-clipboard-check-outline', '#db2777', 'menu.is_takibi'],
+    ['Araç Tanımları', '/arac_yonetimi/tanimlar', 'mdi-cog-outline', '#475569', 'menu.tanimlar'],
+], static fn (array $oge): bool => Auth::can($oge[4])));
+?>
+<?php if ($hizliMenu): ?>
+<div class="card">
+    <div class="card-header"><h5>Hızlı Menü</h5><span class="text-muted small">Saha operasyon araç yönetimi</span></div>
+    <div class="card-body">
+        <div class="hizli-menu">
+            <?php foreach ($hizliMenu as [$ad, $url, $icon, $renk]): ?>
+                <a href="<?= e($url) ?>" style="--hm:<?= e($renk) ?>"><i class="mdi <?= e($icon) ?>"></i><span><?= e($ad) ?></span></a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <div class="section-banner">
     <div class="banner-icon"><i class="mdi mdi-car-multiple"></i></div>
     <div><h2>Saha Operasyon</h2><p>Stok, giriş-çıkış hareketleri ve ek hizmetler</p></div>

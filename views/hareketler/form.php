@@ -27,8 +27,8 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                         <div class="col-md-4"><label class="form-label">Şasi Numarası</label><input type="text" class="form-control" value="<?= e($h['sase']) ?>" disabled></div>
                         <div class="col-md-4"><label class="form-label required">Hareket Tipi</label><select name="hareket_tipi" class="form-select" required><?= Tanim::options(Tanim::HAREKET_TIPI, $h['hareket_tipi']) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Hareket Nedeni</label><select name="hareket_nedeni" class="form-select"><?= Tanim::options(Tanim::liste('hareket_nedenleri'), $h['hareket_nedeni_id']) ?></select></div>
-                        <div class="col-md-4"><label class="form-label">Güncel KM</label><input type="number" name="km" class="form-control" value="<?= e($h['km']) ?>"></div>
-                        <div class="col-md-4"><label class="form-label">Yakıt Durumu (%)</label><input type="number" name="yakit_durumu" min="0" max="100" class="form-control" value="<?= e($h['yakit_durumu']) ?>"></div>
+                        <div class="col-md-4"><label class="form-label">Güncel KM</label><input type="number" name="km" min="0" class="form-control" data-ikinci-el value="<?= e($h['km'] !== null && $h['km'] !== '' ? $h['km'] : ($h['arac_km'] ?? '')) ?>"></div>
+                        <div class="col-md-4"><label class="form-label">Yakıt Durumu (%)</label><input type="number" name="yakit_durumu" min="0" max="100" class="form-control" data-ikinci-el value="<?= e($h['yakit_durumu'] !== null && $h['yakit_durumu'] !== '' ? $h['yakit_durumu'] : ($h['arac_yakit'] ?? '')) ?>"></div>
                     </div>
 
                     <div class="form-section">Detay Bilgiler</div>
@@ -36,13 +36,13 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                         <div class="col-md-4"><label class="form-label">Marka</label><select name="marka_id" class="form-select select2"><?= Tanim::options(Tanim::liste('markalar'), $h['marka_id']) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Model</label><select name="model_id" class="form-select select2"><?= Tanim::options($h['marka_id'] ? Tanim::modeller((int) $h['marka_id']) : [], $h['model_id']) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Seri</label><select name="seri_id" class="form-select select2"><?= Tanim::options($h['model_id'] ? Tanim::seriler((int) $h['model_id']) : [], $h['seri_id']) ?></select></div>
-                        <div class="col-md-3"><label class="form-label">Model Yılı</label><select name="yil" class="form-select"><?= Tanim::options(Tanim::liste('model_yillari'), $h['model_yili_id']) ?></select></div>
+                        <div class="col-md-3"><label class="form-label">Model Yılı</label><select name="yil" class="form-select" data-ikinci-el><?= Tanim::options(Tanim::liste('model_yillari'), $h['model_yili_id']) ?></select></div>
                         <div class="col-md-3"><label class="form-label">Araç Durumu</label><select name="arac_durumu" class="form-select"><?= Tanim::options(Tanim::ARAC_DURUMU, $h['arac_durumu']) ?></select></div>
                         <div class="col-md-3"><label class="form-label">Araç Tipi</label><select name="arac_tipi" class="form-select"><?= Tanim::options(Tanim::liste('arac_tipleri'), $h['arac_tipi_id']) ?></select></div>
                         <div class="col-md-3"><label class="form-label">Kasa Tipi</label><select name="kasa_tipi" class="form-select"><?= Tanim::options(Tanim::liste('kasa_tipleri'), $h['kasa_tipi_id']) ?></select></div>
                         <div class="col-md-4"><label class="form-label">Renk</label><select name="renk" class="form-select select2"><?= Tanim::options(Tanim::liste('renkler'), $h['renk_id']) ?></select></div>
-                        <div class="col-md-4"><label class="form-label">Yakıt Tipi</label><select name="yakit_tipi" class="form-select"><?= Tanim::options(Tanim::liste('yakit_tipleri'), $h['yakit_tipi_id']) ?></select></div>
-                        <div class="col-md-4"><label class="form-label">Vites Tipi</label><select name="vites_tipi" class="form-select"><?= Tanim::options(Tanim::liste('vites_tipleri'), $h['vites_tipi_id']) ?></select></div>
+                        <div class="col-md-4"><label class="form-label">Yakıt Tipi</label><select name="yakit_tipi" class="form-select" data-ikinci-el><?= Tanim::options(Tanim::liste('yakit_tipleri'), $h['yakit_tipi_id']) ?></select></div>
+                        <div class="col-md-4"><label class="form-label">Vites Tipi</label><select name="vites_tipi" class="form-select" data-ikinci-el><?= Tanim::options(Tanim::liste('vites_tipleri'), $h['vites_tipi_id']) ?></select></div>
                     </div>
 
                     <div class="form-section">Araç Envanteri</div>
@@ -198,10 +198,11 @@ $headerActions = ($headerActions ?? '') . '<a href="/arac_yonetimi/tesellum_form
                 <div class="card-header"><h5>İşlem Bilgileri</h5></div>
                 <div class="card-body">
                     <label class="form-label required"><?= $cikis ? 'Çıkış' : 'Giriş' ?> Tarihi</label>
-                    <div class="input-group mb-3">
-                        <input type="date" name="hareket_tarihi" class="form-control" value="<?= date('Y-m-d', $t) ?>" required>
-                        <input type="time" name="hareket_saati" class="form-control" value="<?= date('H:i', $t) ?>">
+                    <div class="input-group <?= Auth::isAdmin() ? 'mb-3' : 'mb-1' ?>">
+                        <input type="date" name="hareket_tarihi" class="form-control" value="<?= date('Y-m-d', $t) ?>" <?= Auth::isAdmin() ? 'required' : 'disabled' ?>>
+                        <input type="time" name="hareket_saati" class="form-control" value="<?= date('H:i', $t) ?>" <?= Auth::isAdmin() ? '' : 'disabled' ?>>
                     </div>
+                    <?php if (!Auth::isAdmin()): ?><div class="form-text mb-3">Giriş ve çıkış tarihini yalnız yönetici değiştirir.</div><?php endif; ?>
                     <label class="form-label">Personel</label>
                     <select name="teslim_alan_personel" class="form-select select2 mb-3"><?= Tanim::options(Tanim::liste('personeller'), $h['teslim_alan_personel_id']) ?></select>
                     <label class="form-label mt-3">Açıklama / Not</label>

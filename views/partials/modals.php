@@ -27,11 +27,11 @@ $bayiler = Tanim::liste('bayiler');
                     <div class="col-md-4"><label class="form-label">Model</label><select name="model_id" class="form-select select2"><option value="">Önce Marka Seçiniz</option></select></div>
                     <div class="col-md-4"><label class="form-label">Seri</label><select name="seri_id" class="form-select select2"><option value="">Önce Model Seçiniz</option></select></div>
                     <div class="col-md-3"><label class="form-label">Araç Durumu</label><select name="arac_durumu" class="form-select"><?= Tanim::options(Tanim::ARAC_DURUMU) ?></select></div>
-                    <div class="col-md-3"><label class="form-label">KM</label><input type="number" name="km" class="form-control" min="0"></div>
-                    <div class="col-md-3"><label class="form-label">Model Yılı</label><select name="yil" class="form-select"><?= Tanim::options(Tanim::liste('model_yillari')) ?></select></div>
-                    <div class="col-md-3"><label class="form-label">Yakıt Durumu (%)</label><input type="number" name="yakit_durumu" class="form-control" min="0" max="100"></div>
-                    <div class="col-md-3"><label class="form-label">Yakıt Tipi</label><select name="yakit_tipi" class="form-select"><?= Tanim::options(Tanim::liste('yakit_tipleri')) ?></select></div>
-                    <div class="col-md-3"><label class="form-label">Vites Tipi</label><select name="vites_tipi" class="form-select"><?= Tanim::options(Tanim::liste('vites_tipleri')) ?></select></div>
+                    <div class="col-md-3"><label class="form-label">KM</label><input type="number" name="km" class="form-control" min="0" data-ikinci-el></div>
+                    <div class="col-md-3"><label class="form-label">Model Yılı</label><select name="yil" class="form-select" data-ikinci-el><?= Tanim::options(Tanim::liste('model_yillari')) ?></select></div>
+                    <div class="col-md-3"><label class="form-label">Yakıt Durumu (%)</label><input type="number" name="yakit_durumu" class="form-control" min="0" max="100" data-ikinci-el></div>
+                    <div class="col-md-3"><label class="form-label">Yakıt Tipi</label><select name="yakit_tipi" class="form-select" data-ikinci-el><?= Tanim::options(Tanim::liste('yakit_tipleri')) ?></select></div>
+                    <div class="col-md-3"><label class="form-label">Vites Tipi</label><select name="vites_tipi" class="form-select" data-ikinci-el><?= Tanim::options(Tanim::liste('vites_tipleri')) ?></select></div>
                 </div>
 
                 <div class="form-section">Araç Envanteri</div>

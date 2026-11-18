@@ -33,6 +33,22 @@ $hizToplam = array_sum(array_map(fn ($h) => (float) $h['tutar'], $hizmetler));
     </div>
 </div>
 
+<?php if (!empty($fotograflar)): ?>
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Fotoğraflar</h5></div>
+    <div class="card-body">
+        <div class="photo-grid">
+            <?php foreach ($fotograflar as $f): ?>
+                <a href="<?= e($f['dosya_yolu']) ?>" target="_blank" rel="noopener">
+                    <img src="<?= e($f['dosya_yolu']) ?>" alt="<?= e($f['tanim'] ?: 'Araç fotoğrafı') ?>">
+                    <?php if (!empty($f['tanim'])): ?><span class="small text-muted d-block mt-1"><?= e($f['tanim']) ?></span><?php endif; ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <div class="card mb-3">
     <div class="card-header"><h5 class="mb-0">Depolama / Konaklama</h5></div>
     <div class="card-body p-0">

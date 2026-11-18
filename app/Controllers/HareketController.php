@@ -171,7 +171,8 @@ final class HareketController extends Controller
     {
         $h = Database::fetch(
             'SELECT h.*, a.sase, a.plaka AS arac_plaka, a.marka_id, a.seri_id, a.model_id, a.model_yili_id, a.arac_durumu, a.arac_tipi_id,
-                    a.kasa_tipi_id, a.renk_id, a.yakit_tipi_id, a.vites_tipi_id, a.konsinye, a.sigorta_tarihi, a.kasko_tarihi, a.muayene_tarihi
+                    a.kasa_tipi_id, a.renk_id, a.yakit_tipi_id, a.vites_tipi_id, a.konsinye, a.sigorta_tarihi, a.kasko_tarihi, a.muayene_tarihi,
+                    a.km AS arac_km, a.yakit_durumu AS arac_yakit
              FROM arac_hareketleri h JOIN araclar a ON a.id = h.arac_id
              WHERE h.id = :id AND ' . Auth::bayiKosulu('h.bayi_id'),
             ['id' => $id]
@@ -299,7 +300,7 @@ final class HareketController extends Controller
                 $alanlar = [
                     'hareket_tipi' => Request::int('hareket_tipi') ?? $h['hareket_tipi'],
                     'hareket_nedeni_id' => Request::int('hareket_nedeni'),
-                    'km' => Request::int('km'), 'yakit_durumu' => Request::int('yakit_durumu'),
+                    'km' => Request::sayi('km'), 'yakit_durumu' => Request::sayi('yakit_durumu'),
                     'musteri_id' => Request::int('musteri_id'), 'bayi_id' => AracService::bayiKontrol(Request::int('bayi_id')),
                     'lokasyon_turu' => Request::int('lokasyon_turu'), 'lokasyon_detay' => Request::str('lokasyon_detay'),
                     'teslim_eden' => Request::str('teslim_eden'), 'teslim_eden_telefon' => Request::str('teslim_eden_telefon'), 'teslim_eden_eposta' => Request::str('teslim_eden_eposta'),
@@ -309,7 +310,9 @@ final class HareketController extends Controller
                     'sevkiyat_durumu' => Request::int('sevkiyat_durumu'),
                     'sofor_adi_soyadi' => Request::str('sofor_adi_soyadi'), 'sofor_telefon' => Request::str('sofor_telefon'), 'cekici_plakasi' => Request::str('cekici_plakasi'),
                     'sevkiyat_kodu' => Request::str('sevkiyat_kodu'), 'irsaliye_kodu' => Request::str('irsaliye_kodu'), 'aciklama' => Request::str('aciklama'),
-                    'hareket_tarihi' => Request::dateTime('hareket_tarihi', 'hareket_saati') ?? $h['hareket_tarihi'],
+                    'hareket_tarihi' => Auth::isAdmin()
+                        ? (Request::dateTime('hareket_tarihi', 'hareket_saati') ?? $h['hareket_tarihi'])
+                        : $h['hareket_tarihi'],
                 ];
                 Auth::dogrulaPersonel($alanlar['teslim_alan_personel_id'], 'Personel');
                 if (!$alanlar['musteri_id']) {
@@ -325,6 +328,7 @@ final class HareketController extends Controller
                     'sigorta_tarihi' => Request::date('sigorta_tarihi'), 'kasko_tarihi' => Request::date('kasko_tarihi'), 'muayene_tarihi' => Request::date('muayene_tarihi'),
                     'km' => $alanlar['km'], 'yakit_durumu' => $alanlar['yakit_durumu'], 'lokasyon_detay' => $alanlar['lokasyon_detay'],
                 ];
+                AracService::ikinciElKontrol($arac);
                 if (isset($_POST['konsinye'])) {
                     $arac['konsinye'] = Request::bool('konsinye');
                 }

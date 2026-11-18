@@ -136,6 +136,35 @@ a.mini-stat:hover { color: inherit; box-shadow: 0 6px 18px rgba(17, 28, 68, .08)
 .quick-action .mdi { font-size: 24px; color: var(--primary); }
 .quick-action:hover { background: #e7eefc; color: var(--primary); }
 
+.hizli-menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.hizli-menu a {
+    --hm: #2563eb;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 58px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--hm);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.25;
+    box-shadow: 0 8px 16px color-mix(in srgb, var(--hm) 28%, transparent);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.hizli-menu a .mdi {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .18);
+    font-size: 20px;
+}
+.hizli-menu a:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 12px 20px color-mix(in srgb, var(--hm) 36%, transparent); }
+
 .list-plain { list-style: none; margin: 0; padding: 0; }
 .list-plain li { padding: 10px 0; border-bottom: 1px dashed #e3e8f2; }
 .list-plain li:last-child { border-bottom: 0; }
@@ -351,6 +380,20 @@ a.detayli-adim.done:hover { color: #047857; }
 .file-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eef1f7; }
 .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .photo-grid img { width: 100%; height: 100px; object-fit: cover; border-radius: 6px; }
+.toplu-manuel { width: 100%; table-layout: fixed; }
+.toplu-manuel th:nth-child(1) { width: 19rem; }
+.toplu-manuel th:nth-child(2) { width: 10rem; }
+.toplu-manuel th:nth-child(9) { width: 2.75rem; }
+.toplu-manuel th, .toplu-manuel td { vertical-align: middle; }
+.toplu-manuel .form-control,
+.toplu-manuel .form-select { width: 100%; min-width: 0; }
+.toplu-sase, .toplu-plaka {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 15px;
+    letter-spacing: .03em;
+    padding-left: .55rem;
+    padding-right: .55rem;
+}
 
 .select2-container--bootstrap-5 .select2-selection { border-color: #dfe5ef; min-height: 38px; font-size: 14px; }
 .modal-header { border-bottom: 1px solid #eef1f7; }

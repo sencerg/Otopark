@@ -31,6 +31,26 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.65',
+                'tarih' => '2026-11-18 06:55',
+                'baslik' => 'Dashboard hızlı menü',
+                'maddeler' => [
+                    'Ana dashboardda saha operasyon araç yönetimindeki işlemler renkli hızlı menü butonları olarak duruyor. Yetkisi olmayan madde görünmez.',
+                ],
+            ],
+            [
+                'surum' => 'v0.64',
+                'tarih' => '2026-11-18 06:40',
+                'baslik' => 'Müşteri listesi, tarih ve ikinci el',
+                'maddeler' => [
+                    'Toplu stok girişinde elle eklenen şasi ve plaka, sayfa genişliğindeki satırda kaydırmadan tam görünür.',
+                    'Müşteri stok listesinde plaka ve şasi kalın. Listeler yenilense de en yeni tarihten eskiye durur.',
+                    'Giriş ve çıkış tarihini yalnız yönetici değiştirir. Değişiklik müşteri ekranındaki konaklamaya da yazılır.',
+                    'İkinci el araçta model yılı, yakıt tipi, vites tipi, güncel km ve yakıt durumu zorunlu.',
+                    'Müşteri araç detayında otoparkın yüklediği fotoğraflar görünür.',
+                ],
+            ],
+            [
                 'surum' => 'v0.63',
                 'tarih' => '2026-11-03 23:20',
                 'baslik' => 'Mesaj merkezi ve sürüm duyurusu',

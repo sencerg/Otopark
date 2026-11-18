@@ -47,7 +47,7 @@ final class AracController extends Controller
             ['NOT a.arsiv', Auth::bayiKosulu('a.bayi_id')],
             [],
             ['a.sase', 'a.plaka', 'b.ad', 'mu.ad', 'a.lokasyon_detay', 'a.musteri_musterisi'],
-            'a.id DESC'
+            'a.stoga_giris_tarihi DESC NULLS LAST'
         );
         foreach (['marka_id', 'model_id', 'seri_id', 'musteri_id', 'arac_tipi_id', 'bayi_id'] as $key) {
             if ($v = Request::int($key)) {
@@ -100,7 +100,7 @@ final class AracController extends Controller
             'marka_id' => Request::int('marka_id'), 'seri_id' => Request::int('seri_id'), 'model_id' => Request::int('model_id'),
             'model_yili_id' => Request::int('yil'), 'motor_hacmi' => Request::int('motor_hacmi'), 'motor_gucu' => Request::int('motor_gucu'),
             'yakit_tipi_id' => Request::int('yakit_tipi'), 'vites_tipi_id' => Request::int('vites_tipi'),
-            'km' => Request::int('km'), 'yakit_durumu' => Request::int('yakit_durumu'),
+            'km' => Request::sayi('km'), 'yakit_durumu' => Request::sayi('yakit_durumu'),
             'musteri_id' => Request::int('musteri_id'), 'bayi_id' => Request::int('bayi_id'),
             'lokasyon_turu' => Request::int('lokasyon_turu'), 'lokasyon_detay' => Request::str('lokasyon_detay'),
             'proje_adi' => Request::str('proje_adi'), 'konsinye' => Request::bool('konsinye'),
@@ -118,7 +118,7 @@ final class AracController extends Controller
             'hareket_tipi' => Request::int('hareket_tipi') ?? 1,
             'hareket_nedeni_id' => Request::int('hareket_nedeni'),
             'lokasyon_turu' => Request::int('lokasyon_turu'), 'lokasyon_detay' => Request::str('lokasyon_detay'),
-            'km' => Request::int('km'), 'yakit_durumu' => Request::int('yakit_durumu'),
+            'km' => Request::sayi('km'), 'yakit_durumu' => Request::sayi('yakit_durumu'),
             'teslim_eden' => Request::str('teslim_eden'), 'teslim_eden_telefon' => Request::str('teslim_eden_telefon'), 'teslim_eden_eposta' => Request::str('teslim_eden_eposta'),
             'teslim_alan' => Request::str('teslim_alan'), 'teslim_alan_telefon' => Request::str('teslim_alan_telefon'), 'teslim_alan_eposta' => Request::str('teslim_alan_eposta'),
             'teslim_alan_personel_id' => $personelId, 'aciklama' => Request::str('aciklama'),
@@ -132,8 +132,10 @@ final class AracController extends Controller
             if (!Request::int('arac_tipi') || !Request::int('marka_id') || !Request::int('model_id')) {
                 throw new RuntimeException('Araç tipi, marka ve model zorunludur.');
             }
+            $arac = $this->aracFormVerisi();
+            AracService::ikinciElKontrol($arac);
             $sonuc = AracService::kaydetVeHareket(
-                $this->aracFormVerisi(),
+                $arac,
                 Request::int('hareket_tipi') ? $this->hareketFormVerisi('hareket_tarihi', 'hareket_saati') : null,
                 Request::ids('arac_envanterleri'),
                 Request::ids('arac_donanimlari')
@@ -157,6 +159,7 @@ final class AracController extends Controller
             $arac['yakit_tipi_id'] = Request::int('yakit_tipi');
             $arac['vites_tipi_id'] = Request::int('vites_tipi');
             unset($arac['konsinye']);
+            AracService::ikinciElKontrol($arac);
 
             $sonuc = AracService::kaydetVeHareket($arac, $this->hareketFormVerisi('hareket_tarihi_tarih', 'hareket_tarihi_saat'), Request::ids('arac_envanterleri'));
             if ($sayimId = Request::int('from_sayim')) {
@@ -239,12 +242,31 @@ final class AracController extends Controller
             $data['plaka'] = AracService::normalizePlaka($data['plaka']);
             $data['onceki_plaka'] = AracService::normalizePlaka($data['onceki_plaka']);
             AracService::markaSeriModelKontrol($data);
-            if ($giris = Request::date('stoga_giris_tarihi')) {
-                $data['stoga_giris_tarihi'] = $giris . ' ' . ($arac['stoga_giris_tarihi'] ? date('H:i:s', strtotime($arac['stoga_giris_tarihi'])) : '00:00:00');
+            AracService::ikinciElKontrol($data);
+            $stokta = $this->stoktaMi($arac['stokta']);
+            $girisTarih = null;
+            $cikisTarih = null;
+            if (Auth::isAdmin()) {
+                if ($giris = Request::dateTime('stoga_giris_tarihi', 'stoga_giris_saati')) {
+                    $data['stoga_giris_tarihi'] = $giris;
+                    $girisTarih = $giris;
+                }
+                if (!$stokta && ($cikis = Request::dateTime('stoktan_cikis_tarihi', 'stoktan_cikis_saati'))) {
+                    $data['stoktan_cikis_tarihi'] = $cikis;
+                    $cikisTarih = $cikis;
+                }
+                $girisKiyas = $girisTarih ?? ($arac['stoga_giris_tarihi'] ?? null);
+                $cikisKiyas = $stokta ? null : ($cikisTarih ?? ($arac['stoktan_cikis_tarihi'] ?? null));
+                if ($girisKiyas && $cikisKiyas && strtotime((string) $cikisKiyas) < strtotime((string) $girisKiyas)) {
+                    throw new RuntimeException('Çıkış tarihi, stoğa giriş tarihinden önce olamaz.');
+                }
             }
 
-            Database::transaction(function () use ($arac, $data) {
+            Database::transaction(function () use ($arac, $data, $stokta, $girisTarih, $cikisTarih) {
                 AracService::guncelle((int) $arac['id'], $data);
+                if ($girisTarih || $cikisTarih) {
+                    AracService::konaklamaTarihiniGuncelle((int) $arac['id'], $stokta, $girisTarih, $cikisTarih);
+                }
                 foreach (['arac_envanterleri' => 'envanter_id', 'arac_donanimlari' => 'donanim_id'] as $table => $col) {
                     Database::query("DELETE FROM {$table} WHERE arac_id = :a", ['a' => $arac['id']]);
                     foreach (Request::ids($table) as $v) {

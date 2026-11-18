@@ -27,6 +27,18 @@ final class Request
         return is_numeric($value) && (int) $value > 0 ? (int) $value : null;
     }
 
+    /** 0 geçerli. Boş veya negatifse null. */
+    public static function sayi(string $key): ?int
+    {
+        $value = self::input($key);
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return null;
+        }
+        $n = (int) $value;
+
+        return $n < 0 ? null : $n;
+    }
+
     public static function decimal(string $key): ?float
     {
         $value = self::input($key);

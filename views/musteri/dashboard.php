@@ -22,7 +22,7 @@ $baslikTablo = match ($mod) {
     default => 'Tüm Araçlar',
 };
 $colspan = $tumuMod ? 11 : ($cikanMod ? 10 : 9);
-$orderCol = $tumuMod ? 6 : ($cikanMod ? 5 : 4);
+$orderCol = $tumuMod ? 4 : ($cikanMod ? 4 : 3);
 $opt = static function (array $items, string $hepsi = 'Tümü'): string {
     $html = '<option value="">' . e($hepsi) . '</option>';
     foreach ($items as $v) {
@@ -155,8 +155,8 @@ $opt = static function (array $items, string $hepsi = 'Tümü'): string {
                         data-dep="<?= (float) $r['tutar'] ?>"
                     >
                         <td>
-                            <strong><?= e($r['plaka'] ?: '—') ?></strong>
-                            <div class="small text-muted font-monospace"><?= e($r['sase']) ?></div>
+                            <div class="fw-bold"><?= e($r['plaka'] ?: '—') ?></div>
+                            <div class="fw-bold font-monospace"><?= e($r['sase']) ?></div>
                             <?php if (!empty($r['park_kodu'])): ?><div class="small text-muted">Park: <?= e($r['park_kodu']) ?></div><?php endif; ?>
                         </td>
                         <td><?= e($markaSeri ?: '—') ?></td>
@@ -173,9 +173,9 @@ $opt = static function (array $items, string $hepsi = 'Tümü'): string {
                                 <?php endif; ?>
                             </td>
                         <?php endif; ?>
-                        <td class="small"><?= $gunFmt($r['giris_tarihi']) ?></td>
+                        <td class="small" data-order="<?= e(!empty($r['giris_tarihi']) ? date('Y-m-d H:i:s', strtotime((string) $r['giris_tarihi'])) : '') ?>"><?= $gunFmt($r['giris_tarihi']) ?></td>
                         <?php if ($tumuMod || $cikanMod): ?>
-                            <td class="small"><?= $stokta ? '—' : $gunFmt($r['cikis_tarihi'] ?? null) ?></td>
+                            <td class="small" data-order="<?= e(!empty($r['cikis_tarihi']) && !$stokta ? date('Y-m-d H:i:s', strtotime((string) $r['cikis_tarihi'])) : '') ?>"><?= $stokta ? '—' : $gunFmt($r['cikis_tarihi'] ?? null) ?></td>
                         <?php endif; ?>
                         <td class="text-end"><span class="badge bg-secondary-subtle text-secondary"><?= (int) $r['gun'] ?></span></td>
                         <td class="text-end small">

@@ -95,7 +95,7 @@ $(function () {
         });
     };
     const dt = App.table('#liste', {
-        url: '/arac_yonetimi/liste', bulk: true, bulkRemember: true, order: [[1, 'desc']],
+        url: '/arac_yonetimi/liste', bulk: true, bulkRemember: true, order: [[9, 'desc']],
         extraData() {
             const q = String($('#dt-search').val() || '').trim();
             const pin = [...pins.keys()];
