@@ -31,6 +31,15 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.66',
+                'tarih' => '2026-11-18 11:15',
+                'baslik' => 'Şasi yazımı ve liste araması',
+                'maddeler' => [
+                    'Araç eklemede şasi silinip yeniden yazılınca imleç yerinde kalır; eski karakterler sona eklenmez.',
+                    'Stok ve araç listesinde şasi veya plaka araması parametre hatası vermez. Parça ve son haneler bulunmaya devam eder.',
+                ],
+            ],
+            [
                 'surum' => 'v0.65',
                 'tarih' => '2026-11-18 06:55',
                 'baslik' => 'Dashboard hızlı menü',

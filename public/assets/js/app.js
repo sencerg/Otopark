@@ -649,12 +649,14 @@
         }
     });
     $(document).on('input', 'input.sase-input, input[name="sase"]', function () {
-        const temiz = saseTemizle(this.value, true);
-        if (this.value !== temiz) {
-            const pos = this.selectionStart;
-            this.value = temiz;
-            try { this.setSelectionRange(Math.max(0, pos - 1), Math.max(0, pos - 1)); } catch (_) { /* ignore */ }
-        }
+        const el = this;
+        const start = el.selectionStart ?? el.value.length;
+        const once = el.value;
+        const temiz = saseTemizle(once, true);
+        if (once === temiz) return;
+        const caret = saseTemizle(once.slice(0, start), false).length;
+        el.value = temiz;
+        try { el.setSelectionRange(caret, caret); } catch (_) { /* ignore */ }
     });
     function plakaBirlestir(deger) {
         return String(deger || '').toUpperCase().replace(/[^0-9A-Z]/g, '');

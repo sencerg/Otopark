@@ -48,14 +48,14 @@ final class DataTable
                 $parts = [];
                 foreach ($this->searchable as $i => $expr) {
                     $key = "dt_s{$t}_{$i}";
-                    $parts[] = "{$expr}::text ILIKE :{$key} ESCAPE '\\'";
+                    $parts[] = 'CAST(' . $expr . ' AS text) ILIKE :' . $key . " ESCAPE '!'";
                     $params[$key] = self::like($token);
                     if (preg_match('/\.(plaka|sase)$/', $expr)) {
                         $norm = strtoupper(preg_replace('/[^0-9A-Za-z]/', '', $token) ?? '');
                         if ($norm !== '') {
-                            $compact = "regexp_replace(upper(coalesce({$expr}::text, '')), '[^0-9A-Z]', '', 'g')";
+                            $compact = "regexp_replace(upper(coalesce(CAST({$expr} AS text), '')), '[^0-9A-Z]', '', 'g')";
                             $nkey = "dt_n{$t}_{$i}";
-                            $parts[] = "{$compact} LIKE :{$nkey} ESCAPE '\\'";
+                            $parts[] = $compact . " LIKE :{$nkey} ESCAPE '!'";
                             $params[$nkey] = self::like($norm);
                             $skey = "dt_r{$t}_{$i}";
                             $parts[] = 'right(' . $compact . ', ' . strlen($norm) . ') = :' . $skey;
@@ -77,7 +77,19 @@ final class DataTable
 
     private static function like(string $value): string
     {
-        return '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value) . '%';
+        return '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value) . '%';
+    }
+
+    /** Eski PDO, ::date / ::text kalıbını adlı parametre sanıp sorguyu düşürür. */
+    private function pdoCast(string $sql): string
+    {
+        $temiz = preg_replace(
+            '/\b([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)::(date|text|int|bigint|float|numeric|bool|boolean)\b(?!\[)/',
+            'CAST($1 AS $2)',
+            $sql
+        );
+
+        return is_string($temiz) ? $temiz : $sql;
     }
 
     private function select(): string
@@ -113,14 +125,14 @@ final class DataTable
     {
         [$where, $params] = $this->whereSql(true);
 
-        return Database::fetchAll($this->select() . $where . $this->orderSql(), $params);
+        return Database::fetchAll($this->pdoCast($this->select() . $where . $this->orderSql()), $params);
     }
 
     public function sum(string $expr): float
     {
         [$where, $params] = $this->whereSql(true);
 
-        return (float) (Database::fetch("SELECT COALESCE(SUM({$expr}), 0) AS t FROM {$this->from}{$where}", $params)['t'] ?? 0);
+        return (float) (Database::fetch($this->pdoCast("SELECT COALESCE(SUM({$expr}), 0) AS t FROM {$this->from}{$where}"), $params)['t'] ?? 0);
     }
 
     /** Filtrelenmiş satırların $label bazında adet ve $expr toplamı (büyükten küçüğe). */
@@ -129,8 +141,8 @@ final class DataTable
         [$where, $params] = $this->whereSql(true);
 
         return Database::fetchAll(
-            "SELECT {$label} AS ad, COUNT(*) AS adet, COALESCE(SUM({$expr}), 0) AS tutar FROM {$this->from}{$where}
-             GROUP BY {$label} ORDER BY tutar DESC, ad LIMIT {$limit}",
+            $this->pdoCast("SELECT {$label} AS ad, COUNT(*) AS adet, COALESCE(SUM({$expr}), 0) AS tutar FROM {$this->from}{$where}
+             GROUP BY {$label} ORDER BY tutar DESC, ad LIMIT {$limit}"),
             $params
         );
     }
@@ -140,14 +152,14 @@ final class DataTable
         [$baseWhere, $baseParams] = $this->whereSql(false);
         [$where, $params] = $this->whereSql(true);
 
-        $total = (int) Database::fetch("SELECT COUNT(*) AS c FROM {$this->from}{$baseWhere}", $baseParams)['c'];
-        $filtered = $where === $baseWhere ? $total : (int) Database::fetch("SELECT COUNT(*) AS c FROM {$this->from}{$where}", $params)['c'];
+        $total = (int) Database::fetch($this->pdoCast("SELECT COUNT(*) AS c FROM {$this->from}{$baseWhere}"), $baseParams)['c'];
+        $filtered = $where === $baseWhere ? $total : (int) Database::fetch($this->pdoCast("SELECT COUNT(*) AS c FROM {$this->from}{$where}"), $params)['c'];
 
         $start = max(0, (int) ($_REQUEST['start'] ?? 0));
         $length = (int) ($_REQUEST['length'] ?? 25);
         $limit = $length === -1 ? '' : ' LIMIT ' . min(max($length, 1), 1000) . ' OFFSET ' . $start;
 
-        $rows = Database::fetchAll($this->select() . $where . $this->orderSql() . $limit, $params);
+        $rows = Database::fetchAll($this->pdoCast($this->select() . $where . $this->orderSql() . $limit), $params);
         if ($map) {
             $rows = array_map($map, $rows);
         }
