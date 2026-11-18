@@ -31,6 +31,14 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.67',
+                'tarih' => '2026-11-18 17:08',
+                'baslik' => 'Kiralayan firma yalnız detaylı eklemede',
+                'maddeler' => [
+                    'Normal araç ekleme ve düzenlemede kiralayan firma alanı yok. Değer yalnız detaylı araç eklemeden yazılır.',
+                ],
+            ],
+            [
                 'surum' => 'v0.66',
                 'tarih' => '2026-11-18 11:15',
                 'baslik' => 'Şasi yazımı ve liste araması',

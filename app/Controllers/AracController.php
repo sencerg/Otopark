@@ -133,6 +133,7 @@ final class AracController extends Controller
                 throw new RuntimeException('Araç tipi, marka ve model zorunludur.');
             }
             $arac = $this->aracFormVerisi();
+            unset($arac['musteri_musterisi']);
             AracService::ikinciElKontrol($arac);
             $sonuc = AracService::kaydetVeHareket(
                 $arac,
@@ -158,7 +159,7 @@ final class AracController extends Controller
             $arac['model_yili_id'] = Request::int('yil');
             $arac['yakit_tipi_id'] = Request::int('yakit_tipi');
             $arac['vites_tipi_id'] = Request::int('vites_tipi');
-            unset($arac['konsinye']);
+            unset($arac['konsinye'], $arac['musteri_musterisi']);
             AracService::ikinciElKontrol($arac);
 
             $sonuc = AracService::kaydetVeHareket($arac, $this->hareketFormVerisi('hareket_tarihi_tarih', 'hareket_tarihi_saat'), Request::ids('arac_envanterleri'));
@@ -230,7 +231,7 @@ final class AracController extends Controller
         $arac = $this->aracDetay((int) $id);
         $this->form(function () use ($arac) {
             $data = $this->aracFormVerisi();
-            unset($data['sase']);
+            unset($data['sase'], $data['musteri_musterisi']);
             $yeniSase = AracService::dogrulaSase(Request::str('sase'));
             if ($yeniSase !== $arac['sase']) {
                 $data['sase'] = $yeniSase;
