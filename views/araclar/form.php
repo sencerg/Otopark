@@ -45,11 +45,10 @@ if (!$yeni) {
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label required">Şasi Numarası</label>
-                            <input type="text" name="sase" class="form-control text-uppercase sase-input" maxlength="17" minlength="17"
-                                   pattern="[A-Za-z0-9]{17}"
-                                   title="17 hane; harf ve rakam"
+                            <input type="text" name="sase" class="form-control text-uppercase sase-input" maxlength="17"
+                                   title="En fazla 17 hane"
                                    value="<?= e($v('sase')) ?>" required autocomplete="off" spellcheck="false">
-                            <div class="form-text">17 hane · harf ve rakam</div>
+                            <div class="form-text">En fazla 17 hane. Daha kısa plaka da yazılabilir.</div>
                         </div>
                         <div class="col-md-4"><label class="form-label">Plaka No</label><input type="text" name="plaka" class="form-control text-uppercase" value="<?= e($v('plaka')) ?>"></div>
                         <div class="col-md-4"><label class="form-label">Önceki Plaka</label><input type="text" name="onceki_plaka" class="form-control text-uppercase" value="<?= e($v('onceki_plaka')) ?>"></div>

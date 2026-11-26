@@ -33,9 +33,9 @@ final class SurumKatalog
             [
                 'surum' => 'v0.68',
                 'tarih' => '2026-11-26 10:49',
-                'baslik' => 'Şaside harf yasağı kalktı',
+                'baslik' => 'Şasi en fazla 17 hane',
                 'maddeler' => [
-                    'Şasi alanına I, O ve Q yazılabiliyor. Şasi yokken plaka girilen yerlerde bu harfler artık silinmiyor.',
+                    'Şasi 17 haneyi geçemez. Daha kısa plaka ve diğer yazılar da kabul edilir.',
                 ],
             ],
             [

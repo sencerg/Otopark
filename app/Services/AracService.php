@@ -64,16 +64,16 @@ final class AracService
     }
 
     /**
-     * Şasi: tam 17 hane, harf ve rakam. I, O ve Q serbesttir; plaka da bu alana yazılabiliyor.
+     * Şasi en fazla 17 hane. Daha kısası, plaka ve diğer yazılar kabul edilir.
      */
     public static function dogrulaSase(?string $sase): string
     {
         $sase = self::normalizeSase($sase);
-        if ($sase === '' || strlen($sase) !== 17) {
-            throw new RuntimeException('Şasi numarası 17 haneli olmalıdır.');
+        if ($sase === '') {
+            throw new RuntimeException('Şasi numarası boş olamaz.');
         }
-        if (preg_match('/[^A-Z0-9]/', $sase)) {
-            throw new RuntimeException('Şasi numarası yalnızca harf ve rakam içerebilir.');
+        if (mb_strlen($sase) > 17) {
+            throw new RuntimeException('Şasi numarası 17 haneden uzun olamaz.');
         }
 
         return $sase;

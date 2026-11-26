@@ -17,9 +17,9 @@ $bayiler = Tanim::liste('bayiler');
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label required">Şasi Numarası</label>
-                        <input type="text" name="sase" class="form-control text-uppercase sase-input" maxlength="17" minlength="17" required autocomplete="off" spellcheck="false"
-                               title="17 hane; harf ve rakam">
-                        <div class="form-text">17 hane · harf ve rakam</div>
+                        <input type="text" name="sase" class="form-control text-uppercase sase-input" maxlength="17" required autocomplete="off" spellcheck="false"
+                               title="En fazla 17 hane">
+                        <div class="form-text">En fazla 17 hane. Daha kısa plaka da yazılabilir.</div>
                     </div>
                     <div class="col-md-4"><label class="form-label required">Plaka</label><input type="text" name="plaka" class="form-control text-uppercase" maxlength="20" required></div>
                     <div class="col-md-4"><label class="form-label required">Araç Tipi</label><select name="arac_tipi" class="form-select" required><?= Tanim::options(Tanim::liste('arac_tipleri')) ?></select></div>

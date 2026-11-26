@@ -592,15 +592,14 @@
     });
     $(document).on('click', '[data-remove-row]', function () { $(this).closest('tr, .row-item').remove(); });
 
-    /* Şasi: 17 hane, harf ve rakam. I, O, Q serbest; boşluk ve diğer işaretler düşer. */
+    /* Şasi en fazla 17 hane. Daha kısa plaka da yazılır; yalnız boşluk düşer. */
     function saseTemizle(deger) {
         let temiz = '';
         for (const ch of String(deger || '')) {
-            if (/[A-Za-z0-9]/.test(ch)) {
-                temiz += ch.toLocaleUpperCase('en-US');
-            }
+            if (/\s/.test(ch)) continue;
+            temiz += ch.toLocaleUpperCase('en-US');
         }
-        return temiz.slice(0, 17);
+        return [...temiz].slice(0, 17).join('');
     }
     $(document).on('input', 'input.sase-input, input[name="sase"]', function () {
         const el = this;

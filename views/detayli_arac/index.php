@@ -27,10 +27,10 @@ require __DIR__ . '/_adimlar.php';
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label required">Şasi Numarası</label>
-                            <input type="text" name="sase" class="form-control text-uppercase sase-input" maxlength="17" minlength="17"
-                                   pattern="[A-Za-z0-9]{17}" required autocomplete="off" spellcheck="false"
-                                   value="<?= e(old('sase')) ?>" placeholder="17 haneli şasi">
-                            <div class="form-text">17 hane · harf ve rakam</div>
+                            <input type="text" name="sase" class="form-control text-uppercase sase-input" maxlength="17"
+                                   required autocomplete="off" spellcheck="false"
+                                   value="<?= e(old('sase')) ?>" placeholder="Şasi veya plaka">
+                            <div class="form-text">En fazla 17 hane. Daha kısa plaka da yazılabilir.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Plaka</label>
