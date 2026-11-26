@@ -64,7 +64,7 @@ final class AracService
     }
 
     /**
-     * Şasi: tam 17 hane, yalnızca A–Z / 0–9; I, O ve Türkçe harfler (Ü, Ş, Ç, Ğ, Ö, İ…) yok.
+     * Şasi: tam 17 hane, harf ve rakam. I, O ve Q serbesttir; plaka da bu alana yazılabiliyor.
      */
     public static function dogrulaSase(?string $sase): string
     {
@@ -72,11 +72,8 @@ final class AracService
         if ($sase === '' || strlen($sase) !== 17) {
             throw new RuntimeException('Şasi numarası 17 haneli olmalıdır.');
         }
-        if (preg_match('/[IOQ]/', $sase)) {
-            throw new RuntimeException('Şasi numarasında I, O ve Q harfleri kullanılamaz.');
-        }
-        if (preg_match('/[^A-HJ-NPR-Z0-9]/', $sase)) {
-            throw new RuntimeException('Şasi numarası yalnızca İngilizce harf ve rakam içerebilir (I, O, Q ve Türkçe karakterler yasaktır).');
+        if (preg_match('/[^A-Z0-9]/', $sase)) {
+            throw new RuntimeException('Şasi numarası yalnızca harf ve rakam içerebilir.');
         }
 
         return $sase;

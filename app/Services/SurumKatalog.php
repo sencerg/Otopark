@@ -31,6 +31,14 @@ final class SurumKatalog
     {
         return [
             [
+                'surum' => 'v0.68',
+                'tarih' => '2026-11-26 10:49',
+                'baslik' => 'Şaside harf yasağı kalktı',
+                'maddeler' => [
+                    'Şasi alanına I, O ve Q yazılabiliyor. Şasi yokken plaka girilen yerlerde bu harfler artık silinmiyor.',
+                ],
+            ],
+            [
                 'surum' => 'v0.67',
                 'tarih' => '2026-11-18 17:08',
                 'baslik' => 'Kiralayan firma yalnız detaylı eklemede',

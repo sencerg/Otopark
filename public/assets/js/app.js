@@ -592,69 +592,23 @@
     });
     $(document).on('click', '[data-remove-row]', function () { $(this).closest('tr, .row-item').remove(); });
 
-    /*
-     * Şasi no: 17 hane; I/O ve Türkçe harfler (Ü, Ş, Ç, Ğ, Ö, İ…) yasak.
-     * Yasaklı tuşa basınca uyarı; yapıştırınca temizlenir.
-     */
-    // Yasak: I, O (ve Q), Türkçe Ü Ş Ç Ğ Ö İ — büyük/küçük fark etmez
-    const SASE_YASAK_RE = /[IiİıOoQqÖöÜüŞşÇçĞğ]/u;
-    let saseUyariSon = 0;
-    function saseHarfGoster(ch) {
-        const u = String(ch).toLocaleUpperCase('tr-TR');
-        if (u === 'İ' || u === 'I') return 'I';
-        if (u === 'O' || u === 'Ö') return u === 'Ö' ? 'Ö' : 'O';
-        return u;
-    }
-    function saseYasakMi(ch) {
-        return SASE_YASAK_RE.test(ch);
-    }
-    function saseUyari(harf) {
-        const now = Date.now();
-        if (now - saseUyariSon < 700) return;
-        saseUyariSon = now;
-        App.toast('Bu harfi basamazsınız: ' + harf, 'warning');
-    }
-    function saseTemizle(deger, uyar) {
+    /* Şasi: 17 hane, harf ve rakam. I, O, Q serbest; boşluk ve diğer işaretler düşer. */
+    function saseTemizle(deger) {
         let temiz = '';
-        let ilkYasak = null;
         for (const ch of String(deger || '')) {
-            if (/\s/.test(ch)) continue;
-            if (saseYasakMi(ch)) {
-                if (!ilkYasak) ilkYasak = saseHarfGoster(ch);
-                continue;
-            }
             if (/[A-Za-z0-9]/.test(ch)) {
                 temiz += ch.toLocaleUpperCase('en-US');
-            } else if (!ilkYasak) {
-                ilkYasak = ch;
             }
         }
-        if (uyar && ilkYasak) saseUyari(ilkYasak);
         return temiz.slice(0, 17);
     }
-    $(document).on('keydown', 'input.sase-input, input[name="sase"]', function (e) {
-        if (e.ctrlKey || e.metaKey || e.altKey) return;
-        if (e.key.length !== 1) return;
-        if (saseYasakMi(e.key)) {
-            e.preventDefault();
-            saseUyari(saseHarfGoster(e.key));
-        }
-    });
-    $(document).on('beforeinput', 'input.sase-input, input[name="sase"]', function (e) {
-        const data = e.originalEvent?.data;
-        if (!data || data.length !== 1) return;
-        if (saseYasakMi(data)) {
-            e.preventDefault();
-            saseUyari(saseHarfGoster(data));
-        }
-    });
     $(document).on('input', 'input.sase-input, input[name="sase"]', function () {
         const el = this;
         const start = el.selectionStart ?? el.value.length;
         const once = el.value;
-        const temiz = saseTemizle(once, true);
+        const temiz = saseTemizle(once);
         if (once === temiz) return;
-        const caret = saseTemizle(once.slice(0, start), false).length;
+        const caret = saseTemizle(once.slice(0, start)).length;
         el.value = temiz;
         try { el.setSelectionRange(caret, caret); } catch (_) { /* ignore */ }
     });
@@ -673,11 +627,11 @@
     $(document).on('paste', 'input.sase-input, input[name="sase"]', function (e) {
         e.preventDefault();
         const text = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
-        const ek = saseTemizle(text, true);
+        const ek = saseTemizle(text);
         const el = this;
         const start = el.selectionStart ?? el.value.length;
         const end = el.selectionEnd ?? el.value.length;
-        el.value = saseTemizle(el.value.slice(0, start) + ek + el.value.slice(end), false);
+        el.value = saseTemizle(el.value.slice(0, start) + ek + el.value.slice(end));
         const caret = Math.min(start + ek.length, 17);
         try { el.setSelectionRange(caret, caret); } catch (_) { /* ignore */ }
     });

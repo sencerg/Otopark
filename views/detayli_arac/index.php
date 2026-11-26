@@ -28,9 +28,9 @@ require __DIR__ . '/_adimlar.php';
                         <div class="col-md-6">
                             <label class="form-label required">Şasi Numarası</label>
                             <input type="text" name="sase" class="form-control text-uppercase sase-input" maxlength="17" minlength="17"
-                                   pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}" required autocomplete="off" spellcheck="false"
+                                   pattern="[A-Za-z0-9]{17}" required autocomplete="off" spellcheck="false"
                                    value="<?= e(old('sase')) ?>" placeholder="17 haneli şasi">
-                            <div class="form-text">17 hane · I, O ve Türkçe harf yok</div>
+                            <div class="form-text">17 hane · harf ve rakam</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Plaka</label>
